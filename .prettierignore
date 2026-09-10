@@ -1,0 +1,10 @@
+pnpm-lock.yaml
+go.sum
+**/dist/
+**/.astro/
+**/node_modules/
+.tools/
+.cache/
+packages/api-client/src/generated/
+internal/database/sqlc/
+tests/fixtures/markdown/

@@ -1,0 +1,29 @@
+{
+  "name": "@gopheratlas/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --host 127.0.0.1",
+    "typecheck": "astro check",
+    "build": "astro build && pagefind --site dist",
+    "preview": "astro preview --host 127.0.0.1"
+  },
+  "dependencies": {
+    "@astrojs/markdown-remark": "7.2.0",
+    "@astrojs/react": "5.0.7",
+    "@astrojs/rss": "4.0.19",
+    "@astrojs/sitemap": "3.7.4",
+    "@fontsource-variable/geist": "5.3.0",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@gopheratlas/markdown": "workspace:*",
+    "@tailwindcss/vite": "4.3.3",
+    "astro": "6.4.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "tailwindcss": "4.3.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "pagefind": "1.5.2"
+  }
+}

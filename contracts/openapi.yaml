@@ -1,0 +1,64 @@
+openapi: 3.1.0
+info:
+  title: GopherAtlas CMS bootstrap API
+  version: 0.0.0
+  description: P0-0 liveness only. Authenticated Admin actions will be added in later phases.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://127.0.0.1:46217
+    description: Loopback development server
+security: []
+tags:
+  - name: Runtime
+    description: Process-level checks
+paths:
+  /healthz:
+    get:
+      operationId: getHealth
+      summary: Check process liveness
+      description: Does not assert database or upstream readiness.
+      tags: [Runtime]
+      responses:
+        '200':
+          description: Process is accepting requests
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+        default:
+          description: Request failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, requestId]
+          properties:
+            code:
+              type: string
+              description: Stable machine-readable classification
+            message:
+              type: string
+            requestId:
+              type: string
+            fields:
+              type: object
+              additionalProperties:
+                type: string

@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://gopheratlas.com/sitemap-index.xml

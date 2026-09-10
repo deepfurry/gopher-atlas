@@ -1,0 +1,184 @@
+@import 'tailwindcss';
+
+@font-face {
+  font-family: 'Geist Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/geist/files/geist-latin-wght-normal.woff2')
+    format('woff2');
+}
+
+:root {
+  color-scheme: light dark;
+  --background: #f7f8f7;
+  --foreground: #252a29;
+  --muted: #e9ecea;
+  --muted-foreground: #5b6461;
+  --border: #d2d8d4;
+  --primary: #086a67;
+  --primary-foreground: #ffffff;
+  --ring: #086a67;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1b201e;
+    --foreground: #eceee7;
+    --muted: #272f2b;
+    --muted-foreground: #adb8b2;
+    --border: #414b46;
+    --primary: #77ccc2;
+    --primary-foreground: #17201d;
+    --ring: #77ccc2;
+  }
+}
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-ring: var(--ring);
+  --radius-md: var(--radius);
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font:
+    14px/1.6 'Geist Variable',
+    'PingFang SC',
+    'Microsoft YaHei',
+    'Noto Sans CJK SC',
+    'Source Han Sans SC',
+    sans-serif;
+}
+a {
+  color: var(--primary);
+  text-underline-offset: 3px;
+}
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+.skip-link {
+  position: absolute;
+  top: -4rem;
+  padding: 0.5rem;
+  background: var(--background);
+}
+.skip-link:focus {
+  top: 0;
+}
+.admin-shell {
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr);
+  min-height: 100vh;
+}
+.sidebar {
+  padding: 24px 16px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+.brand {
+  color: var(--foreground);
+  font-weight: 650;
+  font-size: 17px;
+  text-decoration: none;
+}
+.brand span {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  margin-left: 6px;
+}
+nav a {
+  display: block;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: var(--foreground);
+}
+nav a[aria-current='page'] {
+  background: var(--muted);
+}
+.sidebar-note {
+  margin-top: auto;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+main {
+  padding: 32px clamp(20px, 4vw, 56px);
+  max-width: 1200px;
+  width: 100%;
+}
+.page-heading,
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+h1 {
+  margin: 4px 0 28px;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+h2 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.caption {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.badge {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2px 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.workspace-section {
+  padding-block: 20px;
+  border-top: 1px solid var(--border);
+}
+.workspace-section p {
+  color: var(--muted-foreground);
+}
+@media (max-width: 640px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    padding: 16px 20px;
+  }
+  .sidebar-note {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}

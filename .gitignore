@@ -1,0 +1,33 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+
+# Dependencies, generated builds, caches, local tools
+node_modules/
+dist/
+.astro/
+.vite/
+.wrangler/
+.tools/
+.cache/
+coverage/
+*.tsbuildinfo
+
+# Local runtime data
+/data/
+/logs/
+*.db
+*.db-shm
+*.db-wal
+*.log
+*.exe
+
+# Other package managers are not supported
+package-lock.json
+yarn.lock
+
+# Editor/OS files
+.DS_Store
+Thumbs.db
+.idea/

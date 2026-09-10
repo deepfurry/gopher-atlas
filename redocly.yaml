@@ -1,0 +1,4 @@
+extends: [recommended]
+rules:
+  # Liveness is intentionally anonymous and has no 4xx business response.
+  operation-4xx-response: off

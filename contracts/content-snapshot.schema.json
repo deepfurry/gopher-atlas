@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gopheratlas.com/contracts/content-snapshot.schema.json",
+  "title": "P0-0 empty bootstrap snapshot",
+  "description": "Version 0 is a local tooling fixture only, not a production publication format. P0-4 must define version 1 public entities explicitly. Unknown fields and nonempty entity arrays fail closed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "generation",
+    "exportedAt",
+    "authors",
+    "content",
+    "tags",
+    "routes"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 0 },
+    "generation": { "const": 0 },
+    "exportedAt": { "type": "string", "format": "date-time" },
+    "authors": { "type": "array", "maxItems": 0, "items": false },
+    "content": { "type": "array", "maxItems": 0, "items": false },
+    "tags": { "type": "array", "maxItems": 0, "items": false },
+    "routes": { "type": "array", "maxItems": 0, "items": false }
+  }
+}

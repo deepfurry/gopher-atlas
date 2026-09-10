@@ -2,6 +2,11 @@ packages:
   - apps/*
   - packages/*
 
-onlyBuiltDependencies:
-  - esbuild
-  - sharp
+saveExact: true
+engineStrict: true
+# Preserve pnpm 10's policy for the existing locked dependency versions.
+minimumReleaseAge: 0
+
+allowBuilds:
+  esbuild: true
+  sharp: true

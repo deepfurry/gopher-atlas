@@ -32,10 +32,18 @@ SQLite / sqlc / goose → 私有 R2 快照 → Astro 静态构建 → Workers St
 
 ## 本地开始
 
-需要 Git、GNU Make、Node **24.15.0**、pnpm **10.11.0**、Go **1.26.8**。
+需要 Git、GNU Make、Node **24.15.0**、pnpm **12.3.4**、Go **1.26.8**。
 版本由 `.node-version`、`.go-version`、`packageManager` 固定。Go 检查脚本会选择
 固定工具链；第一次运行会下载 Go、sqlc、goose 和 staticcheck，需能访问依赖源。
 Windows 可在 PowerShell 中运行（例如用 Chocolatey 安装 GNU Make）；不要求 WSL。
+
+pnpm 12 的安装策略位于 `pnpm-workspace.yaml`：保留精确版本保存、严格 engine
+检查、pnpm 10 原有的无发布等待期策略（`minimumReleaseAge: 0`），并仅允许
+esbuild/sharp 执行依赖构建脚本。显式保留等待期策略可避免新默认值拒绝已有的
+锁定版本，无需改动应用依赖。`.npmrc` 仅用于 registry/auth
+配置。CI 使用支持 pnpm 12 的 `pnpm/action-setup@v6.1.0`，从根 `packageManager`
+读取版本。旧版启动器不能自动切换时，先按 [pnpm 官方安装说明](https://pnpm.io/installation)
+安装 pnpm 12，再运行下面的命令。
 
 ```sh
 pnpm install --frozen-lockfile

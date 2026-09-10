@@ -2,10 +2,10 @@
   "name": "gopher-atlas",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.11.0",
+  "packageManager": "pnpm@12.3.4",
   "engines": {
     "node": ">=24.15.0 <25",
-    "pnpm": "10.11.0"
+    "pnpm": "12.3.4"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0 && prettier --check .",

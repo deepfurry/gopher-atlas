@@ -15,9 +15,10 @@ Images, including references, require the exact HTTPS origin
 `https://assets.gopheratlas.com` and nonblank alt text. Other image hosts and data
 URLs are rejected. Alt text belongs to usage, not the global asset record.
 
-The bootstrap fixture suite checks the shared syntax/safety boundary. Astro uses
+The shared fixture suite checks the syntax/safety boundary. Astro uses
 the shared plugins and Shiki configuration. The actual Admin editor/preview,
 heading anchors, TOC and copy-code UI belong to P0-3/P0-5. When added, Admin preview
 must use the same plugin list and renderer parity fixtures. Go submit/publish
 validation must independently enforce this contract; browser validation is not a
-security boundary. No editor or publication validator is claimed complete in P0-0.
+security boundary. P0-1 adds Go Goldmark/GFM validation for author biographies,
+checked against the same fixtures, without adding an editor or publication validator.

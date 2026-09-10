@@ -1,8 +1,9 @@
 name: Repository checks
 on:
   push:
-    branches: [main]
+    branches: [dev, main]
   pull_request:
+    branches: [dev, main]
 permissions:
   contents: read
 concurrency:
@@ -26,5 +27,5 @@ jobs:
           cache: true
       - run: pnpm install --frozen-lockfile
       - run: make check
-      - run: go test -race ./...
+      - run: go test -race -tags=adminembed ./...
       - run: git diff --exit-code

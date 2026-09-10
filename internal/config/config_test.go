@@ -13,7 +13,12 @@ func TestListenBoundary(t *testing.T) {
 		{"127.0.0.1:0", false}, {"127.0.0.1:invalid", false}, {"invalid", false},
 	} {
 		t.Run(tc.addr, func(t *testing.T) {
-			cfg, err := Load(func(string) string { return tc.addr })
+			cfg, err := Load(func(key string) string {
+				if key == "CMS_LISTEN_ADDR" {
+					return tc.addr
+				}
+				return ""
+			})
 			if (err == nil) != tc.ok {
 				t.Fatalf("Load error = %v, want valid = %v", err, tc.ok)
 			}

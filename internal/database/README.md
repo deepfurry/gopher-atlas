@@ -1,6 +1,9 @@
-# Persistence boundary
+# Persistence
 
-No database is opened in P0-0. P0-1 adds `database/sql` with `modernc.org/sqlite`,
-connection pragmas, explicit goose migrations, and sqlc output in `sqlc/`.
-Application services call generated queries and own transactions directly;
-there is no generic repository/DAO wrapper. See `contracts/data.md`.
+`database.go` opens a bounded four-connection modernc SQLite pool with per-connection
+DSN PRAGMAs and immediate write transactions. It never runs migrations.
+`Ready` checks the applied migration version and required identity columns.
+
+Services call generated `sqlc/` queries directly and own their transactions.
+`db/migrations` and `db/queries` are the sources of truth; `make generate` refreshes
+output and `make check` verifies drift. See `contracts/data.md` and ADR 0005.

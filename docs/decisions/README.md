@@ -11,6 +11,7 @@ history. Routine code choices do not need an ADR.
 | [0002](0002-private-control-plane.md)  | Tailscale-only CMS with loopback process                   | Accepted                           |
 | [0003](0003-editorial-workflow.md)     | Drafts, immutable revisions, explicit reviews              | Accepted; implementation P0-1–P0-3 |
 | [0004](0004-r2-published-snapshots.md) | Immutable R2 snapshots and durable publication jobs        | Accepted; implementation P0-4      |
+| [0005](0005-identity-runtime.md)       | Persistent identity, middleware order and production embed | Accepted; implemented P0-1         |
 
 New records should include date, status, context, decision, alternatives,
 consequences, and implementation scope.

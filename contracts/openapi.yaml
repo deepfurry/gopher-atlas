@@ -1,59 +1,719 @@
 openapi: 3.1.0
 info:
-  title: GopherAtlas CMS bootstrap API
-  version: 0.0.0
-  description: P0-0 liveness only. Authenticated Admin actions will be added in later phases.
+  title: GopherAtlas CMS identity API
+  version: 0.1.0
+  description:
+    P0-1 private, same-origin control plane. All errors use the stable envelope; codes
+    include authentication_required, account_pending, account_disabled, permission_denied,
+    csrf_invalid, oauth_state_invalid, oauth_exchange_failed, validation_failed, not_found,
+    last_admin_required, dependency_unavailable and internal_error. /ops/monitor is a separately
+    guarded active-Admin-only contrib HTML/JSON surface, not an application data API.
   license:
     name: MIT
     identifier: MIT
 servers:
-  - url: http://127.0.0.1:46217
-    description: Loopback development server
-security: []
+  - url: https://blog.go-furry.com
+    description: Private Tailscale HTTPS origin
+  - url: http://127.0.0.1:5173
+    description: Loopback Vite same-origin proxy; CMS_BASE_URL/redirect must match
+security:
+  - Session: []
 tags:
   - name: Runtime
-    description: Process-level checks
+    description: Local runtime checks
+  - name: Auth
+    description: OAuth and session lifecycle
+  - name: Identity
+    description: Current identity and author profile
+  - name: Users
+    description: Active Admin user management
 paths:
   /healthz:
     get:
       operationId: getHealth
+      tags:
+        - Runtime
       summary: Check process liveness
-      description: Does not assert database or upstream readiness.
-      tags: [Runtime]
+      description: Check process liveness
       responses:
         '200':
-          description: Process is accepting requests
+          description: Successful operation
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: false
-                required: [status]
-                properties:
-                  status:
-                    type: string
-                    enum: [ok]
+                $ref: '#/components/schemas/Health'
         default:
-          description: Request failed
+          $ref: '#/components/responses/Error'
+      security: []
+  /readyz:
+    get:
+      operationId: getReadiness
+      tags:
+        - Runtime
+      summary: Check SQLite reachability and expected identity schema
+      description: Read-only. Does not run migrations or depend on GitHub/R2/Cloudflare availability.
+      responses:
+        '200':
+          description: Successful operation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/Health'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      security: []
+  /api/auth/github:
+    get:
+      operationId: startGitHubLogin
+      tags:
+        - Auth
+      summary: Start browser-bound GitHub OAuth
+      description: Start browser-bound GitHub OAuth
+      responses:
+        '302':
+          description: Redirect without exposing OAuth credentials to the Admin URL.
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Redirect destination
+            Set-Cookie:
+              schema:
+                type: string
+              description: Host-only cookies with SameSite=Lax; Secure for HTTPS, HttpOnly except CSRF.
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      security: []
+  /api/auth/github/callback:
+    get:
+      operationId: completeGitHubLogin
+      tags:
+        - Auth
+      summary: Consume state once and resolve GitHub identity
+      description:
+        Successful login rotates the prior session and issues session/CSRF cookies, then
+        redirects to /. Unknown identities become pending. Disabled accounts are rejected. Provider
+        access tokens are discarded after numeric identity lookup.
+      responses:
+        '303':
+          description: Redirect without exposing OAuth credentials to the Admin URL.
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Redirect destination
+            Set-Cookie:
+              schema:
+                type: string
+              description: Host-only cookies with SameSite=Lax; Secure for HTTPS, HttpOnly except CSRF.
+        '400':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '502':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      security: []
+      parameters:
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+          description: One-time value must match the initiating browser cookie.
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Short-lived provider code; never logged.
+  /api/auth/logout:
+    post:
+      operationId: logout
+      tags:
+        - Auth
+      summary: Revoke the current session and expire cookies
+      description:
+        Available to active and pending sessions. Requires Origin and CSRF. Server-side
+        revocation precedes cookie removal. Requires the exact configured Origin and a session-bound
+        X-CSRF-Token header.
+      responses:
+        '204':
+          description: Session revoked and cookies expired.
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - Session: []
+          CSRF: []
+  /api/admin/v1/me:
+    get:
+      operationId: getMe
+      tags:
+        - Identity
+      summary: Read current identity and server-derived permissions
+      description:
+        Valid pending sessions may read this endpoint. Disabled users are rejected. No tokens
+        or hashes are returned.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/admin/v1/users:
+    get:
+      operationId: listUsers
+      tags:
+        - Users
+      summary: List users as an active Admin
+      description: List users as an active Admin
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserList'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: after
+          in: query
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            default: 0
+          description: Exclusive user ID cursor; pages contain at most 100 users.
+  /api/admin/v1/users/{id}:
+    get:
+      operationId: getUser
+      tags:
+        - Users
+      summary: Read a user as an active Admin
+      description: Read a user as an active Admin
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+  /api/admin/v1/users/{id}/actions/approve:
+    post:
+      operationId: approveUser
+      tags:
+        - Users
+      summary: approve a user as an active Admin
+      description:
+        Approve a pending account as Editor or Reviewer. Requires the exact configured Origin
+        and a session-bound X-CSRF-Token header.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovalInput'
+      security:
+        - Session: []
+          CSRF: []
+  /api/admin/v1/users/{id}/actions/disable:
+    post:
+      operationId: disableUser
+      tags:
+        - Users
+      summary: disable a user as an active Admin
+      description:
+        Disable and revoke all sessions atomically. Reject disabling the last active Admin with
+        last_admin_required. Requires the exact configured Origin and a session-bound X-CSRF-Token
+        header.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      security:
+        - Session: []
+          CSRF: []
+  /api/admin/v1/users/{id}/actions/enable:
+    post:
+      operationId: enableUser
+      tags:
+        - Users
+      summary: enable a user as an active Admin
+      description:
+        Enable a disabled user without restoring revoked sessions. The user must sign in again.
+        Requires the exact configured Origin and a session-bound X-CSRF-Token header.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      security:
+        - Session: []
+          CSRF: []
+  /api/admin/v1/users/{id}/role:
+    put:
+      operationId: changeUserRole
+      tags:
+        - Users
+      summary: Change a user role as an active Admin
+      description:
+        Reject demoting the last active Admin with last_admin_required. Permissions are
+        resolved server-side on each request. Requires the exact configured Origin and a
+        session-bound X-CSRF-Token header.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleInput'
+      security:
+        - Session: []
+          CSRF: []
+  /api/admin/v1/authors/me:
+    get:
+      operationId: getOwnProfile
+      tags:
+        - Identity
+      summary: Read the active user author profile
+      description: Read the active user author profile
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: updateOwnProfile
+      tags:
+        - Identity
+      summary: Update the active user author profile
+      description:
+        Update the active user author profile Requires the exact configured Origin and a
+        session-bound X-CSRF-Token header.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileInput'
+      security:
+        - Session: []
+          CSRF: []
 components:
+  securitySchemes:
+    Session:
+      type: apiKey
+      in: cookie
+      name: __Host-gopheratlas_session
+      description:
+        'Opaque token; SHA-256 only in SQLite. Secure, HttpOnly, SameSite=Lax, Path=/, no
+        Domain. Validated loopback HTTP development uses gopheratlas_dev_session. CSRF cookie:
+        __Host-gopheratlas_csrf (or gopheratlas_dev_csrf in HTTP development), non-HttpOnly,
+        host-only; mutation headers must match.'
+    CSRF:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description:
+        Required for mutations. Must match the session-bound same-origin CSRF cookie and stored
+        SHA-256 hash. Origin must also exactly match CMS_BASE_URL. Browser transport attaches the
+        header automatically.
+  responses:
+    Error:
+      description: Stable error envelope without provider/SQL details. See error.code for classification.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
   schemas:
+    Health:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+    User:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - githubUserId
+        - githubLogin
+        - role
+        - status
+        - createdAt
+        - updatedAt
+        - lastLoginAt
+      properties:
+        id:
+          type: integer
+          format: int64
+        githubUserId:
+          type: integer
+          format: int64
+        githubLogin:
+          type: string
+        role:
+          type: string
+          enum:
+            - admin
+            - reviewer
+            - editor
+        status:
+          type: string
+          enum:
+            - pending
+            - active
+            - disabled
+        createdAt:
+          type: integer
+          format: int64
+        updatedAt:
+          type: integer
+          format: int64
+        lastLoginAt:
+          type:
+            - integer
+            - 'null'
+          format: int64
+    Profile:
+      type: object
+      additionalProperties: false
+      required:
+        - slug
+        - displayName
+        - bioMarkdown
+        - avatarUrl
+        - websiteUrl
+      properties:
+        slug:
+          type: string
+          readOnly: true
+          description: Stable numeric-identity slug; cannot be changed in P0-1.
+        displayName:
+          type: string
+        bioMarkdown:
+          type: string
+        avatarUrl:
+          type: string
+          readOnly: true
+        websiteUrl:
+          type: string
+    ProfileInput:
+      type: object
+      additionalProperties: false
+      required:
+        - displayName
+        - bioMarkdown
+        - websiteUrl
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        bioMarkdown:
+          type: string
+          maxLength: 10000
+          description:
+            At most 10000 UTF-8 bytes. CommonMark/GFM with shared Markdown safety validation; no
+            H1, frontmatter, HTML/MDX, unsafe URLs or external images.
+        websiteUrl:
+          type: string
+          maxLength: 2048
+          description: Empty or absolute HTTP(S) URL without credentials, whitespace or backslashes.
+    Permissions:
+      type: object
+      additionalProperties: false
+      required:
+        - manageUsers
+        - manageAuthorProfiles
+        - editOwnProfile
+        - review
+        - publish
+        - manageTaxonomy
+        - retryBuild
+        - viewAudit
+        - viewMonitor
+        - createTopic
+      properties:
+        manageUsers:
+          type: boolean
+        manageAuthorProfiles:
+          type: boolean
+        editOwnProfile:
+          type: boolean
+        review:
+          type: boolean
+        publish:
+          type: boolean
+        manageTaxonomy:
+          type: boolean
+        retryBuild:
+          type: boolean
+        viewAudit:
+          type: boolean
+        viewMonitor:
+          type: boolean
+        createTopic:
+          type: boolean
+    Me:
+      type: object
+      additionalProperties: false
+      required:
+        - user
+        - profile
+        - permissions
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        profile:
+          $ref: '#/components/schemas/Profile'
+        permissions:
+          $ref: '#/components/schemas/Permissions'
+    UserList:
+      type: object
+      additionalProperties: false
+      required:
+        - users
+        - nextCursor
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        nextCursor:
+          type:
+            - integer
+            - 'null'
+          format: int64
+          description: Use as after for the next page; null ends pagination.
+    RoleInput:
+      type: object
+      additionalProperties: false
+      required:
+        - role
+      properties:
+        role:
+          type: string
+          enum:
+            - admin
+            - reviewer
+            - editor
+    ApprovalInput:
+      type: object
+      additionalProperties: false
+      required:
+        - role
+      properties:
+        role:
+          type: string
+          enum:
+            - editor
+            - reviewer
     ErrorResponse:
       type: object
       additionalProperties: false
-      required: [error]
+      required:
+        - error
       properties:
         error:
           type: object
           additionalProperties: false
-          required: [code, message, requestId]
+          required:
+            - code
+            - message
+            - requestId
           properties:
             code:
               type: string
-              description: Stable machine-readable classification
             message:
               type: string
             requestId:

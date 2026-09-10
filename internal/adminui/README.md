@@ -1,8 +1,13 @@
-# Admin embedding boundary
+# Admin embedding
 
-P0-0 builds `apps/admin/dist` as a standalone local preview. No unauthenticated SPA
-is served by the CMS. P0-1 will copy that build into this directory's ignored
-`dist/` and add `embed.go` plus explicit asset/SPA routing tests. A clean checkout
-must continue to pass `go test ./...` without a prior frontend build.
+`pnpm --filter @gopheratlas/admin build` builds `apps/admin/dist` and copies it into
+this directory's owned, ignored `dist/`. `make build-cms` then compiles the CMS with
+`-tags=adminembed`. The tag embeds real assets and fails if they are absent.
 
-Do not let the SPA fallback handle `/api/*`, `/ops/*`, `/healthz`, or `/readyz`.
+Plain Go tooling selects the development variant: no generated assets required,
+SPA returns 503, and Vite provides the local UI. `make check` validates ordinary Go
+code, builds frontend assets, runs tagged embed/route tests and compiles the final
+production binary. No generated assets are committed, and production needs no Node.
+
+SPA fallback excludes `/api`, `/ops`, `/healthz` and `/readyz`, including subpaths.
+Missing assets remain 404. Index/routes use no-store; hashed assets are immutable.

@@ -43,9 +43,15 @@ only the variants currently needed are retained. shadcn code is MIT licensed;
 see `docs/third-party-notices.md`. Future components should be added from this
 Base UI family. Public must never import this directory.
 
-TanStack Query owns the connection request; React Router owns Admin navigation.
-The only current action is to recheck CMS connectivity. Tables, forms, editor,
-toasts and real workflow navigation are added when their phases supply behavior.
+TanStack Query owns identity/readiness/user requests and mutations; React Router
+owns Admin navigation. P0-1 adds a GitHub login page, waiting-for-approval state,
+active identity/sidebar, a compact Users table and a labeled author profile form.
+Controls are gated by server capability flags. There are no editorial controls.
+The table scrolls inside its own region at narrow widths; logout remains visible
+on mobile. Status/error text is explicit, with role=status/alert announcements.
+Forms use native labeled inputs/selects and the existing Base UI Button. The new
+error token is #a12c32 in light mode and #ffabb0 in dark mode. No raw Markdown bio
+is rendered as HTML; the profile uses a plain textarea until the later editor phase.
 
 ## Review procedure
 

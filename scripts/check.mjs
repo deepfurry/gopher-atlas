@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { files, go, pnpm, run, tool, goEnv } from './lib.mjs';
 
 run('node', ['scripts/check-boundaries.mjs']);
@@ -20,6 +20,15 @@ pnpm('exec', 'redocly', 'lint', 'contracts/openapi.yaml');
 run('node', ['scripts/generate.mjs', '--check']);
 run('node', ['scripts/check-sql.mjs']);
 pnpm('build');
+mkdirSync('.cache/bin', { recursive: true });
+go('test', '-tags=adminembed', './internal/adminui', './internal/app');
+go(
+  'build',
+  '-tags=adminembed',
+  '-o',
+  `.cache/bin/gopheratlas-cms${process.platform === 'win32' ? '.exe' : ''}`,
+  './cmd/gopheratlas-cms',
+);
 for (const path of [
   'apps/web/dist/index.html',
   'apps/web/dist/about/index.html',
@@ -29,6 +38,7 @@ for (const path of [
   'apps/web/dist/sitemap-0.xml',
   'apps/web/dist/pagefind/pagefind.js',
   'apps/admin/dist/index.html',
+  'internal/adminui/dist/index.html',
 ]) {
   if (!existsSync(path)) throw new Error(`Missing build artifact: ${path}`);
 }
@@ -36,5 +46,5 @@ const rss = readFileSync('apps/web/dist/rss.xml', 'utf8');
 if (!rss.includes('<rss') || !rss.includes('GopherAtlas'))
   throw new Error('Invalid bootstrap RSS');
 console.log(
-  'All P0-0 checks passed. No production services or credentials used.',
+  'All P0-1 checks passed. No production services or credentials used.',
 );

@@ -1,9 +1,9 @@
 # Versioned goose migrations
 
-The first application migration belongs to P0-1. Do not invent business tables or
-an empty production migration for bootstrap. Files will use sequential names such
-as `00001_identity.sql` with `-- +goose Up` and `-- +goose Down` annotations.
-Never rewrite a released migration. Startup never invokes goose.
+`00001_identity.sql` creates P0-1 users, author profiles, hashed sessions and OAuth
+states. Never rewrite it after merge/release; add the next sequential migration.
+CMS startup/readiness never invokes goose.
 
-`make db-status` and `make db-up` require an explicit `DATABASE_PATH` and use the
-pinned goose SQLite driver. Checks only migrate a disposable tooling fixture.
+`make db-status` / `make db-up` require an explicit DATABASE_PATH and use the pinned
+goose SQLite driver. Tests apply real up/down migrations only to temporary DBs.
+The disposable tooling fixture also remains part of make check.

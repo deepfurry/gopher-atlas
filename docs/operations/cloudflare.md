@@ -4,7 +4,7 @@ Public deployment will use Workers Static Assets and Workers Builds with reposit
 root as build context. Configure Node from `.node-version` (currently 24.15.0) and
 pnpm from root packageManager. The local `pnpm --filter @gopheratlas/web build`
 already works without Cloudflare; it only builds the version 0 empty fixture.
-There is intentionally no production deploy script in P0-0.
+There is intentionally no production deploy script in P0-1.
 
 P0-4/P0-5 must replace the fixture with validated published R2 content, add reviewed
 deploy commands and verify the generated workspace on Workers. Build secrets use

@@ -1,38 +1,58 @@
 # Upstream boundaries
 
-P0-0 only fetches development dependencies. Checks/builds use no live OAuth, R2,
-deploy hook, production CMS or content service. Versions are pinned in manifests,
-the pnpm lock, go.mod/go.sum and `scripts/tools.json`.
+Checks use local temporary SQLite databases and fake OAuth HTTP endpoints, never
+real GitHub credentials, R2, Cloudflare or production services. Dependency versions
+are pinned in manifests, lockfiles, go.mod/go.sum and `scripts/tools.json`.
 
-| Integration         | Required future behavior                                                                                                                                                                                     |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| GitHub OAuth        | Numeric user ID is permanent identity; login is mutable. Validate high-entropy state, discard access token after identity lookup. Unknown users start pending.                                               |
-| Sessions / CSRF     | Opaque random session, SHA-256 token hashes, secure `__Host-gopheratlas_session`, HttpOnly, SameSite=Lax, Path=/, no Domain. Mutations require active session, CSRF and origin checks. CSRF stays in memory. |
-| Private CMS         | Loopback process behind Tailscale-only HTTPS. No required public inbound port or public Cloudflare route. Port choice is not access control.                                                                 |
-| R2 CMS credential   | S3 Access Key ID/Secret, RW assets + content; never a generic Cloudflare API token. Immutable object keys; no automatic purge.                                                                               |
-| R2 build credential | Separate RO access to private content only, stored as Workers Build Secrets. No drafts even in previews.                                                                                                     |
-| Cloudflare hook     | Server-only secret; trigger after snapshot upload/latest-pointer update, after the DB transaction.                                                                                                           |
+## GitHub identity and browser sessions
 
-## Logging and Monitor integration seam (P0-1)
+`golang.org/x/oauth2` exchanges codes with a ten-second context/client timeout;
+GitHub `/user` supplies the stable numeric ID. Redirect following is disabled for
+provider HTTP calls. The token exists only during identity lookup, then is discarded.
+No GitHub SDK or persistent provider token is needed.
 
-Use one shared `*zap.Logger` for services and
-`github.com/gofiber/contrib/v3/zap`. Tee JSON to stdout and configurable Lumberjack
-v2 rotation; development may use a console encoder. Do not introduce a competing
-request logger. Do not log bodies, tokens, cookies, authorization headers, CSRF,
-Markdown, R2 secrets, deploy-hook URLs, or client IP by default.
+Login stores one-way state hashes and a short-lived browser cookie. The callback
+requires cookie equality plus atomic, unexpired, unused server state. A new login
+rotates the previous browser session. Pending users may read `/me` and logout;
+privileged APIs require active status. Disabled sessions cannot authorize.
 
-Read the [current Monitor repository](https://github.com/gofiber/contrib/tree/main/v3/monitor),
-not stale website examples. Adopt one **app-wide** instance. `Next=true` passes
-non-monitor traffic downstream and includes it in HTTP metrics; `false` serves
-the monitor endpoint. A route-only mount cannot count application HTTP traffic.
+Production session cookie: `__Host-gopheratlas_session`, Secure, HttpOnly,
+SameSite=Lax, Path=/, no Domain. `__Host-gopheratlas_csrf` is Secure/host-only and
+readable by JS; mutations require cookie/header equality, stored SHA-256 match and
+exact configured Origin. No LocalStorage. Validated loopback HTTP development uses
+`gopheratlas_dev_session`, `gopheratlas_dev_csrf`, and `gopheratlas_dev_oauth_state`.
+HTTPS, including development HTTPS, always uses Secure `__Host-` cookies.
 
-Required assembly intent: request ID → Zap → `/ops/monitor` admin guard → app-wide
-Monitor → Recover → sessions/CSRF/routes. The guard must be able to authenticate
-the request before Monitor (do not rely only on a session loader mounted later).
-`EnableGCPauseMetrics` defaults false. Monitor handles downstream errors through
-Fiber's ErrorHandler and consumes them, so access logging must inspect resulting
-status, not depend solely on a propagated error. Test authorization, errors and
-recovered panics against the exact pinned implementation before enabling it.
+CMS remains loopback-only behind Tailscale HTTPS. Its proxy must not log callback
+query strings. Vite proxies the same-origin API and ops surfaces without rewriting
+Origin. Secrets never use PUBLIC_/VITE_ variables or enter browser bundles.
 
-Use explicit timeout/retry ownership at external boundaries and test doubles in
-normal CI. Never put external network calls inside editorial DB transactions.
+## Logging and Monitor (implemented)
+
+One `*zap.Logger` tees JSON to stdout and Lumberjack v2 rotation. Composition also
+adapts that exact logger for Fiber-internal logging. Application errors cross the
+transport as approved classifications; no raw SQL/provider/panic text is logged.
+
+Pinned source was inspected before integration:
+
+- [contrib Zap v1.0.12](https://pkg.go.dev/github.com/gofiber/contrib/v3/zap@v1.0.12):
+  shared Logger, explicit latency/status/method/path fields, server request ID in
+  FieldsFunc. Never use query-bearing `url` or raw `error`; skip health/readiness/Monitor.
+- [contrib Monitor v1.2.1](https://pkg.go.dev/github.com/gofiber/contrib/v3/monitor@v1.2.1):
+  one app-wide instance. `Next=true` instruments non-Monitor traffic; false serves
+  `/ops/monitor`. The active-Admin guard resolves the shared session before Monitor;
+  Recover runs after Monitor. EnableGCPauseMetrics=false. The dashboard is embedded
+  and uses no external fonts/chart dependencies.
+
+Monitor invokes ErrorHandler for downstream errors and consumes them. Zap must
+observe resulting status. Tests prove 2xx/4xx/errors/panics, exact aggregate HTTP
+counts, balanced in-flight count and Admin-only access at the pre-session guard.
+Never log body, response body, OAuth query/code/state, IP, UA, cookie, Authorization,
+CSRF, Markdown, R2 credentials or deploy-hook URL. Client request IDs are replaced.
+
+## Deferred external boundaries
+
+R2 CMS credentials will be bucket-scoped S3 RW assets/content; public builds use
+separate RO content credentials. Immutable assets use `assets.gopheratlas.com`.
+Private content stays private. Cloudflare hooks remain server-only and occur after
+snapshot upload and committed DB transactions. No R2/hooks/import/deploy in P0-1.

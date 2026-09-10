@@ -1,33 +1,52 @@
 # Architecture map
 
-The public and control planes have different availability and trust boundaries:
+The public and control planes have separate availability and trust boundaries:
 
 ```text
-Private CMS → published snapshot in private R2 → Astro build → static public site
-     └─────→ immutable assets in public R2 ─────────────────→ public readers
+Private CMS → future published R2 snapshot → Astro build → static public site
 ```
 
-CMS downtime must not break public HTML, search, RSS, sitemap, or assets. Content
-belongs in the future CMS, not routine Git commits. About/contribute remain in Git.
-
-Current executable scope: static Web pages with an empty local snapshot fixture,
-Admin connection preview, Fiber liveness shell, shared Markdown rules, and tooling.
-There are no database tables, authentication, publication jobs, or R2 adapters.
-Planned directories are added when implementation needs them; see the phase map.
+P0-1 ships the private identity runtime; Public still builds its version 0 empty
+fixture. No content model, editorial workflow, R2 adapter, jobs, audit persistence,
+legacy importer or deployment is implemented.
 
 Dependency direction:
 
 - `apps/web` → shared Markdown; never Admin/API client/private services.
-- `apps/admin` → API client and, when the editor arrives, shared Markdown.
-- `cmd` → `internal/app` composition → HTTP transport → future services/policy →
-  sqlc queries and SQLite transactions. Go code does not import TS packages.
-- Shared TS packages never import apps. Generated API types have no business logic.
+- `apps/admin` → generated API client and server-derived capabilities.
+- `cmd` constructs config, one logger, SQLite pool, OAuth provider and auth service.
+- `internal/app` assembles HTTP middleware; `internal/http` translates transport;
+  `internal/auth` owns identity/session transactions and calls sqlc directly.
+- `internal/policy` is the fixed role/status capability mapping. Services recheck
+  actors inside write transactions; React never implements role authorization.
+- `internal/markdown` validates author bio safety with Goldmark/GFM and the existing
+  shared Markdown fixtures. Browser validation cannot replace the Go boundary.
+- Shared TS packages never import apps. Generated code contains no manual logic.
 
-`internal/app` is the single middleware assembly point. P0-1 will add one shared
-Zap logger, an endpoint-specific admin guard, an app-wide Monitor with `Next`, and
-Recover after Monitor. Validate real ordering with error/panic/authorization tests.
-Do not expose Monitor while authentication is absent.
+SQLite uses a four-connection pool with DSN initialization on every connection.
+Write services use immediate transactions to serialize bootstrap and last-Admin
+checks before reading state. External OAuth I/O completes before any DB identity
+transaction. Schema migration is an explicit operation, never startup/readiness.
 
-Contracts own stable semantics. `openapi.yaml` currently describes only liveness
-and error envelopes. The snapshot schema is explicitly version 0, accepts empty
-arrays only, and must not be mistaken for the production version 1 format.
+`internal/app` is the single middleware assembly point:
+
+```text
+server-generated request ID → shared contrib Zap → response privacy headers
+→ Monitor's shared-session Admin guard → one app-wide Monitor + Next
+→ Recover → ordinary API sessions → active/CSRF gates → API / SPA
+```
+
+Monitor consumes downstream errors through the configured ErrorHandler. Access
+logs classify the resulting response status, include `path` rather than `url`,
+and omit raw errors. The integration test asserts aggregate counters, recovered
+panics, authorization, skipped Monitor logs and secret absence.
+
+`make build-cms` builds Vite, replaces the owned ignored embed directory, and
+compiles `-tags=adminembed`. That tag requires real generated assets. Plain Go
+builds/tests use an explicit development variant whose SPA returns 503; they do
+not falsely claim to contain the production UI. The final `make check` build
+always uses freshly built assets and runs embed-specific route/cache tests.
+
+OpenAPI and migration/SQL inputs are authoritative for executable interfaces.
+The snapshot schema remains version 0 and rejects nonempty entities. Published
+snapshot version 1 and public/private export isolation belong to P0-4.

@@ -1,11 +1,15 @@
-# Backup and restore boundary (deferred)
+# Backup and restore boundary (implementation deferred)
 
-No application database exists in P0-0. Later CMS backup must use a SQLite-consistent
-online mechanism; copying a live database file without its WAL is not a backup.
-R2 publication snapshots omit drafts, sessions, reviews and audit, so they cannot
-restore the control plane.
+The P0-1 SQLite database holds users, author profiles, hashed sessions and OAuth
+state. Backups remain private even though bearer tokens are not persisted. A live
+WAL file cannot be safely backed up by copying only the main database file.
 
-Before cutover, implement and rehearse: stop CMS, preserve the failed database,
-restore backup, run integrity_check, apply explicit goose migrations, start CMS,
-verify readiness and generation status. Integrate off-host scheduling with existing
-Infra facilities. Do not add a new infrastructure stack for this requirement.
+Before production cutover, implement a SQLite-consistent online backup mechanism
+and rehearse restore: stop CMS, preserve the failed DB, restore backup, run
+integrity_check, apply explicit goose migrations, start CMS and verify /readyz.
+Later publication state needs its own generation/build check. No backup command,
+scheduler or production restore drill is claimed implemented in P0-1.
+
+R2 snapshots will omit private control-plane state and cannot replace DB backups.
+Use existing Infra off-host scheduling after the restore procedure is verified;
+do not add a new infrastructure stack for this requirement.

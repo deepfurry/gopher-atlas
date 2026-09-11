@@ -197,3 +197,18 @@ redirect-overflow verification, Production backup/restore drill, first imported
 generation acceptance, Worker verification with imported content, explicit DNS
 cutover, post-cutover checks and legacy-site retirement decision. No such action
 was executed by P0-5, and main remains unchanged.
+
+## Local development startup refinement (2026-09-12)
+
+dev-web now loads optional root .env with process precedence. An explicit fixture
+wins; only Development permits missing CONTENT_R2_* fields to fall back to CMS
+R2_* fields. Missing latest.json has a specific safe message. Production build
+input/RO credential rules and dev-cms are unchanged. The new make dev prepares
+the input, builds an unembedded CMS and supervises CMS/Admin/Public together;
+any exit or interrupt cleans the remaining process trees. No automatic migration.
+
+Configuration/fixture/error/privacy regression tests and real Windows descendant
+listener cleanup passed in make check. The same synthetic process fixtures passed
+five Linux Node 24.15.0 cleanup scenarios, including real SIGTERM and bounded force
+termination. Linux Go race also passed. No real root .env, R2/Hook or Production
+service was used for these implementation checks; no dependency pins changed.

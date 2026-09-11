@@ -76,6 +76,13 @@ BEGIN; worker acquires it around latest/Hook without a DB transaction.
 Asset upload validates/uploads before a short reauthorized row/Audit transaction.
 The Web loader keeps RO credentials in Node; Astro env loading is disabled.
 
+Development-only scripts load root .env with process precedence. dev-web resolves
+explicit fixture paths from root, or fills missing CONTENT_R2_* from CMS R2_* only
+under Development. The shared Production preparation defaults and build entry do
+not enable fallback or dotenv. Private config is removed before launching Astro.
+The make dev supervisor builds an unembedded CMS, prepares Public input, then owns
+the three direct service processes and cleans their descendants on exit/signal.
+
 P0-5 Public uses `src/lib/publication` for schema-validated maps, strict references,
 stable sorting, pages and direct redirects. A static catch-all dispatches exact
 canonical/derived paths to Public templates; collections use 24-item static pages.

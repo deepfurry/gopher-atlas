@@ -80,6 +80,12 @@ No runtime Worker/router or silent rule truncation. P0-6 decides overflow handli
 before legacy cutover. Workers Builds consumes main; non-production builds are
 disabled. Local development uses explicit fixtures, never Production credentials.
 
+User-run dev-web may also read a development bucket using CONTENT_R2_* or the
+development-only CMS credential fallback. The Node preparation step only GETs
+latest/snapshot; it removes private configuration before spawning browser tools.
+Checks never read the real root .env or contact real buckets. Production keeps
+the separate content RO credential, and never enables this fallback.
+
 Pagefind assets are generated locally and loaded only by the search UI. A unified
 zh index includes English content, with Chinese segmentation and no English
 stemming. No hosted search, CMS query or private R2 browser request is required.

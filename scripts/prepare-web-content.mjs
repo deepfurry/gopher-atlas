@@ -7,11 +7,16 @@ import { loadSnapshot } from './snapshot.mjs';
 export async function prepare(
   env = process.env,
   output = new URL('../apps/web/.generated/', import.meta.url),
+  {
+    development = false,
+    createClient = (options) => new S3Client(options),
+  } = {},
 ) {
   let client;
+  let missingLatest = false;
   // This script is a private Node build step. Astro never imports the S3 SDK or credentials.
   if (!env.CONTENT_SNAPSHOT_FILE && env.CONTENT_R2_ENDPOINT)
-    client = new S3Client({
+    client = createClient({
       region: 'auto',
       endpoint: env.CONTENT_R2_ENDPOINT,
       forcePathStyle: true,
@@ -24,10 +29,19 @@ export async function prepare(
   try {
     const result = await loadSnapshot(env, {
       get: async (key, limit) => {
-        const response = await client.send(
-          new GetObjectCommand({ Bucket: env.CONTENT_R2_BUCKET, Key: key }),
-          { abortSignal: AbortSignal.timeout(30000) },
-        );
+        let response;
+        try {
+          response = await client.send(
+            new GetObjectCommand({ Bucket: env.CONTENT_R2_BUCKET, Key: key }),
+            { abortSignal: AbortSignal.timeout(30000) },
+          );
+        } catch (error) {
+          // Missing buckets, forbidden access and missing immutable generations
+          // are not equivalent to an as-yet unpublished development bucket.
+          missingLatest =
+            development && key === 'latest.json' && error.name === 'NoSuchKey';
+          throw error;
+        }
         try {
           if (response.ContentLength > limit || !response.Body)
             throw new Error('content_size_limit');
@@ -54,6 +68,9 @@ export async function prepare(
       }),
     );
     return result;
+  } catch (error) {
+    if (missingLatest) throw new Error('no published snapshot available');
+    throw error;
   } finally {
     client?.destroy();
   }

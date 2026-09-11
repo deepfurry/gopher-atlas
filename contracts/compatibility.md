@@ -54,3 +54,10 @@ P0-5 renders snapshot canonicalPath and derived Author/Tag/Note-group pages.
 Historical redirects are direct static 301 rules, with platform-limit failures.
 Collections paginate statically at /page/N/ after the first page. No runtime
 CMS/API dependency or snapshot version change. P0-6 owns legacy URL verification.
+
+Development commands dev-web/dev read optional root .env, with process env taking
+precedence. Explicit CONTENT_SNAPSHOT_FILE wins and relative dev paths are rooted
+at the repository. Only APP_ENV unset/empty/development permits per-field
+CONTENT_R2_* fallback to CMS R2_*; Production builds retain separate RO inputs and
+no dotenv/fallback. A missing development latest.json has a safe specific error;
+missing buckets, forbidden requests and corrupt snapshots remain failures.

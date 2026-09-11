@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Improve local startup: dev-web reads root .env, prefers explicit fixtures and
+  CONTENT_R2_* with Development-only CMS R2_* fallback, and explains missing latest.
+- Add cross-platform make dev supervision for CMS/Admin/Public, including process
+  tree cleanup on exit/signal. Keep dev-cms and Production build behavior unchanged.
+
 - Complete P0-5 Public rendering from snapshot v1: four detail families, home and
   statically paginated collections, Note groups, Tags/Authors, safe GFM/Shiki and TOC.
 - Add direct bounded Workers redirects, SEO/OG/canonical metadata, real RSS,

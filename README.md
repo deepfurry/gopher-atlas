@@ -70,17 +70,27 @@ make 命令。迁移脚本不隐式加载 `.env`；CMS 启动和 `/readyz` 也�
 已有数据库需显式运行 `make db-up` 至 `00003_publication.sql`。00001/00002 保持不变，
 readiness 要求 schema version 3、cover 列、assets/jobs 和 site_state singleton。
 
-分三个终端启动：
+配置好根 `.env` 后，可在一个终端启动全部开发服务（Windows PowerShell、Linux/macOS 相同）：
+
+```sh
+make dev
+```
+
+该命令先编译开发 CMS、准备 Public 快照，再启动 CMS / Admin / Public。
+任一服务退出或启动失败会停止其余服务，`Ctrl+C` 统一退出；Linux/macOS 先发送终止信号，
+超时后强制清理进程组，Windows 按本次启动的 PID 清理完整子进程树。
+数据库仍需提前显式迁移，不会自动建业务 Schema。也可以分三个终端单独启动：
 
 ```sh
 make dev-cms     # CMS: 127.0.0.1:46217
 make dev-admin   # 浏览器: http://127.0.0.1:5173
-CONTENT_SNAPSHOT_FILE=../../tests/fixtures/content-snapshot-v1.json make dev-web
-# Public: http://127.0.0.1:4321；路径相对于 apps/web
+make dev-web     # Public: http://127.0.0.1:4321；自动读取根 .env
 ```
 
-`make dev-cms` 通过 Node 的 `--env-file-if-exists=.env` 读取根 `.env`，已有进程变量
-优先，缺失文件无妨。直接运行 Go 二进制只读 process env。检查和测试不加载 `.env`，
+`make dev-cms` 保持通过 Node 的 `--env-file-if-exists=.env` 读取根 `.env`；
+`make dev-web` 和 `make dev` 采用相同的进程变量优先规则，缺失文件无妨。
+`make dev` 使用与 `go run` 相同的无内嵌 SPA 开发 CMS，Admin 由 Vite 提供。
+直接运行 Go 二进制只读 process env。检查和测试不加载仓库的真实 `.env`，
 所有测试数据库都位于临时目录。不要把真实配置、token、cookie 或 OAuth 参数写入
 日志、fixture、提交或报告。
 
@@ -215,13 +225,30 @@ development 的八个 P0-4 变量全部留空时，Worker disabled，公开 muta
 上传返回稳定 unavailable。部分配置会启动失败，production 必须配全。参见
 [部署与恢复](docs/operations/deployment.md) 和 [Production 构建说明](docs/operations/cloudflare.md)。
 
-Web 显式使用 `CONTENT_SNAPSHOT_FILE` 或完整 `CONTENT_R2_*` 只读配置，缺少输入即失败。
-PowerShell 从根目录选择 fixture 后可运行构建或 `make dev-web`，不读取 `.env`：
+本地 `make dev-web` / `make dev` 自动读取根 `.env`，不需要手工导出或映射环境变量。
+输入优先级如下：
 
-```powershell
-$env:CONTENT_SNAPSHOT_FILE = (Resolve-Path tests/fixtures/content-snapshot-v1.json).Path
-pnpm --filter @gopheratlas/web build
+1. 显式 `CONTENT_SNAPSHOT_FILE` 最高优先；开发入口的相对路径统一从仓库根目录解析。
+2. 使用 `CONTENT_R2_ENDPOINT / CONTENT_R2_BUCKET / CONTENT_R2_ACCESS_KEY_ID / CONTENT_R2_SECRET_ACCESS_KEY`。
+3. 仅 Development（APP_ENV 未设或为 development）允许缺失字段分别 fallback 到
+   `R2_ENDPOINT / R2_CONTENT_BUCKET / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY`。
+
+如只想体验示例阅读站，在根 `.env` 填入：
+
+```dotenv
+CONTENT_SNAPSHOT_FILE=tests/fixtures/content-snapshot-v1.json
 ```
+
+然后直接 `make dev-web`；若希望读取开发内容桶，把该字段留空，并配好上述 R2 字段。
+没有 `latest.json` 会明确提示 `no published snapshot available`，不会悄悄改用 fixture。
+此时先单独运行 CMS/Admin 发布开发快照，或显式选择 fixture 后再启动 `make dev`。
+快照在启动时读取，重新运行 `dev-web` / `dev` 才载入新 generation；不会把 Draft 直接展示给读者。
+Astro dev 不生成 Pagefind 索引，完整搜索应使用 fixture build 后的 preview。
+
+Production / Cloudflare 的 `pnpm --filter @gopheratlas/web build` 行为不变：不读取根 `.env`、
+不使用 CMS `R2_*` fallback，必须单独提供 `CONTENT_R2_*` read-only credential。
+本地验证完整产物可运行 `make check`，它显式选择 fixture 并完成 build；随后运行
+`pnpm --filter @gopheratlas/web preview`。不要为运行检查配置真实凭证。
 
 构建校验 latest、SHA-256、Schema v1、Markdown 和引用图，输出忽略的 `.generated`
 快照及 `/.well-known/gopheratlas-build.json`。`make check` 固定显式 fixture 并进行

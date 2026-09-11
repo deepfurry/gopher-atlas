@@ -47,7 +47,10 @@ architecture and current scope are summarized in `docs/implementation-status.md`
   credentials, body, cookies or untrusted request IDs in logs. Follow the exact
   guard → app-wide Monitor → Recover order in `internal/app`.
 - `make dev-cms` explicitly loads optional `.env` without replacing process env;
-  tests/checks/migrations do not load it. Production runs with process env only.
+  dev-web/dev use the same precedence. Only Development Web entry points may
+  fill missing CONTENT_R2_* from corresponding CMS R2_*; explicit fixture wins.
+  Build/Production never load root .env or use fallback. Tests use synthetic env
+  files only. `make dev` owns/cleans all child trees; it never migrates the DB.
 - Preserve migrations 00001–00003 and schema version 3. No auto migration.
 - Public routes use snapshot canonicalPath. Derived pages/indexes fail on broken
   references or route/group conflicts. Redirect overflow fails, never truncates.

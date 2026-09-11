@@ -9,9 +9,9 @@ import {
   within,
 } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router';
+import { createMemoryRouter, RouterProvider } from 'react-router';
 import type { components } from '@gopheratlas/api-client';
-import { App } from './App';
+import { routes } from './app/routes';
 
 type Me = components['schemas']['Me'];
 function account(
@@ -109,15 +109,16 @@ afterEach(() => {
   vi.unstubAllGlobals();
   document.cookie = 'gopheratlas_dev_csrf=; Max-Age=0; Path=/';
 });
-function mount(path = '/') {
+function mount(path = '/profile') {
   const cache = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   render(
     <QueryClientProvider client={cache}>
-      <MemoryRouter initialEntries={[path]}>
-        <App />
-      </MemoryRouter>
+      <RouterProvider
+        useTransitions={false}
+        router={createMemoryRouter(routes, { initialEntries: [path] })}
+      />
     </QueryClientProvider>,
   );
 }
@@ -148,8 +149,8 @@ it.each(['editor', 'reviewer'] as const)(
       await screen.findByRole('heading', { name: '个人资料', level: 1 }),
     ).toBeTruthy();
     expect(screen.getByText(new RegExp('@example'))).toBeTruthy();
-    expect(screen.queryByRole('link', { name: '用户管理' })).toBeNull();
-    expect(screen.queryByRole('link', { name: '运行监控' })).toBeNull();
+    expect(screen.queryByRole('link', { name: /用户管理/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: /运行监控/ })).toBeNull();
     expect(
       (screen.getByLabelText('作者标识') as HTMLInputElement).readOnly,
     ).toBe(true);
@@ -158,8 +159,8 @@ it.each(['editor', 'reviewer'] as const)(
 it('drives navigation from server capabilities and approves pending users', async () => {
   current = adminAccount();
   mount('/users');
-  expect(await screen.findByRole('heading', { name: '用户管理' })).toBeTruthy();
-  expect(screen.getByRole('link', { name: '运行监控' })).toHaveProperty(
+  expect(await screen.findByRole('heading', { name: /用户管理/ })).toBeTruthy();
+  expect(screen.getByRole('link', { name: /运行监控/ })).toHaveProperty(
     'pathname',
     '/ops/monitor',
   );
@@ -183,6 +184,7 @@ it('renders last-Admin errors without hiding them', async () => {
   failure = 'last_admin_required';
   mount('/users');
   fireEvent.click(await screen.findByRole('button', { name: '停用' }));
+  fireEvent.click(await screen.findByRole('button', { name: '确认更改' }));
   expect(await screen.findByRole('alert')).toHaveProperty(
     'textContent',
     expect.stringContaining('必须保留至少一位'),

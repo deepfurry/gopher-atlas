@@ -95,7 +95,7 @@ func detail(ctx context.Context, q *dbsqlc.Queries, u dbsqlc.User, c dbsqlc.Cont
 	if len(routes) == PageSize {
 		result.NextRouteCursor = &routes[len(routes)-1].ID
 	}
-	return result, nil
+	return result, enrichDetail(ctx, q, u, c, &result)
 }
 
 func (s *Service) Routes(ctx context.Context, actor auth.Principal, id, after int64) (Page[Route], error) {
@@ -137,7 +137,7 @@ func (s *Service) Get(ctx context.Context, actor auth.Principal, id int64) (Deta
 	})
 	return result, err
 }
-func (s *Service) List(ctx context.Context, actor auth.Principal, after int64, archived bool) (Page[Summary], error) {
+func (s *Service) List(ctx context.Context, actor auth.Principal, after int64, archived bool, filters ...Filters) (Page[Summary], error) {
 	result := Page[Summary]{Items: []Summary{}}
 	err := s.transact(ctx, actor, func(q *dbsqlc.Queries, u dbsqlc.User, _ int64) error {
 		if after < 0 {
@@ -146,7 +146,14 @@ func (s *Service) List(ctx context.Context, actor auth.Principal, after int64, a
 		if archived && !policy.Admin(u) {
 			return fault.Permission
 		}
-		rows, err := q.ListContent(ctx, dbsqlc.ListContentParams{AfterID: after, IncludeArchived: archived, IsAdmin: policy.Admin(u), ActorID: u.ID, IsReviewer: policy.Reviewer(u), PageSize: PageSize})
+		var f Filters
+		if len(filters) > 0 {
+			f = filters[0]
+		}
+		if err := f.validate(u); err != nil {
+			return err
+		}
+		rows, err := q.ListContent(ctx, dbsqlc.ListContentParams{ContentType: f.Type, EditorialState: f.EditorialState, Search: cleanSearch(f.Search), OwnerID: f.OwnerUserID, AfterID: after, IncludeArchived: archived, IsAdmin: policy.Admin(u), ActorID: u.ID, IsReviewer: policy.Reviewer(u), PageSize: PageSize})
 		if err != nil {
 			return dbError(err)
 		}
@@ -158,12 +165,18 @@ func (s *Service) List(ctx context.Context, actor auth.Principal, after int64, a
 			c := dbsqlc.ContentItem{ID: r.ID, Type: r.Type, OwnerUserID: r.OwnerUserID, EditorialState: r.EditorialState,
 				PendingReviewRevisionID: r.PendingReviewRevisionID, PublishedRevisionID: r.PublishedRevisionID, CreatedBy: r.CreatedBy,
 				FirstPublishedAt: r.FirstPublishedAt, LastPublishedAt: r.LastPublishedAt, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt, ArchivedAt: r.ArchivedAt}
-			result.Items = append(result.Items, summary(c, title))
+			item := summary(c, title)
+			item.Actions = policy.ContentActionsFor(u, c)
+			item.Byline.UserID = r.RevisionByline.Int64
+			if policy.CanEditDraft(u, c) {
+				item.Byline.UserID = r.DraftByline
+			}
+			result.Items = append(result.Items, item)
 		}
 		if len(rows) == PageSize {
 			result.NextCursor = &rows[len(rows)-1].ID
 		}
-		return nil
+		return enrichSummaries(ctx, q, result.Items)
 	})
 	return result, err
 }
@@ -189,11 +202,23 @@ func (s *Service) Revisions(ctx context.Context, actor auth.Principal, id, after
 			return dbError(err)
 		}
 		for _, r := range rows {
-			result.Items = append(result.Items, RevisionSummary{r.ID, r.ContentID, r.RevisionNo, r.Title, r.Slug, r.BylineUserID, r.CreatedBy, r.CreatedAt,
-				c.PendingReviewRevisionID.Valid && c.PendingReviewRevisionID.Int64 == r.ID, c.PublishedRevisionID.Valid && c.PublishedRevisionID.Int64 == r.ID})
+			result.Items = append(result.Items, RevisionSummary{ID: r.ID, ContentID: r.ContentID, RevisionNo: r.RevisionNo, Title: r.Title, Slug: r.Slug, BylineUserID: r.BylineUserID, CreatedBy: r.CreatedBy, CreatedAt: r.CreatedAt,
+				Pending: c.PendingReviewRevisionID.Valid && c.PendingReviewRevisionID.Int64 == r.ID, Published: c.PublishedRevisionID.Valid && c.PublishedRevisionID.Int64 == r.ID, ReviewDecision: reviewDecision(r.Decision)})
 		}
 		if len(rows) == PageSize {
 			result.NextCursor = &rows[len(rows)-1].RevisionNo
+		}
+		ids := []int64{}
+		for _, r := range result.Items {
+			ids = append(ids, r.BylineUserID, r.CreatedBy)
+		}
+		authors, err := auth.Summaries(ctx, q, ids)
+		if err != nil {
+			return err
+		}
+		for i := range result.Items {
+			result.Items[i].Byline = authors[result.Items[i].BylineUserID]
+			result.Items[i].Creator = authors[result.Items[i].CreatedBy]
 		}
 		return nil
 	})
@@ -217,7 +242,10 @@ func (s *Service) Revision(ctx context.Context, actor auth.Principal, id, no int
 			return fault.Permission
 		}
 		result, err = loadRevision(ctx, q, c, r)
-		return err
+		if err != nil {
+			return err
+		}
+		return enrichRevision(ctx, q, u, c, &result, true)
 	})
 	return result, err
 }
@@ -235,10 +263,22 @@ func (s *Service) PendingReviews(ctx context.Context, actor auth.Principal, afte
 			return dbError(err)
 		}
 		for _, r := range rows {
-			result.Items = append(result.Items, PendingReview{r.ID, r.ContentID, r.RevisionNo, r.Title, r.OwnerUserID, r.BylineUserID, r.CreatedAt})
+			result.Items = append(result.Items, PendingReview{RevisionID: r.ID, ContentID: r.ContentID, RevisionNo: r.RevisionNo, Title: r.Title, OwnerUserID: r.OwnerUserID, BylineUserID: r.BylineUserID, SubmittedAt: r.CreatedAt})
 		}
 		if len(rows) == PageSize {
 			result.NextCursor = &rows[len(rows)-1].ID
+		}
+		ids := []int64{}
+		for _, r := range result.Items {
+			ids = append(ids, r.OwnerUserID, r.BylineUserID)
+		}
+		authors, err := auth.Summaries(ctx, q, ids)
+		if err != nil {
+			return err
+		}
+		for i := range result.Items {
+			result.Items[i].Owner = authors[result.Items[i].OwnerUserID]
+			result.Items[i].Byline = authors[result.Items[i].BylineUserID]
 		}
 		return nil
 	})
@@ -263,7 +303,14 @@ func (s *Service) ReviewHistory(ctx context.Context, actor auth.Principal, after
 		if len(rows) == PageSize {
 			result.NextCursor = &rows[len(rows)-1].ID
 		}
-		return nil
+		return enrichReviews(ctx, q, result.Items)
 	})
 	return result, err
+}
+
+func reviewDecision(s sql.NullString) *string {
+	if s.Valid {
+		return &s.String
+	}
+	return nil
 }

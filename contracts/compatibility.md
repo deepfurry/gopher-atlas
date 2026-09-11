@@ -1,6 +1,6 @@
 # Compatibility contract
 
-P0-2 is unreleased. Internal Go/TS APIs are not stable public SDKs.
+P0-3 is unreleased. Internal Go/TS APIs are not stable public SDKs.
 Future changes to URLs, persisted data, environment keys and published snapshot
 versions still require explicit migration reasoning; do not silently reinterpret
 existing fields. Exact currently executable HTTP shapes live in `openapi.yaml`.
@@ -37,4 +37,9 @@ Clients must send complete Draft snapshots and expected versions, handle stable
 with Draft and snapshotted at submit/direct publish. List cursors are exclusive
 ascending IDs (revisionNo for revision lists), capped at 100.
 CMS published selection does not imply a rebuilt public site. Snapshot version 0
-and the existing identity UI remain unchanged; production publication is P0-4.
+remains unchanged; production publication is P0-4.
+
+P0-3 enriches private DTOs with batch author summaries and available actions, adds
+immutable review detail and author directory/profile administration, and extends
+content list filters without changing object visibility. Neither migration is
+modified; schema version remains 2. Existing domain commands retain their semantics.

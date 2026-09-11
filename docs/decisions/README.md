@@ -14,5 +14,7 @@ history. Routine code choices do not need an ADR.
 | [0005](0005-identity-runtime.md)                 | Persistent identity, middleware order and production embed    | Accepted; implemented P0-1         |
 | [0006](0006-content-revision-and-route-model.md) | Editorial snapshots, permanent routes and transactional Audit | Accepted; implemented P0-2         |
 
+| [0007](0007-admin-editorial-ux.md) | Server-projected editorial UX, serialized saves and safe preview | Accepted; implemented P0-3 |
+
 New records should include date, status, context, decision, alternatives,
 consequences, and implementation scope.

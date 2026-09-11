@@ -99,15 +99,16 @@ func (s *Service) PutTag(ctx context.Context, actor auth.Principal, id int64, in
 }
 
 type AuditEvent struct {
-	ID          int64           `json:"id"`
-	ActorUserID int64           `json:"actorUserId"`
-	Action      string          `json:"action"`
-	EntityType  string          `json:"entityType"`
-	EntityID    int64           `json:"entityId"`
-	RevisionID  *int64          `json:"revisionId"`
-	Metadata    json.RawMessage `json:"metadata"`
-	RequestID   string          `json:"requestId"`
-	CreatedAt   int64           `json:"createdAt"`
+	Actor       auth.AuthorSummary `json:"actor"`
+	ID          int64              `json:"id"`
+	ActorUserID int64              `json:"actorUserId"`
+	Action      string             `json:"action"`
+	EntityType  string             `json:"entityType"`
+	EntityID    int64              `json:"entityId"`
+	RevisionID  *int64             `json:"revisionId"`
+	Metadata    json.RawMessage    `json:"metadata"`
+	RequestID   string             `json:"requestId"`
+	CreatedAt   int64              `json:"createdAt"`
 }
 
 func (s *Service) Audit(ctx context.Context, actor auth.Principal, after int64) (Page[AuditEvent], error) {
@@ -118,10 +119,21 @@ func (s *Service) Audit(ctx context.Context, actor auth.Principal, after int64) 
 			return err
 		}
 		for _, r := range rows {
-			result.Items = append(result.Items, AuditEvent{r.ID, r.ActorUserID, r.Action, r.EntityType, r.EntityID, pointer(r.RevisionID), json.RawMessage(r.MetadataJson), r.RequestID, r.CreatedAt})
+			result.Items = append(result.Items, AuditEvent{ID: r.ID, ActorUserID: r.ActorUserID, Action: r.Action, EntityType: r.EntityType, EntityID: r.EntityID, RevisionID: pointer(r.RevisionID), Metadata: json.RawMessage(r.MetadataJson), RequestID: r.RequestID, CreatedAt: r.CreatedAt})
 		}
 		if len(rows) == PageSize {
 			result.NextCursor = &rows[len(rows)-1].ID
+		}
+		ids := []int64{}
+		for _, r := range result.Items {
+			ids = append(ids, r.ActorUserID)
+		}
+		authors, err := auth.Summaries(ctx, q, ids)
+		if err != nil {
+			return err
+		}
+		for i := range result.Items {
+			result.Items[i].Actor = authors[result.Items[i].ActorUserID]
 		}
 		return nil
 	})

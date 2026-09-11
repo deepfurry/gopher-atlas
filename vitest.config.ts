@@ -3,7 +3,15 @@ import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
   resolve: {
-    alias: { '@': fileURLToPath(new URL('./apps/admin/src', import.meta.url)) },
+    alias: {
+      '@': fileURLToPath(new URL('./apps/admin/src', import.meta.url)),
+      '@uiw/react-markdown-preview/nohighlight': fileURLToPath(
+        new URL(
+          './apps/admin/src/shared/md-editor-preview.tsx',
+          import.meta.url,
+        ),
+      ),
+    },
   },
   esbuild: { jsx: 'automatic' },
   test: {

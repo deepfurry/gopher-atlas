@@ -28,6 +28,9 @@ func (h *Handler) Register(server *fiber.App) {
 	api.Put("/users/:id/role", h.changeUser)
 	api.Get("/authors/me", h.profile)
 	api.Put("/authors/me", h.updateProfile)
+	api.Get("/authors", h.authors)
+	api.Get("/authors/:id", h.author)
+	api.Put("/authors/:id/profile", h.updateAuthor)
 	h.registerEditorial(api)
 }
 

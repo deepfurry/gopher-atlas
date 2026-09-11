@@ -6,14 +6,18 @@ The public and control planes have separate availability and trust boundaries:
 Private CMS → future published R2 snapshot → Astro build → static public site
 ```
 
-P0-2 adds the editorial domain/API to the P0-1 identity runtime. Public still builds
-its version 0 empty fixture. Full Admin editorial UX, R2/jobs, public content
-rendering, legacy importer and deployment remain deferred.
+P0-3 adds Admin editorial UX and narrow projections to the existing domain/API.
+Public still builds its version 0 empty fixture. R2/jobs, public content rendering,
+legacy importer and deployment remain deferred.
 
 Dependency direction:
 
 - `apps/web` → shared Markdown; never Admin/API client/private services.
-- `apps/admin` → generated API client and server-derived capabilities.
+- `apps/admin` → generated API client, shared Markdown and server-derived actions.
+  Shell/router/providers route to content/reviews/tags/people/audit features. Query
+  owns server caches; RHF plus one autosave queue owns the in-memory Draft.
+  Immutable review endpoints never return a Draft, including for Admin.
+  Author/owner/byline/actor labels are batched on the server.
 - `cmd` constructs config, one logger, SQLite pool, OAuth provider and auth service.
 - `internal/app` assembles HTTP middleware; `internal/http` translates transport;
   `internal/auth` owns identity/session transactions and calls sqlc directly.
@@ -38,7 +42,9 @@ from the selected publication. Submit snapshots scalar fields and relations;
 reviewed publication uses that exact pending Revision. Routes retain identity
 ownership permanently and resolve redirects directly to the current canonical.
 Audit is append-only, transactional and excludes body/payload/comment/credentials.
-Only SQLite pointer/route/audit changes happen on Publish in P0-2; see ADR 0006.
+Only SQLite pointer/route/audit changes happen on Publish; see ADR 0006.
+P0-3 preserves schema version 2 and both migration files. ADR 0007 records the
+queue, conflict/navigation recovery, action projections and safe preview boundary.
 
 `internal/app` is the single middleware assembly point:
 

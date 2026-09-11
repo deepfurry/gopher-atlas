@@ -96,7 +96,7 @@ func (s *Service) mutate(ctx context.Context, actor auth.Principal, id int64, fn
 			return err
 		}
 		result = Detail{Summary: summary(c, ""), Routes: []Route{}}
-		return nil
+		return completedReviewSummary(ctx, q, c, &result)
 	})
 	return result, err
 }

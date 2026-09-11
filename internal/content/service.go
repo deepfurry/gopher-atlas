@@ -117,6 +117,10 @@ func (s *Service) Save(ctx context.Context, actor auth.Principal, id int64, inpu
 			return dbError(err)
 		}
 		result, err = loadDraft(ctx, q, id)
+		if err != nil {
+			return err
+		}
+		result.RelationLabels, err = relationLabels(ctx, q, u, result.Relations)
 		return err
 	})
 	return result, err

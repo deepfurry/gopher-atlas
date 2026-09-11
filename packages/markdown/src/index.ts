@@ -63,7 +63,7 @@ function inspect(tree: Root): MarkdownIssue[] {
   return issues;
 }
 
-/** Shared guard for Astro and the future react-markdown preview. Never enable rehype-raw. */
+/** Build-time Astro guard; Admin uses the same validator for feedback plus safe renderers. Never enable rehype-raw. */
 export const remarkGuard: Plugin<[], Root> = () => (tree, file) => {
   const issues = inspect(tree);
   if (/^---\r?\n[\s\S]*?\r?\n(?:---|\.\.\.)(?:\r?\n|$)/u.test(String(file)))

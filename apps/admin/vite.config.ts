@@ -24,9 +24,32 @@ export default defineConfig(({ command, mode }) => {
   );
   return {
     envDir: false,
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      {
+        name: 'editorial-preview-boundary',
+        generateBundle() {
+          for (const id of this.getModuleIds()) {
+            if (
+              /\/(?:rehype-raw|@radix-ui|@react-aria|codemirror|@codemirror|monaco-editor|@tiptap|prosemirror[^/]*)\//u.test(
+                id.replaceAll('\\', '/'),
+              )
+            )
+              this.error(
+                'Forbidden editor/preview dependency entered the production bundle.',
+              );
+          }
+        },
+      },
+    ],
     resolve: {
-      alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
+        '@uiw/react-markdown-preview/nohighlight': fileURLToPath(
+          new URL('./src/shared/md-editor-preview.tsx', import.meta.url),
+        ),
+      },
     },
     server: {
       port: 5173,

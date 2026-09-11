@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Implement P0-3 feature-based Admin shell, lazy routes, dense content table/editor,
+  typed metadata, safe Source/Preview/Split, serialized autosave and explicit conflict
+  recovery, navigation guards, immutable review workspace/history and revision restore.
+- Add Tags/Authors/Users/Audit interfaces, System/Light/Dark themes and narrow layouts.
+  Preserve CMS-only publication wording and the existing Monitor link/runtime.
+- Add bounded author/filter/review queries, batched identity labels and server action
+  projections; regenerate OpenAPI/sqlc types. Keep migrations 00001/00002 and schema 2.
+- Verify preview privacy, autosave/flush/version behavior, immutable API visibility,
+  first lazy navigation and production embed. No assets/R2/publication pipeline.
+
 - Implement P0-2 Content/Draft/immutable Revision and Review APIs, typed payloads,
   optimistic version conflicts, atomic relation snapshots, Tags and ordered Topics.
 - Add migration 00002 and real sqlc queries, schema-2 readiness, permanent route
@@ -10,7 +20,7 @@
   preserve migration 00001, dependency pins and the P0-1 runtime/identity UI.
 - Expand OpenAPI/generated types, centralized object policy, Markdown/body limits,
   keyset pagination and real SQLite concurrency/rollback/isolation tests.
-  Full editorial UI remains P0-3; assets/R2/jobs/snapshots/hooks remain P0-4.
+  This P0-2 increment deferred editorial UI to P0-3 and external publication to P0-4.
 
 - Implement P0-1 identity persistence with real goose/sqlc inputs, pooled SQLite
   PRAGMAs, transactional bootstrap/last-Admin protection, browser-bound one-time

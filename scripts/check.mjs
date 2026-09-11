@@ -46,5 +46,5 @@ const rss = readFileSync('apps/web/dist/rss.xml', 'utf8');
 if (!rss.includes('<rss') || !rss.includes('GopherAtlas'))
   throw new Error('Invalid bootstrap RSS');
 console.log(
-  'All P0-2 checks passed. No production services or credentials used.',
+  'All P0-3 checks passed. No production services or credentials used.',
 );

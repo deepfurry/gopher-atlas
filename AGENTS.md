@@ -1,8 +1,8 @@
 # GopherAtlas agent entry point
 
 GopherAtlas is a Go knowledge atlas and multi-author Markdown publication.
-This repository implements **P0-2: Content Domain & Editorial Workflow**, on the
-P0-1 identity runtime. Editorial UI and external publication remain later phases.
+This repository implements **P0-3: Admin Editorial UX**, on the existing P0-1/P0-2
+runtime and editorial domain. External publication remains deferred.
 Daily work branches from latest `dev` and returns there by PR. `main` is a release
 snapshot; never develop directly on either integration branch.
 
@@ -47,8 +47,13 @@ architecture and current scope are summarized in `docs/implementation-status.md`
   guard → app-wide Monitor → Recover order in `internal/app`.
 - `make dev-cms` explicitly loads optional `.env` without replacing process env;
   tests/checks/migrations do not load it. Production runs with process env only.
-- P0-2 Publish ends at SQLite pointer + route + Audit. Full editorial UI is P0-3;
-  assets/R2/generation/jobs/snapshots/hooks are P0-4. Import/deploy remain deferred.
+- P0-3 adds no migration: preserve 00001/00002 and schema version 2.
+- Admin features consume server action projections. One autosave queue owns full
+  snapshots/versions; a conflict requires explicit reload. No browser Draft storage.
+- Preview never creates uncontrolled image elements, even before a save. UIW is
+  source-only; the production module graph excludes raw HTML preview. See ADR 0007.
+- Publish ends at SQLite pointer + route + Audit. UI says Published in CMS.
+  Assets/R2/generation/jobs/snapshots/hooks are P0-4. Import/deploy remain deferred.
 
 Completion gate: **`make check`**. Report actual commands and results, inspect the
 complete diff, and preserve local files. Commit/push only within user authorization.

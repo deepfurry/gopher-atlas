@@ -632,6 +632,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/authors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List bounded safe author summaries for active users
+         * @description List bounded safe author summaries for active users
+         */
+        get: operations["listAuthors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/authors/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read authorship profile without role, status or session data
+         * @description Read authorship profile without role, status or session data
+         */
+        get: operations["getAuthor"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/authors/{id}/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update own profile or another author as Admin; shared validation and transactional audit
+         * @description Update own profile or another author as Admin; shared validation and transactional audit
+         */
+        put: operations["updateAuthorProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/content/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the exact immutable pending Revision without any mutable Draft
+         * @description Read the exact immutable pending Revision without any mutable Draft
+         */
+        get: operations["getPendingReview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/reviews/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read historical Review and exact immutable reviewed Revision; Reviewer/Admin only
+         * @description Read historical Review and exact immutable reviewed Revision; Reviewer/Admin only
+         */
+        get: operations["getReviewDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -804,6 +904,8 @@ export interface components {
             updatedBy: number;
             /** Format: int64 */
             updatedAt: number;
+            tags: components["schemas"]["Tag"][];
+            topicTargets: components["schemas"]["TopicTargetSummary"][];
         };
         /** @description Published selection is independent from editorialState. Editing a synced draft changes state to draft without changing the published revision. */
         ContentSummary: {
@@ -830,6 +932,10 @@ export interface components {
             lastPublishedAt: number | null;
             /** Format: int64 */
             archivedAt: number | null;
+            actions: components["schemas"]["ContentActions"];
+            owner: components["schemas"]["AuthorSummary"];
+            byline: components["schemas"]["AuthorSummary"];
+            publishedRevisionNo: number | null;
         };
         /** @description Permanently owned path. At most one canonical per Content. Redirects resolve by content identity to the current canonical, without chains. Unpublish/archive never release paths. */
         Route: {
@@ -870,6 +976,11 @@ export interface components {
              * @description Exclusive cursor for GET /content/{id}/routes when more route history may exist.
              */
             nextRouteCursor: number | null;
+            actions: components["schemas"]["ContentActions"];
+            owner: components["schemas"]["AuthorSummary"];
+            byline: components["schemas"]["AuthorSummary"];
+            publishedRevisionNo: number | null;
+            latestReview: components["schemas"]["Review"] | null;
         };
         /** @enum {string} */
         ReviewDecision: "changes_requested" | "approved";
@@ -887,6 +998,10 @@ export interface components {
             commentMarkdown: string;
             /** Format: int64 */
             createdAt: number;
+            reviewer: components["schemas"]["AuthorSummary"];
+            title: string;
+            /** Format: int64 */
+            revisionNo: number;
         };
         RevisionSummary: {
             /** Format: int64 */
@@ -905,6 +1020,9 @@ export interface components {
             createdAt: number;
             pending: boolean;
             published: boolean;
+            creator: components["schemas"]["AuthorSummary"];
+            byline: components["schemas"]["AuthorSummary"];
+            reviewDecision: components["schemas"]["ReviewDecision"] | null;
         };
         /** @description Immutable persisted fields, typed payload and relation snapshot. Restore copies to Draft and never updates this Revision or the published pointer. */
         Revision: {
@@ -939,6 +1057,11 @@ export interface components {
             pending: boolean;
             published: boolean;
             review: components["schemas"]["Review"] | null;
+            tags: components["schemas"]["Tag"][];
+            topicTargets: components["schemas"]["TopicTargetSummary"][];
+            creator: components["schemas"]["AuthorSummary"];
+            byline: components["schemas"]["AuthorSummary"];
+            restoreDraft: boolean;
         };
         PendingReview: {
             /** Format: int64 */
@@ -954,6 +1077,8 @@ export interface components {
             bylineUserId: number;
             /** Format: int64 */
             submittedAt: number;
+            owner: components["schemas"]["AuthorSummary"];
+            byline: components["schemas"]["AuthorSummary"];
         };
         /** @description Admin only. Names are trimmed, whitespace collapsed and lowercased for deterministic uniqueness. Slug is explicit and is never recomputed from name. */
         TagInput: {
@@ -998,6 +1123,7 @@ export interface components {
             requestId: string;
             /** Format: int64 */
             createdAt: number;
+            actor: components["schemas"]["AuthorSummary"];
         };
         ContentList: {
             items: components["schemas"]["ContentSummary"][];
@@ -1085,6 +1211,59 @@ export interface components {
             items: components["schemas"]["Route"][];
             /** Format: int64 */
             nextCursor: number | null;
+        };
+        AuthorSummary: {
+            /** Format: int64 */
+            userId: number;
+            slug: string;
+            displayName: string;
+            avatarUrl: string;
+        };
+        AuthorDetail: {
+            /** Format: int64 */
+            userId: number;
+            slug: string;
+            displayName: string;
+            avatarUrl: string;
+            bioMarkdown: string;
+            websiteUrl: string;
+        };
+        AuthorList: {
+            items: components["schemas"]["AuthorSummary"][];
+            nextCursor: number | null;
+        };
+        /** @description Server policy plus current state. Advisory UI projection; every mutation reauthorizes transactionally and validates exact version/revision and fields. */
+        ContentActions: {
+            editDraft: boolean;
+            submitReview: boolean;
+            withdrawReview: boolean;
+            directPublish: boolean;
+            unpublish: boolean;
+            archive: boolean;
+            restoreArchive: boolean;
+            restoreRevision: boolean;
+            assignByline: boolean;
+            setFeatured: boolean;
+        };
+        ReviewActions: {
+            requestChanges: boolean;
+            approvePublish: boolean;
+        };
+        /** @description Label only; title may be empty when no visible immutable title exists. A reference never grants Draft access. */
+        TopicTargetSummary: {
+            /** Format: int64 */
+            id: number;
+            title: string;
+            type: components["schemas"]["ContentType"];
+            published: boolean;
+            archived: boolean;
+        };
+        /** @description Reviewer/Admin only. Exact immutable pending or reviewed Revision. Never contains a mutable Draft, including for Admin. */
+        ReviewDetail: {
+            content: components["schemas"]["ContentSummary"];
+            revision: components["schemas"]["Revision"];
+            review: components["schemas"]["Review"] | null;
+            actions: components["schemas"]["ReviewActions"];
         };
     };
     responses: {
@@ -1490,6 +1669,14 @@ export interface operations {
                 after?: number;
                 /** @description Admin only when true. */
                 includeArchived?: boolean;
+                /** @description Content type preset. */
+                type?: components["schemas"]["ContentType"];
+                /** @description Independent of published pointer. */
+                editorialState?: components["schemas"]["EditorialState"];
+                /** @description Case-insensitive literal title/summary substring; uses the visible Draft or immutable pending metadata. No FTS. */
+                q?: string;
+                /** @description Admin-only filter; object visibility is still enforced. */
+                ownerUserId?: number;
             };
             header?: never;
             path?: never;
@@ -2160,6 +2347,152 @@ export interface operations {
             413: components["responses"]["Error"];
             422: components["responses"]["Error"];
             503: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listAuthors: {
+        parameters: {
+            query?: {
+                /** @description Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use revisionNo; other lists use the returned row ID. */
+                after?: number;
+                /** @description Search display name or persisted author slug. */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorList"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    getAuthor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource identity. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorDetail"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    updateAuthorProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource identity. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileInput"];
+            };
+        };
+        responses: {
+            /** @description Successful operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorDetail"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    getPendingReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource identity. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDetail"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    getReviewDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource identity. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDetail"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
     };

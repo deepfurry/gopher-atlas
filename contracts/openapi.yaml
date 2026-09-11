@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
   title: GopherAtlas CMS identity and editorial API
-  version: 0.2.0
+  version: 0.3.0
   description:
-    P0-2 private same-origin control plane. Publish selects an immutable SQLite revision,
+    P0-3 private same-origin control plane. Publish selects an immutable SQLite revision,
     claims permanent routes and appends audit in one transaction; it does not rebuild the public
     site. Identity security and the separate Admin-only Monitor are unchanged. JSON requests are
     capped at 1 MiB; Markdown bodies at 512 KiB UTF-8 bytes.
@@ -543,6 +543,31 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/ContentType'
+          description: Content type preset.
+        - name: editorialState
+          in: query
+          schema:
+            $ref: '#/components/schemas/EditorialState'
+          description: Independent of published pointer.
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 200
+          description:
+            Case-insensitive literal title/summary substring; uses the visible Draft or immutable
+            pending metadata. No FTS.
+        - name: ownerUserId
+          in: query
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+          description: Admin-only filter; object visibility is still enforced.
     post:
       operationId: createContent
       tags:
@@ -1472,6 +1497,188 @@ paths:
             format: int64
             minimum: 0
             default: 0
+  /api/admin/v1/authors:
+    get:
+      operationId: listAuthors
+      tags:
+        - Identity
+      summary: List bounded safe author summaries for active users
+      description: List bounded safe author summaries for active users
+      parameters:
+        - name: after
+          in: query
+          description:
+            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use
+            revisionNo; other lists use the returned row ID.
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            default: 0
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 200
+          description: Search display name or persisted author slug.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorList'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/admin/v1/authors/{id}:
+    get:
+      operationId: getAuthor
+      tags:
+        - Identity
+      summary: Read authorship profile without role, status or session data
+      description: Read authorship profile without role, status or session data
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+          description: Resource identity.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorDetail'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/admin/v1/authors/{id}/profile:
+    put:
+      operationId: updateAuthorProfile
+      tags:
+        - Identity
+      summary: Update own profile or another author as Admin; shared validation and transactional audit
+      description: Update own profile or another author as Admin; shared validation and transactional audit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+          description: Resource identity.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorDetail'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - Session: []
+          CSRF: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileInput'
+  /api/admin/v1/content/{id}/review:
+    get:
+      operationId: getPendingReview
+      tags:
+        - Reviews
+      summary: Read the exact immutable pending Revision without any mutable Draft
+      description: Read the exact immutable pending Revision without any mutable Draft
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+          description: Resource identity.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewDetail'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/admin/v1/reviews/{id}:
+    get:
+      operationId: getReviewDetail
+      tags:
+        - Reviews
+      summary: Read historical Review and exact immutable reviewed Revision; Reviewer/Admin only
+      description: Read historical Review and exact immutable reviewed Revision; Reviewer/Admin only
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+          description: Resource identity.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewDetail'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
 components:
   securitySchemes:
     Session:
@@ -1956,6 +2163,8 @@ components:
         - payloadSchemaVersion
         - updatedBy
         - updatedAt
+        - tags
+        - topicTargets
       properties:
         version:
           type: integer
@@ -2019,6 +2228,16 @@ components:
           type: integer
           format: int64
           minimum: 0
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          maxItems: 100
+        topicTargets:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopicTargetSummary'
+          maxItems: 100
     ContentSummary:
       type: object
       additionalProperties: false
@@ -2036,6 +2255,10 @@ components:
         - firstPublishedAt
         - lastPublishedAt
         - archivedAt
+        - actions
+        - owner
+        - byline
+        - publishedRevisionNo
       properties:
         id:
           type: integer
@@ -2089,6 +2312,18 @@ components:
             - integer
             - 'null'
           format: int64
+        actions:
+          $ref: '#/components/schemas/ContentActions'
+        owner:
+          $ref: '#/components/schemas/AuthorSummary'
+        byline:
+          $ref: '#/components/schemas/AuthorSummary'
+        publishedRevisionNo:
+          anyOf:
+            - type: integer
+              format: int64
+              minimum: 1
+            - type: 'null'
       description:
         Published selection is independent from editorialState. Editing a synced draft changes
         state to draft without changing the published revision.
@@ -2130,6 +2365,11 @@ components:
         - pendingRevision
         - routes
         - nextRouteCursor
+        - actions
+        - owner
+        - byline
+        - publishedRevisionNo
+        - latestReview
       properties:
         id:
           type: integer
@@ -2202,6 +2442,22 @@ components:
             - 'null'
           format: int64
           description: Exclusive cursor for GET /content/{id}/routes when more route history may exist.
+        actions:
+          $ref: '#/components/schemas/ContentActions'
+        owner:
+          $ref: '#/components/schemas/AuthorSummary'
+        byline:
+          $ref: '#/components/schemas/AuthorSummary'
+        publishedRevisionNo:
+          anyOf:
+            - type: integer
+              format: int64
+              minimum: 1
+            - type: 'null'
+        latestReview:
+          anyOf:
+            - $ref: '#/components/schemas/Review'
+            - type: 'null'
       description:
         Editors see their own content. Reviewer access to another owner is limited to an
         in-review immutable pending revision; draft is null. Admin sees all, including archived. A
@@ -2223,6 +2479,9 @@ components:
         - decision
         - commentMarkdown
         - createdAt
+        - reviewer
+        - title
+        - revisionNo
       properties:
         id:
           type: integer
@@ -2249,6 +2508,14 @@ components:
           type: integer
           format: int64
           minimum: 0
+        reviewer:
+          $ref: '#/components/schemas/AuthorSummary'
+        title:
+          type: string
+        revisionNo:
+          type: integer
+          format: int64
+          minimum: 1
     RevisionSummary:
       type: object
       additionalProperties: false
@@ -2263,6 +2530,9 @@ components:
         - createdAt
         - pending
         - published
+        - creator
+        - byline
+        - reviewDecision
       properties:
         id:
           type: integer
@@ -2299,6 +2569,14 @@ components:
           type: boolean
         published:
           type: boolean
+        creator:
+          $ref: '#/components/schemas/AuthorSummary'
+        byline:
+          $ref: '#/components/schemas/AuthorSummary'
+        reviewDecision:
+          anyOf:
+            - $ref: '#/components/schemas/ReviewDecision'
+            - type: 'null'
     Revision:
       type: object
       additionalProperties: false
@@ -2324,6 +2602,11 @@ components:
         - pending
         - published
         - review
+        - tags
+        - topicTargets
+        - creator
+        - byline
+        - restoreDraft
       properties:
         id:
           type: integer
@@ -2403,6 +2686,22 @@ components:
           anyOf:
             - $ref: '#/components/schemas/Review'
             - type: 'null'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          maxItems: 100
+        topicTargets:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopicTargetSummary'
+          maxItems: 100
+        creator:
+          $ref: '#/components/schemas/AuthorSummary'
+        byline:
+          $ref: '#/components/schemas/AuthorSummary'
+        restoreDraft:
+          type: boolean
       description:
         Immutable persisted fields, typed payload and relation snapshot. Restore copies to
         Draft and never updates this Revision or the published pointer.
@@ -2417,6 +2716,8 @@ components:
         - ownerUserId
         - bylineUserId
         - submittedAt
+        - owner
+        - byline
       properties:
         revisionId:
           type: integer
@@ -2445,6 +2746,10 @@ components:
           type: integer
           format: int64
           minimum: 0
+        owner:
+          $ref: '#/components/schemas/AuthorSummary'
+        byline:
+          $ref: '#/components/schemas/AuthorSummary'
     TagInput:
       type: object
       additionalProperties: false
@@ -2519,6 +2824,7 @@ components:
         - metadata
         - requestId
         - createdAt
+        - actor
       properties:
         id:
           type: integer
@@ -2592,6 +2898,8 @@ components:
           type: integer
           format: int64
           minimum: 0
+        actor:
+          $ref: '#/components/schemas/AuthorSummary'
       description:
         Append-only and transactionally coupled to mutations. Contains no body, review comment,
         typed payload, credential or browser token. Draft save/autosave is not audited.
@@ -2805,3 +3113,161 @@ components:
             - integer
             - 'null'
           format: int64
+    AuthorSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - userId
+        - slug
+        - displayName
+        - avatarUrl
+      properties:
+        userId:
+          type: integer
+          format: int64
+          minimum: 1
+        slug:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+    AuthorDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - userId
+        - slug
+        - displayName
+        - avatarUrl
+        - bioMarkdown
+        - websiteUrl
+      properties:
+        userId:
+          type: integer
+          format: int64
+          minimum: 1
+        slug:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+        bioMarkdown:
+          type: string
+        websiteUrl:
+          type: string
+    AuthorList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuthorSummary'
+          maxItems: 100
+        nextCursor:
+          anyOf:
+            - type: integer
+              format: int64
+              minimum: 1
+            - type: 'null'
+    ContentActions:
+      type: object
+      additionalProperties: false
+      required:
+        - editDraft
+        - submitReview
+        - withdrawReview
+        - directPublish
+        - unpublish
+        - archive
+        - restoreArchive
+        - restoreRevision
+        - assignByline
+        - setFeatured
+      properties:
+        editDraft:
+          type: boolean
+        submitReview:
+          type: boolean
+        withdrawReview:
+          type: boolean
+        directPublish:
+          type: boolean
+        unpublish:
+          type: boolean
+        archive:
+          type: boolean
+        restoreArchive:
+          type: boolean
+        restoreRevision:
+          type: boolean
+        assignByline:
+          type: boolean
+        setFeatured:
+          type: boolean
+      description:
+        Server policy plus current state. Advisory UI projection; every mutation reauthorizes
+        transactionally and validates exact version/revision and fields.
+    ReviewActions:
+      type: object
+      additionalProperties: false
+      required:
+        - requestChanges
+        - approvePublish
+      properties:
+        requestChanges:
+          type: boolean
+        approvePublish:
+          type: boolean
+    TopicTargetSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - type
+        - published
+        - archived
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        title:
+          type: string
+        type:
+          $ref: '#/components/schemas/ContentType'
+        published:
+          type: boolean
+        archived:
+          type: boolean
+      description:
+        Label only; title may be empty when no visible immutable title exists. A reference
+        never grants Draft access.
+    ReviewDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - content
+        - revision
+        - review
+        - actions
+      properties:
+        content:
+          $ref: '#/components/schemas/ContentSummary'
+        revision:
+          $ref: '#/components/schemas/Revision'
+        review:
+          anyOf:
+            - $ref: '#/components/schemas/Review'
+            - type: 'null'
+        actions:
+          $ref: '#/components/schemas/ReviewActions'
+      description:
+        Reviewer/Admin only. Exact immutable pending or reviewed Revision. Never contains a
+        mutable Draft, including for Admin.

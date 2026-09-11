@@ -99,21 +99,26 @@ type ProfileInput struct {
 }
 
 func (s *Service) UpdateProfile(ctx context.Context, actor Principal, input ProfileInput) (dbsqlc.AuthorProfile, error) {
+	return s.UpdateAuthorProfile(ctx, actor, actor.User.ID, input)
+}
+
+// UpdateAuthorProfile reuses the same validation and audit path for explicit Admin edits.
+func (s *Service) UpdateAuthorProfile(ctx context.Context, actor Principal, id int64, input ProfileInput) (dbsqlc.AuthorProfile, error) {
 	var result dbsqlc.AuthorProfile
 	input.DisplayName = strings.TrimSpace(input.DisplayName)
 	if input.DisplayName == "" || !utf8.ValidString(input.DisplayName) || utf8.RuneCountInString(input.DisplayName) > 100 || len(input.BioMarkdown) > 10000 || !utf8.ValidString(input.BioMarkdown) || !markdown.Valid(input.BioMarkdown) || (input.WebsiteURL != "" && !safeWebURL(input.WebsiteURL, false)) {
 		return result, fault.Validation
 	}
 	err := s.withActor(ctx, actor, func(q *dbsqlc.Queries, current Principal) error {
-		if !policy.For(current.User.Role, current.User.Status).EditOwnProfile {
+		if !policy.For(current.User.Role, current.User.Status).EditOwnProfile || (id != current.User.ID && !policy.For(current.User.Role, current.User.Status).ManageAuthorProfiles) {
 			return fault.Permission
 		}
 		var err error
-		result, err = q.UpdateProfile(ctx, dbsqlc.UpdateProfileParams{UserID: current.User.ID, DisplayName: input.DisplayName, BioMarkdown: input.BioMarkdown, WebsiteUrl: input.WebsiteURL, UpdatedAt: s.now().UnixMilli()})
+		result, err = q.UpdateProfile(ctx, dbsqlc.UpdateProfileParams{UserID: id, DisplayName: input.DisplayName, BioMarkdown: input.BioMarkdown, WebsiteUrl: input.WebsiteURL, UpdatedAt: s.now().UnixMilli()})
 		if err != nil {
 			return dbError(err)
 		}
-		return audit.Append(ctx, q, audit.Event{ActorID: current.User.ID, Action: "author.profile_updated", EntityType: "author", EntityID: current.User.ID}, s.now().UnixMilli())
+		return audit.Append(ctx, q, audit.Event{ActorID: current.User.ID, Action: "author.profile_updated", EntityType: "author", EntityID: id}, s.now().UnixMilli())
 	})
 	return result, err
 }

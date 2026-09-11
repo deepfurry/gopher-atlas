@@ -32,11 +32,15 @@ be checked in light/dark themes, narrow layouts and reduced-motion mode.
   preserve readable labels, keyboard access and clearly associated errors.
 - Role-aware navigation/actions arrive with real server policy. Do not present
   fake role controls or make unfinished workflows look functional.
-- Monitor is protected operational telemetry, not a dashboard widget.
+- Monitor remains a protected ordinary link, without iframe or copied metrics.
+- Show editorial state separately from Published in CMS. Never imply a public
+  build/deploy completed. Save status uses aria-live; conflicts require explicit
+  recovery and preserve local text. High-impact actions use Base UI AlertDialog.
 
 ## Shared interaction and accessibility requirements
 
-- Support light and dark themes; following OS preference satisfies the bootstrap.
+- Public follows OS light/dark preference. Admin offers System / Light / Dark;
+  only the theme preference may use localStorage. Draft content may not.
 - Honor `prefers-reduced-motion`. Normal transitions should be 150–250 ms.
 - Visible keyboard focus, semantic headings/landmarks, skip links, named controls,
   status announcements, and meaningful image alt text are required.

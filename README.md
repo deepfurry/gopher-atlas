@@ -3,9 +3,10 @@
 **Technical Journal × Knowledge Atlas** — 面向 Go 开发者的知识地图与多作者
 Markdown 出版平台。
 
-当前完成 **P0-2：Content Domain & Editorial Workflow**。
-私有 CMS 已有身份运行时和内容领域/API：版本化 Draft、不可变 Revision、审阅、
-发布指针、Tags/Topic、永久路由与 Audit。完整编辑 UI 和 R2 发布链路仍未实现。
+当前完成 **P0-3：Admin Editorial UX**。
+私有 CMS 提供内容表格、Markdown 编辑/安全预览、串行 autosave、审核工作区、
+Revision History、Tags/Authors/Users/Audit 和 Monitor。Publish 仅表示 **已在 CMS 发布**；
+R2 和公共站发布管线尚未实现。
 详见 [阶段范围](docs/implementation-status.md)。
 
 ## 架构
@@ -19,18 +20,18 @@ Markdown 出版平台。
 公共站不在请求时依赖 CMS；私有服务器离线不影响读者。源码留在 Git，未来内容
 通过 CMS 编辑与发布；about/contribute 页面继续随仓库维护。
 
-| 目录                                 | 当前职责                                                               |
-| ------------------------------------ | ---------------------------------------------------------------------- |
-| `apps/web`                           | Astro 静态首页/about/contribute、空 RSS、sitemap、Pagefind 索引        |
-| `apps/admin`                         | React/Vite、shadcn/Base UI、登录/待审批/个人资料/用户管理/Monitor 入口 |
-| `packages/markdown`                  | CommonMark/GFM 安全规则与共享 remark 插件                              |
-| `packages/api-client`                | OpenAPI 生成类型、同源请求及 CSRF header                               |
-| `cmd/gopheratlas-cms`                | 配置、共享 logger、SQLite、OAuth 服务的构造与关闭                      |
-| `internal/app`, `internal/http`      | Fiber 中间件顺序、API、错误与 cookie 边界                              |
-| `internal/auth`, `internal/policy`   | 身份事务、会话和集中权限判断                                           |
-| `internal/content`, `internal/audit` | 内容工作流、路由、taxonomy 和同事务安全 Audit                          |
-| `internal/database`, `db`            | SQLite 连接池、真实 goose migrations 和 sqlc queries                   |
-| `internal/adminui`                   | 编译进 Go 二进制的 Admin 生产静态文件                                  |
+| 目录                                 | 当前职责                                                                    |
+| ------------------------------------ | --------------------------------------------------------------------------- |
+| `apps/web`                           | Astro 静态首页/about/contribute、空 RSS、sitemap、Pagefind 索引             |
+| `apps/admin`                         | 按 feature 拆分的 React/Vite 编辑工作台、Base UI、RHF、TanStack Table/Query |
+| `packages/markdown`                  | CommonMark/GFM 安全规则与共享 remark 插件                                   |
+| `packages/api-client`                | OpenAPI 生成类型、同源请求及 CSRF header                                    |
+| `cmd/gopheratlas-cms`                | 配置、共享 logger、SQLite、OAuth 服务的构造与关闭                           |
+| `internal/app`, `internal/http`      | Fiber 中间件顺序、API、错误与 cookie 边界                                   |
+| `internal/auth`, `internal/policy`   | 身份事务、会话和集中权限判断                                                |
+| `internal/content`, `internal/audit` | 内容工作流、路由、taxonomy 和同事务安全 Audit                               |
+| `internal/database`, `db`            | SQLite 连接池、真实 goose migrations 和 sqlc queries                        |
+| `internal/adminui`                   | 编译进 Go 二进制的 Admin 生产静态文件                                       |
 
 ## 分支模型
 
@@ -64,7 +65,8 @@ make db-up
 Bash 使用 `mkdir -p data` 和 `export DATABASE_PATH=./data/gopheratlas.db` 后运行相同
 make 命令。迁移脚本不隐式加载 `.env`；CMS 启动和 `/readyz` 也不会执行迁移。
 已有 P0-1 数据库也需显式运行 `make db-up` 应用 `00002_editorial.sql`；
-原 `00001_identity.sql` 保持不变。P0-2 readiness 要求 schema version 2。
+P0-3 不新增 migration，`00001_identity.sql`、`00002_editorial.sql` 均保持不变，
+readiness 继续要求 schema version 2。
 
 分三个终端启动：
 
@@ -142,7 +144,7 @@ make check           # 最终统一门禁
 ```
 
 门禁包括边界检查、gofmt/vet/staticcheck、Go 身份/内容/并发/数据库/HTTP 测试、前端 lint/
-类型/身份 UI 测试、OpenAPI 和生成漂移、goose/sqlc 隔离验证、Public 构建，以及
+类型/身份与编辑审核 UI 测试、OpenAPI 和生成漂移、goose/sqlc 隔离验证、Public 构建，以及
 Admin 生产构建后的 embed 测试和最终 Go 二进制编译。Linux CI 另外执行
 `go test -race -tags=adminembed ./...`。sqlc 输出与 TS schema 必须经生成，不手改。
 
@@ -153,7 +155,7 @@ Public 采用技术刊物的阅读层级、自托管 Geist/JetBrains Mono、暖�
 [设计系统](docs/design-system.md)、[AGENTS.md](AGENTS.md)、[架构](.agents/architecture.md)
 及 [ADR](docs/decisions/README.md)。
 
-## P0-2 内容 API
+## 内容 API 与 Admin 工作流
 
 `/api/admin/v1/content` 创建/读取内容；Draft PUT 是包含 `version` 的完整快照，
 同事务更新字段、Tags 和 Topic 顺序。旧版本保存返回 `409 content_version_conflict`。
@@ -172,8 +174,27 @@ Publish **只表示 SQLite 选定 Revision**，并不表示公共网站已重建
 
 接口与请求/响应见 [OpenAPI](contracts/openapi.yaml)，领域约束见
 [Data contract](contracts/data.md) 和 [ADR 0006](docs/decisions/0006-content-revision-and-route-model.md)。
-现有 Admin 仍是身份 UI；P0-3 增加编辑器、Review Workspace、Tag/Audit UI。
+P0-3 增加 author summaries、immutable Review detail、列表筛选及 server action projection；
+筛选不绕过 object policy，Reviewer 的历史详情也不返回他人的 Draft。
 P0-4 才加入 assets/R2/generation/jobs/snapshot v1/Cloudflare hook；旧站导入和生产切换更晚。
+
+## 编辑工作台
+
+- Content 下四个类型入口复用同一张可筛选、cursor 分页的表格。创建后直接进入编辑器；
+  Topic 仅 Admin 可创建，Tags 在独立管理页面创建/更新。
+- Source / Preview / Split 使用 UIW source 输入和 react-markdown/GFM 安全预览。
+  外部图片只显示 warning placeholder，不发起图片请求；无 H1、HTML 或上传命令。
+- 空闲 1.7 秒保存完整 Draft，始终只有一个 PUT 在途；后续输入合并并使用新 version。
+  Ctrl/Cmd+S、Submit 和 Direct Publish 复用同一个队列。409 后暂停自动重试，提供
+  Copy、Inspect 和显式 Reload；离开未保存页面会提示。Draft 从不写浏览器存储。
+- 审核始终显示 exact immutable Revision；反馈、resubmit、历史查看/恢复、归档和
+  直接发布均沿用 P0-2 服务。编辑下一版不改变已发布 pointer。
+- System / Light / Dark 仅持久化主题偏好。360px 下侧栏折叠、metadata 堆叠。
+  Monitor 是普通 Admin 链接；没有 Assets/Builds/Publication 导航。
+
+生产构建包含所有 lazy chunks，仍由单个 Go 二进制提供。Vite 构建门禁拒绝 raw HTML
+preview 或禁止的 editor/primitives 模块进入产物。工程决定见
+[ADR 0007](docs/decisions/0007-admin-editorial-ux.md)。
 
 ## License
 

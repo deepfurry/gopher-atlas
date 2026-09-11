@@ -12,7 +12,11 @@
    when behavior changes; use an ADR for decisions expensive to reverse.
    Editorial changes need real SQLite race scenarios, relation rollback,
    immutable snapshot/published isolation and transactional Audit checks.
-   Never edit merged migration 00001; readiness remains read-only at schema 2.
+   Never edit merged migrations 00001/00002; P0-3 adds no migration and readiness
+   remains read-only at schema 2. UI changes need autosave/409/flush/immutable-review
+   tests and a preview test proving external images never produce img elements.
+   Verify a fresh embedded build in a browser, including first lazy navigation,
+   two-tab conflicts, light/dark and 360 px layouts.
 5. Run `make check`. This checks formatting, Go analysis/tests/build, TS checks,
    contracts, generation drift, disposable SQL tooling and static build artifacts.
    The final Go build uses freshly built Admin assets and `adminembed`; Linux CI

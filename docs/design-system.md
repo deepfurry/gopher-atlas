@@ -1,7 +1,7 @@
 # GopherAtlas design system baseline
 
 `contracts/design.md` is mandatory. This guide maps it to current implementation;
-it does not claim the final P0-3 Admin or P0-5 publication designs are finished.
+P0-3 Admin is implemented; the full P0-5 public publication design remains deferred.
 
 ## Public implementation
 
@@ -32,8 +32,10 @@ hydrated React islands. Search will add an island when its interface is built.
 
 `apps/admin/src/styles.css` owns separate semantic tokens mapped through Tailwind
 v4's `@theme inline`. The 224 px sidebar, 14 px body, 32 px buttons and 6 px radius
-provide the initial density. Below 640 px, navigation stacks above the content.
-Keep later tables/forms compact without compressing labels, focus or validation.
+provide the working density. At 760 px and below, a named keyboard-accessible
+button expands navigation above the content. The editor uses a 320 px metadata
+rail; below 1150 px it stacks under source/preview, and at 360 px metadata becomes
+one column. Tables scroll inside named regions rather than widening the page.
 
 `components.json` selects shadcn's `base-nova` style and Lucide icons. The local
 Button is adapted from the [shadcn Base UI Button](https://ui.shadcn.com/docs/components/base/button)
@@ -43,15 +45,31 @@ only the variants currently needed are retained. shadcn code is MIT licensed;
 see `docs/third-party-notices.md`. Future components should be added from this
 Base UI family. Public must never import this directory.
 
-TanStack Query owns identity/readiness/user requests and mutations; React Router
-owns Admin navigation. P0-1 adds a GitHub login page, waiting-for-approval state,
-active identity/sidebar, a compact Users table and a labeled author profile form.
-Controls are gated by server capability flags. There are no editorial controls.
-The table scrolls inside its own region at narrow widths; logout remains visible
-on mobile. Status/error text is explicit, with role=status/alert announcements.
-Forms use native labeled inputs/selects and the existing Base UI Button. The new
-error token is #a12c32 in light mode and #ffabb0 in dark mode. No raw Markdown bio
-is rendered as HTML; the profile uses a plain textarea until the later editor phase.
+TanStack Query owns server caches; React Router data routes split the major feature
+pages. React Hook Form/Zod own Draft metadata; TanStack Table renders the shared
+content table. Native labeled controls and the Base UI Button/AlertDialog preserve
+keyboard behavior. Sonner announces significant successes, never every autosave.
+
+The header shows independent editorial and Published-in-CMS badges, workflow
+actions from the server, and aria-live save/version status. Conflicts remain
+visible with explicit reload, copy and inspect controls. Navigation and beforeunload
+protect unsaved/in-flight edits; no Draft is written to browser storage.
+
+UIW supplies only source input and an H2/H3/formatting toolbar. Source, Preview and
+Split all use the same in-memory Draft. Preview uses react-markdown/GFM with safe
+URL and image renderers; raw HTML is omitted, external images become warnings,
+and Markdown feedback does not rewrite source. There is no upload-image action.
+Reviewer workspaces and history display immutable snapshots without Draft inputs.
+
+System / Light / Dark uses the existing light/dark token pairs and stores only
+`gopheratlas-theme`. Global reduced-motion rules disable transitions/animations.
+Error text uses #a12c32 / #ffabb0; focus rings remain visible in both themes.
+High-impact confirmation describes exact Revision selection or preserved history.
+Monitor remains a normal Admin-only link. Authors are separate from account RBAC.
+
+The optional AJV resolver adapter reports a pnpm peer-range warning against the
+repository's existing ajv-formats 3. Admin imports only the Zod adapter; no AJV
+adapter or replacement validator version is added to the application.
 
 ## Review procedure
 

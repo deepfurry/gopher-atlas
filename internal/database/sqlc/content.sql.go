@@ -220,14 +220,19 @@ func (q *Queries) GetRevisionByID(ctx context.Context, arg GetRevisionByIDParams
 }
 
 const listContent = `-- name: ListContent :many
-SELECT c.id, c.type, c.owner_user_id, c.editorial_state, c.pending_review_revision_id, c.published_revision_id, c.created_by, c.first_published_at, c.last_published_at, c.created_at, c.updated_at, c.archived_at, d.title AS draft_title, r.title AS revision_title
+SELECT c.id, c.type, c.owner_user_id, c.editorial_state, c.pending_review_revision_id, c.published_revision_id, c.created_by, c.first_published_at, c.last_published_at, c.created_at, c.updated_at, c.archived_at, d.title AS draft_title, r.title AS revision_title, d.byline_user_id AS draft_byline, r.byline_user_id AS revision_byline
 FROM content_items c JOIN content_drafts d ON d.content_id = c.id
 LEFT JOIN content_revisions r ON r.id = c.pending_review_revision_id AND r.content_id = c.id
 WHERE c.id > ?1
 AND (c.archived_at IS NULL OR ?2)
 AND (?3 OR c.owner_user_id = ?4
 OR (?5 AND c.editorial_state = 'in_review'))
-ORDER BY c.id LIMIT ?6
+AND (?6 = '' OR c.type = ?6)
+AND (?7 = '' OR c.editorial_state = ?7)
+AND (?8 = 0 OR c.owner_user_id = ?8)
+AND (?9 = '' OR instr(lower(CASE WHEN ?3 OR c.owner_user_id = ?4
+THEN d.title || ' ' || d.summary ELSE r.title || ' ' || r.summary END), lower(?9)) > 0)
+ORDER BY c.id LIMIT ?10
 `
 
 type ListContentParams struct {
@@ -236,6 +241,10 @@ type ListContentParams struct {
 	IsAdmin         interface{}
 	ActorID         int64
 	IsReviewer      interface{}
+	ContentType     interface{}
+	EditorialState  interface{}
+	OwnerID         interface{}
+	Search          interface{}
 	PageSize        int64
 }
 
@@ -254,6 +263,8 @@ type ListContentRow struct {
 	ArchivedAt              sql.NullInt64
 	DraftTitle              string
 	RevisionTitle           sql.NullString
+	DraftByline             int64
+	RevisionByline          sql.NullInt64
 }
 
 func (q *Queries) ListContent(ctx context.Context, arg ListContentParams) ([]ListContentRow, error) {
@@ -263,6 +274,10 @@ func (q *Queries) ListContent(ctx context.Context, arg ListContentParams) ([]Lis
 		arg.IsAdmin,
 		arg.ActorID,
 		arg.IsReviewer,
+		arg.ContentType,
+		arg.EditorialState,
+		arg.OwnerID,
+		arg.Search,
 		arg.PageSize,
 	)
 	if err != nil {
@@ -287,6 +302,8 @@ func (q *Queries) ListContent(ctx context.Context, arg ListContentParams) ([]Lis
 			&i.ArchivedAt,
 			&i.DraftTitle,
 			&i.RevisionTitle,
+			&i.DraftByline,
+			&i.RevisionByline,
 		); err != nil {
 			return nil, err
 		}
@@ -302,10 +319,11 @@ func (q *Queries) ListContent(ctx context.Context, arg ListContentParams) ([]Lis
 }
 
 const listRevisions = `-- name: ListRevisions :many
-SELECT id, content_id, revision_no, title, slug, byline_user_id, created_by, created_at
-FROM content_revisions WHERE content_id = ?1 AND revision_no > ?2
-AND (?3 = 0 OR id = ?3)
-ORDER BY revision_no LIMIT ?4
+SELECT r.id, r.content_id, r.revision_no, r.title, r.slug, r.byline_user_id, r.created_by, r.created_at, review.decision
+FROM content_revisions r LEFT JOIN content_reviews review ON review.revision_id = r.id
+WHERE r.content_id = ?1 AND r.revision_no > ?2
+AND (?3 = 0 OR r.id = ?3)
+ORDER BY r.revision_no LIMIT ?4
 `
 
 type ListRevisionsParams struct {
@@ -324,6 +342,7 @@ type ListRevisionsRow struct {
 	BylineUserID int64
 	CreatedBy    int64
 	CreatedAt    int64
+	Decision     sql.NullString
 }
 
 func (q *Queries) ListRevisions(ctx context.Context, arg ListRevisionsParams) ([]ListRevisionsRow, error) {
@@ -349,6 +368,7 @@ func (q *Queries) ListRevisions(ctx context.Context, arg ListRevisionsParams) ([
 			&i.BylineUserID,
 			&i.CreatedBy,
 			&i.CreatedAt,
+			&i.Decision,
 		); err != nil {
 			return nil, err
 		}

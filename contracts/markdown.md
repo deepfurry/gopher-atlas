@@ -16,10 +16,14 @@ Images, including references, require the exact HTTPS origin
 URLs are rejected. Alt text belongs to usage, not the global asset record.
 
 The shared fixture suite checks the syntax/safety boundary. Astro uses
-the shared plugins and Shiki configuration. The actual Admin editor/preview,
-heading anchors, TOC and copy-code UI belong to P0-3/P0-5. When added, Admin preview
-must use the same plugin list and renderer parity fixtures. Go submit/publish
+the shared plugins and Shiki configuration. P0-3 Admin previews use react-markdown
+with GFM, skipHtml, safe URL transforms and controlled-image renderers. The shared
+validator provides non-destructive inline feedback; the throwing remark guard is
+reserved for build-time validation. Preview never creates a third-party img, even
+for unsaved input. UIW is source-only and its default preview module is replaced
+by the safe renderer. Production builds reject rehype-raw in the module graph. Go submit/publish
 validation must independently enforce this contract; browser validation is not a
 security boundary. Go Goldmark/GFM validates author biographies and, in P0-2,
 every saved/submitted body and Review comment against the same safety rules.
-Bodies are at most 512 KiB UTF-8; comments at most 16 KiB. P0-2 adds no editor UI.
+Bodies are at most 512 KiB UTF-8; comments at most 16 KiB. Preview and feedback
+parsing use a 200 ms debounce. Source is never automatically rewritten.

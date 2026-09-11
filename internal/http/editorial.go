@@ -14,6 +14,7 @@ func (h *Handler) registerEditorial(api fiber.Router) {
 	api.Get("/content", h.listContent)
 	api.Post("/content", h.createContent)
 	api.Get("/content/:id", h.getContent)
+	api.Get("/content/:id/review", h.pendingReviewDetail)
 	api.Get("/content/:id/routes", h.listRoutes)
 	api.Put("/content/:id/draft", h.saveDraft)
 	api.Post("/content/:id/actions/:action", h.contentAction)
@@ -21,6 +22,7 @@ func (h *Handler) registerEditorial(api fiber.Router) {
 	api.Get("/content/:id/revisions/:revisionNo", h.getRevision)
 	api.Post("/content/:id/revisions/:revisionNo/actions/restore", h.restoreRevision)
 	api.Get("/reviews", h.listReviews)
+	api.Get("/reviews/:id", h.reviewDetail)
 	api.Get("/tags", h.listTags)
 	api.Post("/tags", h.putTag)
 	api.Put("/tags/:id", h.putTag)
@@ -114,7 +116,11 @@ func (h *Handler) listContent(c fiber.Ctx) error {
 	if archived != "true" && archived != "false" {
 		return fault.Validation
 	}
-	result, err := h.Content.List(c.Context(), principal(c), after, archived == "true")
+	owner, err := strconv.ParseInt(c.Query("ownerUserId", "0"), 10, 64)
+	if err != nil || owner < 0 {
+		return fault.Validation
+	}
+	result, err := h.Content.List(c.Context(), principal(c), after, archived == "true", content.Filters{Type: c.Query("type"), EditorialState: c.Query("editorialState"), Search: c.Query("q"), OwnerUserID: owner})
 	if err != nil {
 		return err
 	}

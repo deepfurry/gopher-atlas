@@ -54,17 +54,23 @@ SELECT * FROM content_revisions WHERE content_id = ? AND revision_no = ?;
 SELECT * FROM content_revisions WHERE content_id = ? AND id = ?;
 
 -- name: ListRevisions :many
-SELECT id, content_id, revision_no, title, slug, byline_user_id, created_by, created_at
-FROM content_revisions WHERE content_id = sqlc.arg(content_id) AND revision_no > sqlc.arg(after_no)
-AND (sqlc.arg(only_revision_id) = 0 OR id = sqlc.arg(only_revision_id))
-ORDER BY revision_no LIMIT sqlc.arg(page_size);
+SELECT r.id, r.content_id, r.revision_no, r.title, r.slug, r.byline_user_id, r.created_by, r.created_at, review.decision
+FROM content_revisions r LEFT JOIN content_reviews review ON review.revision_id = r.id
+WHERE r.content_id = sqlc.arg(content_id) AND r.revision_no > sqlc.arg(after_no)
+AND (sqlc.arg(only_revision_id) = 0 OR r.id = sqlc.arg(only_revision_id))
+ORDER BY r.revision_no LIMIT sqlc.arg(page_size);
 
 -- name: ListContent :many
-SELECT c.*, d.title AS draft_title, r.title AS revision_title
+SELECT c.*, d.title AS draft_title, r.title AS revision_title, d.byline_user_id AS draft_byline, r.byline_user_id AS revision_byline
 FROM content_items c JOIN content_drafts d ON d.content_id = c.id
 LEFT JOIN content_revisions r ON r.id = c.pending_review_revision_id AND r.content_id = c.id
 WHERE c.id > sqlc.arg(after_id)
 AND (c.archived_at IS NULL OR sqlc.arg(include_archived))
 AND (sqlc.arg(is_admin) OR c.owner_user_id = sqlc.arg(actor_id)
 OR (sqlc.arg(is_reviewer) AND c.editorial_state = 'in_review'))
+AND (sqlc.arg(content_type) = '' OR c.type = sqlc.arg(content_type))
+AND (sqlc.arg(editorial_state) = '' OR c.editorial_state = sqlc.arg(editorial_state))
+AND (sqlc.arg(owner_id) = 0 OR c.owner_user_id = sqlc.arg(owner_id))
+AND (sqlc.arg(search) = '' OR instr(lower(CASE WHEN sqlc.arg(is_admin) OR c.owner_user_id = sqlc.arg(actor_id)
+THEN d.title || ' ' || d.summary ELSE r.title || ' ' || r.summary END), lower(sqlc.arg(search))) > 0)
 ORDER BY c.id LIMIT sqlc.arg(page_size);

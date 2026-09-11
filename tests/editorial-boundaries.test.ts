@@ -1,0 +1,47 @@
+import { createHash } from 'node:crypto';
+import { readFileSync, readdirSync } from 'node:fs';
+import { expect, it } from 'vitest';
+const source = (path: string) =>
+  readFileSync(path, 'utf8').replaceAll('\r\n', '\n');
+it('keeps P0-3 on the two immutable schema-2 migrations', () => {
+  expect(
+    readdirSync('db/migrations')
+      .filter((name) => name.endsWith('.sql'))
+      .sort(),
+  ).toEqual(['00001_identity.sql', '00002_editorial.sql']);
+  for (const [name, hash] of Object.entries({
+    '00001_identity.sql':
+      '5e50419901720610849d7e341904083d9ccdc9e0051dcb3ee46d785c73042235',
+    '00002_editorial.sql':
+      '81c407db1a2ae0dc23ae86c2d6773e9898bc6547994659152a3eb0671964f4d8',
+  }))
+    expect(
+      createHash('sha256')
+        .update(source(`db/migrations/${name}`))
+        .digest('hex'),
+    ).toBe(hash);
+  expect(source('internal/database/database.go')).toContain(
+    'const SchemaVersion = 2',
+  );
+});
+it('reserves browser persistence for theme and retains reduced-motion/focus rules', () => {
+  const files = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
+      entry.isDirectory()
+        ? files(`${dir}/${entry.name}`)
+        : [`${dir}/${entry.name}`],
+    );
+  for (const file of files('apps/admin/src').filter(
+    (p) => /\.tsx?$/.test(p) && !p.includes('.test.'),
+  )) {
+    if (!file.endsWith('/app/theme.tsx'))
+      expect(source(file)).not.toMatch(
+        /\b(?:localStorage|sessionStorage|indexedDB)\b/,
+      );
+  }
+  const css = source('apps/admin/src/styles.css');
+  expect(css).toMatch(/@media\s*\(prefers-reduced-motion:\s*reduce\)/);
+  expect(css).toContain('transition: none !important');
+  expect(css).toContain('animation: none !important');
+  expect(css).toContain(':focus-visible');
+});

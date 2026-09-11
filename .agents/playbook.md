@@ -2,8 +2,9 @@
 
 1. Inspect branch/status and preserve pre-existing local changes. Read the current
    scope in `docs/implementation-status.md`, then affected code, contracts and ADRs.
-   Sync `dev` and branch from it for daily work. PRs target `dev`; `main` records
-   release snapshots. Do not change repository administration settings implicitly.
+   For authorized early development, switch to dev, pull --ff-only, require a
+   clean tree and record HEAD. Work/commit/push on dev as requested; main records
+   future release snapshots. Do not change repository administration settings implicitly.
 2. Use narrow existing checks to establish a baseline. `pnpm install --frozen-lockfile`
    and the pinned Go toolchain reproduce dependency inputs without secrets.
 3. Change authoritative inputs first: SQL, OpenAPI, schema or tokens. Run
@@ -12,12 +13,15 @@
    when behavior changes; use an ADR for decisions expensive to reverse.
    Editorial changes need real SQLite race scenarios, relation rollback,
    immutable snapshot/published isolation and transactional Audit checks.
-   Never edit merged migrations 00001/00002; P0-3 adds no migration and readiness
-   remains read-only at schema 2. UI changes need autosave/409/flush/immutable-review
+   Never edit migrations 00001/00002; P0-4 adds only 00003 and readiness remains
+   read-only at schema 3. Publication tests need job-failure rollback, freshness,
+   snapshot privacy and worker recovery with fake external dependencies. UI changes need autosave/409/flush/immutable-review
    tests and a preview test proving external images never produce img elements.
    Verify a fresh embedded build in a browser, including first lazy navigation,
    two-tab conflicts, light/dark and 360 px layouts.
-5. Run `make check`. This checks formatting, Go analysis/tests/build, TS checks,
+5. Run `make generate`, `make check` and Linux race. Never use real R2/Hook
+   credentials or deployment for implementation checks. The gate uses an explicit
+   v1 fixture and scans synthetic build secrets. This checks formatting, Go analysis/tests/build, TS checks,
    contracts, generation drift, disposable SQL tooling and static build artifacts.
    The final Go build uses freshly built Admin assets and `adminembed`; Linux CI
    also runs `go test -race -tags=adminembed ./...`.

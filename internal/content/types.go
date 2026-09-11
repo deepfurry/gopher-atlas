@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 
+	"github.com/deepfurry/gopher-atlas/internal/assets"
 	"github.com/deepfurry/gopher-atlas/internal/auth"
 	dbsqlc "github.com/deepfurry/gopher-atlas/internal/database/sqlc"
 	"github.com/deepfurry/gopher-atlas/internal/policy"
@@ -19,6 +20,7 @@ const (
 )
 
 type Fields struct {
+	CoverAssetID   *int64          `json:"coverAssetId"`
 	Title          string          `json:"title"`
 	Slug           string          `json:"slug"`
 	Summary        string          `json:"summary"`
@@ -44,6 +46,7 @@ type DraftInput struct {
 	Relations
 }
 type Draft struct {
+	CoverAsset *assets.Summary `json:"coverAsset"`
 	RelationLabels
 	DraftInput
 	PayloadSchemaVersion int64 `json:"payloadSchemaVersion"`
@@ -93,6 +96,7 @@ type RevisionSummary struct {
 	Published      bool               `json:"published"`
 }
 type Revision struct {
+	CoverAsset *assets.Summary `json:"coverAsset"`
 	RelationLabels
 	Creator      auth.AuthorSummary `json:"creator"`
 	Byline       auth.AuthorSummary `json:"byline"`
@@ -141,6 +145,12 @@ type Page[T any] struct {
 	NextCursor *int64 `json:"nextCursor"`
 }
 
+func nullable(n *int64) sql.NullInt64 {
+	if n == nil {
+		return sql.NullInt64{}
+	}
+	return stamp(*n)
+}
 func pointer(n sql.NullInt64) *int64 {
 	if !n.Valid {
 		return nil
@@ -161,11 +171,11 @@ func summary(c dbsqlc.ContentItem, title string) Summary {
 		FirstPublishedAt: pointer(c.FirstPublishedAt), LastPublishedAt: pointer(c.LastPublishedAt), ArchivedAt: pointer(c.ArchivedAt)}
 }
 func draftFields(d dbsqlc.ContentDraft) Fields {
-	return Fields{Title: d.Title, Slug: d.Slug, Summary: d.Summary, BodyMarkdown: d.BodyMarkdown, BylineUserID: d.BylineUserID,
+	return Fields{CoverAssetID: pointer(d.CoverAssetID), Title: d.Title, Slug: d.Slug, Summary: d.Summary, BodyMarkdown: d.BodyMarkdown, BylineUserID: d.BylineUserID,
 		Language: d.Language, Featured: d.Featured == 1, SEOTitle: d.SeoTitle, SEODescription: d.SeoDescription, Payload: json.RawMessage(d.PayloadJson)}
 }
 func revisionFields(r dbsqlc.ContentRevision) Fields {
-	return Fields{Title: r.Title, Slug: r.Slug, Summary: r.Summary, BodyMarkdown: r.BodyMarkdown, BylineUserID: r.BylineUserID,
+	return Fields{CoverAssetID: pointer(r.CoverAssetID), Title: r.Title, Slug: r.Slug, Summary: r.Summary, BodyMarkdown: r.BodyMarkdown, BylineUserID: r.BylineUserID,
 		Language: r.Language, Featured: r.Featured == 1, SEOTitle: r.SeoTitle, SEODescription: r.SeoDescription, Payload: json.RawMessage(r.PayloadJson)}
 }
 func reviewDTO(r dbsqlc.ContentReview) Review {

@@ -14,5 +14,5 @@ export default defineConfig({
     processor: unified({ remarkPlugins, smartypants: false }),
     shikiConfig: { themes: { light: 'github-light', dark: 'github-dark' } },
   },
-  vite: { plugins: [tailwindcss()] },
+  vite: { envDir: false, plugins: [tailwindcss()] },
 });

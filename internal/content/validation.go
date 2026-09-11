@@ -182,3 +182,12 @@ func candidatePath(kind string, f Fields) (string, error) {
 	}
 	return "", fault.Validation
 }
+
+// PublishedPath reuses the domain's complete-field validation for the public
+// exporter without exposing mutable Draft state or introducing another grammar.
+func PublishedPath(kind string, fields Fields) (string, error) {
+	if err := validateFields(kind, &fields, true); err != nil {
+		return "", err
+	}
+	return candidatePath(kind, fields)
+}

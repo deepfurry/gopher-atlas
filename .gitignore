@@ -31,3 +31,6 @@ yarn.lock
 .DS_Store
 Thumbs.db
 .idea/
+
+# Validated private build inputs (never commit generated copies)
+apps/web/.generated/

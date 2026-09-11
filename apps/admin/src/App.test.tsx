@@ -37,6 +37,8 @@ function account(
       websiteUrl: '',
     },
     permissions: {
+      uploadAssets: status === 'active',
+      manageAssets: false,
       manageUsers: false,
       manageAuthorProfiles: false,
       editOwnProfile: status === 'active',

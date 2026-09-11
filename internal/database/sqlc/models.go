@@ -8,6 +8,19 @@ import (
 	"database/sql"
 )
 
+type Asset struct {
+	ID        int64
+	Sha256    string
+	ObjectKey string
+	MimeType  string
+	ByteSize  int64
+	Width     int64
+	Height    int64
+	CreatedBy int64
+	CreatedAt int64
+	DeletedAt sql.NullInt64
+}
+
 type AuditEvent struct {
 	ID           int64
 	ActorUserID  int64
@@ -47,6 +60,7 @@ type ContentDraft struct {
 	PayloadJson          string
 	UpdatedBy            int64
 	UpdatedAt            int64
+	CoverAssetID         sql.NullInt64
 }
 
 type ContentItem struct {
@@ -91,6 +105,7 @@ type ContentRevision struct {
 	PayloadJson          string
 	CreatedBy            int64
 	CreatedAt            int64
+	CoverAssetID         sql.NullInt64
 }
 
 type ContentRoute struct {
@@ -119,6 +134,20 @@ type OauthState struct {
 	ConsumedAt sql.NullInt64
 }
 
+type PublicationJob struct {
+	ID             int64
+	Generation     int64
+	State          string
+	SnapshotKey    sql.NullString
+	SnapshotSha256 sql.NullString
+	Attempts       int64
+	LastError      string
+	NextAttemptAt  sql.NullInt64
+	CreatedAt      int64
+	UpdatedAt      int64
+	TriggeredAt    sql.NullInt64
+}
+
 type RevisionTag struct {
 	RevisionID int64
 	TagID      int64
@@ -139,6 +168,12 @@ type Session struct {
 	ExpiresAt     int64
 	LastSeenAt    int64
 	RevokedAt     sql.NullInt64
+}
+
+type SiteState struct {
+	ID                    int64
+	PublicationGeneration int64
+	UpdatedAt             int64
 }
 
 type Tag struct {

@@ -1,6 +1,6 @@
 # Compatibility contract
 
-P0-3 is unreleased. Internal Go/TS APIs are not stable public SDKs.
+P0-4 is unreleased. Internal Go/TS APIs are not stable public SDKs.
 Future changes to URLs, persisted data, environment keys and published snapshot
 versions still require explicit migration reasoning; do not silently reinterpret
 existing fields. Exact currently executable HTTP shapes live in `openapi.yaml`.
@@ -29,17 +29,25 @@ names; no blanket production cookie downgrade. Released migrations are immutable
 
 `make build-cms` is the production build entry and requires `adminembed` assets.
 Plain Go builds deliberately have no SPA and are only for tooling/local Vite use.
-Normal feature work starts at `dev`; `main` is a release snapshot, not a work branch.
+Authorized early work commits directly to clean, synchronized `dev`; `main` is a release snapshot, not a work branch.
 
 P0-2 adds editorial endpoints and schema version 2 while preserving migration 1.
 Clients must send complete Draft snapshots and expected versions, handle stable
 409 conflicts, and review immutable revision IDs. Tags/topic order are versioned
 with Draft and snapshotted at submit/direct publish. List cursors are exclusive
 ascending IDs (revisionNo for revision lists), capped at 100.
-CMS published selection does not imply a rebuilt public site. Snapshot version 0
-remains unchanged; production publication is P0-4.
+CMS published selection does not imply a rebuilt public site. P0-4 consumers reject schema 0 and require closed schema 1.
 
 P0-3 enriches private DTOs with batch author summaries and available actions, adds
 immutable review detail and author directory/profile administration, and extends
 content list filters without changing object visibility. Neither migration is
 modified; schema version remains 2. Existing domain commands retain their semantics.
+
+P0-4 adds migration 3 without editing migrations 1/2. Draft PUT now requires
+coverAssetId (explicit null clears it); Draft/Revision also project coverAsset.
+Deploy matching generated Admin/client and CMS binaries together. Asset IDs and
+SHA URLs remain stable after soft deletion. Generation is monotonic within a DB
+history; restoring an older DB may report marker>desired (behind), requiring an
+explicit recovery decision rather than silently rewriting the generation counter.
+Unknown snapshot fields/versions, missing build inputs and hash mismatch fail.
+P0-5 public URL rendering and final redirect output remain unimplemented.

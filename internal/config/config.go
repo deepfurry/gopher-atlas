@@ -13,6 +13,7 @@ import (
 )
 
 type Config struct {
+	Publication       Publication
 	ListenAddr        string
 	Environment       string
 	BaseURL           string
@@ -126,6 +127,10 @@ func Load(getenv func(string) string) (Config, error) {
 	var level zapcore.Level
 	if err := level.UnmarshalText([]byte(cfg.Log.Level)); err != nil {
 		return invalid("LOG_LEVEL")
+	}
+	cfg.Publication, err = publicationConfig(getenv, cfg.Environment == "production")
+	if err != nil {
+		return Config{}, err
 	}
 	return cfg, nil
 }

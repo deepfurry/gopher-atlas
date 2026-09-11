@@ -50,12 +50,23 @@ counts, balanced in-flight count and Admin-only access at the pre-session guard.
 Never log body, response body, OAuth query/code/state, IP, UA, cookie, Authorization,
 CSRF, Markdown, R2 credentials or deploy-hook URL. Client request IDs are replaced.
 
-## Deferred external boundaries
+## P0-4 external boundaries
 
-R2 CMS credentials will be bucket-scoped S3 RW assets/content; public builds use
-separate RO content credentials. Immutable assets use `assets.gopheratlas.com`.
-Private content stays private. Cloudflare hooks remain server-only and occur after
-snapshot upload and committed DB transactions. P0-2 editorial transactions perform
-no external I/O: publication only selects SQLite Revision/route/Audit state.
-No R2/hooks/import/deploy exists in this phase. Curated URLs are metadata; the CMS
-does not fetch or copy their source bodies. Public still consumes the v0 fixture.
+CMS uses AWS SDK v2 S3 with explicit endpoint, region auto, static bucket-scoped
+RW credentials, path style and a bounded client. Web Node builds use a separate
+AWS SDK JS v3 RO content credential. No hand-written SigV4 or runtime public CMS
+API. Content stays private; images use assets.gopheratlas.com.
+
+Immutable HEAD compares SHA metadata. Missing objects use conditional
+If-None-Match PUT; a raced precondition rechecks identity. Same hash is idempotent,
+different hash is an integrity failure. Only latest.json permits mutable Put.
+Assets use public, max-age=31536000, immutable cache policy and no physical deletion.
+See [R2 compatibility](https://developers.cloudflare.com/r2/api/s3/api/) and
+[AWS endpoints](https://docs.aws.amazon.com/sdk-for-go/v2/developer-guide/configure-endpoints.html).
+
+Hook POST has a 12-second timeout, rejects redirects and accepts any 2xx. It never
+parses/logs response bodies or URLs. Marker GET has a 5-second timeout, 8 KiB bound,
+no credentials and strict closed parsing; it never affects readiness. Go R2 calls
+use a 30-second client; build reads use 30-second abort and bounded streaming.
+Only safe bounded classifications reach jobs/logs/API. Tests use in-memory storage
+and loopback HTTP. Curated URLs stay metadata; source articles are never fetched.

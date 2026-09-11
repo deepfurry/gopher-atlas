@@ -1,6 +1,6 @@
 # Data contract
 
-P0-2 uses `database/sql` + `modernc.org/sqlite`, goose migrations and generated sqlc
+P0-4 uses `database/sql` + `modernc.org/sqlite`, goose migrations and generated sqlc
 queries. Services own transactions; no generic DAO, automatic migrations or schema
 mutation on startup/readiness.
 
@@ -35,8 +35,8 @@ session and role after acquiring the write lock. Last-active-Admin disable/demot
 is rejected transactionally; disabling revokes all sessions in the same transaction.
 
 `/readyz` checks reachability, expected applied migration version and all columns
-needed by identity/editorial queries without writing. Expected version is 2;
-P0-1-only, missing, damaged or newer schema is
+needed by identity/editorial queries without writing. Expected version is 3;
+Older, missing, damaged or newer schema is
 not ready. Do not use `DATABASE_PATH` from a developer environment in tests.
 
 ## Editorial persistence
@@ -106,12 +106,38 @@ self-owned/byline work. Editors see own non-archived Content only. Admin may
 explicitly include archived items. Route history has a separate cursor endpoint.
 Short transactions give multi-query editorial reads a consistent DTO snapshot.
 
-P0-2 Publish ends at SQLite pointer + route + Audit. P0-4 will atomically update
-generation/jobs and export only after commit, without transaction network I/O.
+P0-4 Publish atomically updates pointer + routes + Audit + generation/job.
+Export and network stages occur after commit; see ADR 0008.
 
-`content-snapshot.schema.json` remains the **version 0 bootstrap envelope**. It
-accepts empty arrays only. Public projection version 1 belongs to P0-4 and must
-exclude roles/status, OAuth data, sessions, drafts, reviews, audit, IPs and secrets.
+`content-snapshot.schema.json` is the **closed public version 1 projection**.
+It excludes role/status, GitHub identity/login, sessions/OAuth, Drafts, Reviews,
+Audit, IPs and credentials. Only referenced authors/tags/covers and published
+unarchived Revisions/routes are exported. Topic targets must exist in the same
+projection. Draft never supplies an exported field.
 
 R2 snapshots are not database backups. Production backup/restore must preserve
 private data and WAL consistency; see operations documentation.
+
+## Publication persistence
+
+00003 adds assets, nullable Draft/Revision cover_asset_id, singleton site_state
+(initial generation 0), and constrained publication_jobs. Audit is rebuilt with
+asset/publication entity types, preserving all rows and append-only triggers/indexes.
+Down refuses to lose new asset/publication Audit history; otherwise it restores
+the v2 constraint and removes only v3 additions. Keep backups before migration.
+
+Cover selection requires an undeleted asset; submit/direct publish snapshot it.
+Historical restore may copy a deleted cover; a subsequent save/submit must replace
+or remove it. Soft deletion preserves published covers and immutable Markdown URLs.
+Uploading bytes of a deleted asset requires explicit Admin restore, not implicit revival.
+
+Public-impact triggers: reviewed/direct publication, unpublish, previously
+published archive; Author update if used by current publication; Tag update if
+used by a selected published Revision. Draft/save/submit/withdraw/changes/restore,
+Tag creation, unused Author/Tag changes, assets and user role/status do not advance
+generation. Job insert failure rolls back business state, route, Audit and counter.
+
+Snapshot bytes are deterministic for a generation; exportedAt uses its stored
+site_state timestamp, not retry wall time. Bound: 128 MiB, 10000 content,
+100000 routes/tags; references and route/Topic graph fail closed. Deleted covers
+remain exportable if selected by a published Revision. No network I/O inside a DB tx.

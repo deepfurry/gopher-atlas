@@ -127,7 +127,7 @@ func (q *Queries) GetContent(ctx context.Context, id int64) (ContentItem, error)
 }
 
 const getDraft = `-- name: GetDraft :one
-SELECT content_id, version, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, updated_by, updated_at FROM content_drafts WHERE content_id = ?
+SELECT content_id, version, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, updated_by, updated_at, cover_asset_id FROM content_drafts WHERE content_id = ?
 `
 
 func (q *Queries) GetDraft(ctx context.Context, contentID int64) (ContentDraft, error) {
@@ -149,12 +149,13 @@ func (q *Queries) GetDraft(ctx context.Context, contentID int64) (ContentDraft, 
 		&i.PayloadJson,
 		&i.UpdatedBy,
 		&i.UpdatedAt,
+		&i.CoverAssetID,
 	)
 	return i, err
 }
 
 const getRevision = `-- name: GetRevision :one
-SELECT id, content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at FROM content_revisions WHERE content_id = ? AND revision_no = ?
+SELECT id, content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at, cover_asset_id FROM content_revisions WHERE content_id = ? AND revision_no = ?
 `
 
 type GetRevisionParams struct {
@@ -182,12 +183,13 @@ func (q *Queries) GetRevision(ctx context.Context, arg GetRevisionParams) (Conte
 		&i.PayloadJson,
 		&i.CreatedBy,
 		&i.CreatedAt,
+		&i.CoverAssetID,
 	)
 	return i, err
 }
 
 const getRevisionByID = `-- name: GetRevisionByID :one
-SELECT id, content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at FROM content_revisions WHERE content_id = ? AND id = ?
+SELECT id, content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at, cover_asset_id FROM content_revisions WHERE content_id = ? AND id = ?
 `
 
 type GetRevisionByIDParams struct {
@@ -215,6 +217,7 @@ func (q *Queries) GetRevisionByID(ctx context.Context, arg GetRevisionByIDParams
 		&i.PayloadJson,
 		&i.CreatedBy,
 		&i.CreatedAt,
+		&i.CoverAssetID,
 	)
 	return i, err
 }
@@ -429,12 +432,13 @@ func (q *Queries) RestoreArchive(ctx context.Context, arg RestoreArchiveParams) 
 }
 
 const saveDraft = `-- name: SaveDraft :execrows
-UPDATE content_drafts SET title = ?1, slug = ?2, summary = ?3, body_markdown = ?4, byline_user_id = ?5, language = ?6, featured = ?7, seo_title = ?8, seo_description = ?9, payload_schema_version = ?10, payload_json = ?11,
-version = version + 1, updated_by = ?12, updated_at = ?13
-WHERE content_id = ?14 AND version = ?15
+UPDATE content_drafts SET cover_asset_id = ?1, title = ?2, slug = ?3, summary = ?4, body_markdown = ?5, byline_user_id = ?6, language = ?7, featured = ?8, seo_title = ?9, seo_description = ?10, payload_schema_version = ?11, payload_json = ?12,
+version = version + 1, updated_by = ?13, updated_at = ?14
+WHERE content_id = ?15 AND version = ?16
 `
 
 type SaveDraftParams struct {
+	CoverAssetID         sql.NullInt64
 	Title                string
 	Slug                 string
 	Summary              string
@@ -454,6 +458,7 @@ type SaveDraftParams struct {
 
 func (q *Queries) SaveDraft(ctx context.Context, arg SaveDraftParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, saveDraft,
+		arg.CoverAssetID,
 		arg.Title,
 		arg.Slug,
 		arg.Summary,
@@ -492,10 +497,10 @@ func (q *Queries) SetPendingRevision(ctx context.Context, arg SetPendingRevision
 }
 
 const snapshotDraft = `-- name: SnapshotDraft :one
-INSERT INTO content_revisions(content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at)
+INSERT INTO content_revisions(content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, cover_asset_id, created_by, created_at)
 SELECT d.content_id, (SELECT COALESCE(MAX(r.revision_no), 0) + 1 FROM content_revisions r WHERE r.content_id = d.content_id),
-d.title, d.slug, d.summary, d.body_markdown, d.byline_user_id, d.language, d.featured, d.seo_title, d.seo_description, d.payload_schema_version, d.payload_json, ?1, ?2
-FROM content_drafts d WHERE d.content_id = ?3 RETURNING id, content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at
+d.title, d.slug, d.summary, d.body_markdown, d.byline_user_id, d.language, d.featured, d.seo_title, d.seo_description, d.payload_schema_version, d.payload_json, d.cover_asset_id, ?1, ?2
+FROM content_drafts d WHERE d.content_id = ?3 RETURNING id, content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at, cover_asset_id
 `
 
 type SnapshotDraftParams struct {
@@ -524,6 +529,7 @@ func (q *Queries) SnapshotDraft(ctx context.Context, arg SnapshotDraftParams) (C
 		&i.PayloadJson,
 		&i.CreatedBy,
 		&i.CreatedAt,
+		&i.CoverAssetID,
 	)
 	return i, err
 }

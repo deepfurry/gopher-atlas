@@ -6,16 +6,27 @@ import (
 	"errors"
 	"time"
 
+	"github.com/deepfurry/gopher-atlas/internal/assets"
 	"github.com/deepfurry/gopher-atlas/internal/audit"
 	"github.com/deepfurry/gopher-atlas/internal/auth"
 	dbsqlc "github.com/deepfurry/gopher-atlas/internal/database/sqlc"
 	"github.com/deepfurry/gopher-atlas/internal/fault"
+	"github.com/deepfurry/gopher-atlas/internal/outbox"
 	"github.com/deepfurry/gopher-atlas/internal/policy"
 )
 
-type Service struct{ db *sql.DB }
+type Service struct {
+	db    *sql.DB
+	fence *outbox.Fence
+}
 
-func New(db *sql.DB) *Service { return &Service{db: db} }
+func New(db *sql.DB, fences ...*outbox.Fence) *Service {
+	fence := &outbox.Fence{}
+	if len(fences) > 0 && fences[0] != nil {
+		fence = fences[0]
+	}
+	return &Service{db: db, fence: fence}
+}
 func dbError(err error) error {
 	if errors.Is(err, sql.ErrNoRows) {
 		return fault.NotFound
@@ -126,6 +137,9 @@ func (s *Service) Save(ctx context.Context, actor auth.Principal, id int64, inpu
 	return result, err
 }
 func validateRelations(ctx context.Context, q *dbsqlc.Queries, c dbsqlc.ContentItem, f Fields, r Relations) error {
+	if err := assets.ValidateCover(ctx, q, f.CoverAssetID); err != nil {
+		return err
+	}
 	if _, err := q.GetProfile(ctx, f.BylineUserID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return fault.Validation
@@ -172,7 +186,7 @@ func validateRelations(ctx context.Context, q *dbsqlc.Queries, c dbsqlc.ContentI
 	return nil
 }
 func save(ctx context.Context, q *dbsqlc.Queries, u dbsqlc.User, id int64, in DraftInput, now int64) error {
-	n, err := q.SaveDraft(ctx, dbsqlc.SaveDraftParams{ContentID: id, ExpectedVersion: in.Version, Title: in.Title, Slug: in.Slug, Summary: in.Summary,
+	n, err := q.SaveDraft(ctx, dbsqlc.SaveDraftParams{CoverAssetID: nullable(in.CoverAssetID), ContentID: id, ExpectedVersion: in.Version, Title: in.Title, Slug: in.Slug, Summary: in.Summary,
 		BodyMarkdown: in.BodyMarkdown, BylineUserID: in.BylineUserID, Language: in.Language, Featured: flag(in.Featured), SeoTitle: in.SEOTitle,
 		SeoDescription: in.SEODescription, PayloadSchemaVersion: 1, PayloadJson: string(in.Payload), UpdatedBy: u.ID, UpdatedAt: now})
 	if err != nil {

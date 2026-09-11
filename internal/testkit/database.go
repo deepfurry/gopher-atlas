@@ -25,7 +25,7 @@ func Open(t testing.TB) *sql.DB {
 	return pool
 }
 
-func Migrate(t testing.TB, pool *sql.DB) *goose.Provider {
+func Provider(t testing.TB, pool *sql.DB) *goose.Provider {
 	t.Helper()
 	files, err := fs.Sub(migrations.Migrations, "migrations")
 	if err != nil {
@@ -35,6 +35,11 @@ func Migrate(t testing.TB, pool *sql.DB) *goose.Provider {
 	if err != nil {
 		t.Fatal("migration provider failed")
 	}
+	return provider
+}
+func Migrate(t testing.TB, pool *sql.DB) *goose.Provider {
+	t.Helper()
+	provider := Provider(t, pool)
 	if _, err := provider.Up(context.Background()); err != nil {
 		t.Fatal("migration failed")
 	}

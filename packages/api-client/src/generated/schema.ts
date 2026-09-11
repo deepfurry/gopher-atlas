@@ -28,8 +28,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Check SQLite and complete identity/editorial schema version 2
-         * @description Read-only version and column probes. A P0-1-only database is not ready until migration 2 is explicitly applied. Never migrates or contacts external services.
+         * Check SQLite and complete schema version 3
+         * @description Read-only schema, columns and singleton probes. Migration 3 must be explicitly applied. Never migrates or contacts external services.
          */
         get: operations["getReadiness"];
         put?: never;
@@ -732,6 +732,130 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List assets for active roles; only Admin can include deleted rows
+         * @description List assets for active roles; only Admin can include deleted rows
+         */
+        get: operations["listAssets"];
+        put?: never;
+        /**
+         * Upload a validated immutable image; active roles, same-origin CSRF required
+         * @description Upload a validated immutable image; active roles, same-origin CSRF required
+         */
+        post: operations["uploadAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/publication/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reviewer/Admin desired generation and public marker status
+         * @description Reviewer/Admin desired generation and public marker status
+         */
+        get: operations["getPublicationStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/publication/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reviewer/Admin durable publication jobs
+         * @description Reviewer/Admin durable publication jobs
+         */
+        get: operations["listPublicationJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/publication/jobs/{id}/actions/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reviewer/Admin retry of the current failed job; same-origin CSRF required
+         * @description Reviewer/Admin retry of the current failed job; same-origin CSRF required
+         */
+        post: operations["retryPublicationJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/assets/{id}/actions/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin delete of asset selection; no physical object deletion; same-origin CSRF required
+         * @description Admin delete of asset selection; no physical object deletion; same-origin CSRF required
+         */
+        post: operations["deleteAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/assets/{id}/actions/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin restore of asset selection; no physical object deletion; same-origin CSRF required
+         * @description Admin restore of asset selection; no physical object deletion; same-origin CSRF required
+         */
+        post: operations["restoreAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -783,6 +907,8 @@ export interface components {
             viewAudit: boolean;
             viewMonitor: boolean;
             createTopic: boolean;
+            uploadAssets: boolean;
+            manageAssets: boolean;
         };
         Me: {
             user: components["schemas"]["User"];
@@ -808,7 +934,7 @@ export interface components {
         ErrorResponse: {
             error: {
                 /** @enum {string} */
-                code: "authentication_required" | "account_pending" | "account_disabled" | "permission_denied" | "csrf_invalid" | "oauth_state_invalid" | "oauth_exchange_failed" | "validation_failed" | "not_found" | "last_admin_required" | "dependency_unavailable" | "internal_error" | "method_not_allowed" | "payload_too_large" | "content_version_conflict" | "invalid_editorial_state" | "route_conflict" | "review_revision_conflict" | "self_review_forbidden" | "content_archived" | "content_not_published" | "invalid_markdown" | "invalid_payload" | "tag_conflict" | "topic_target_unpublished";
+                code: "authentication_required" | "account_pending" | "account_disabled" | "permission_denied" | "csrf_invalid" | "oauth_state_invalid" | "oauth_exchange_failed" | "validation_failed" | "not_found" | "last_admin_required" | "dependency_unavailable" | "internal_error" | "method_not_allowed" | "payload_too_large" | "content_version_conflict" | "invalid_editorial_state" | "route_conflict" | "review_revision_conflict" | "self_review_forbidden" | "content_archived" | "content_not_published" | "invalid_markdown" | "invalid_payload" | "tag_conflict" | "topic_target_unpublished" | "asset_invalid" | "asset_too_large" | "asset_format_unsupported" | "asset_dimension_invalid" | "asset_deleted" | "storage_unavailable" | "storage_integrity_error" | "publication_not_configured" | "publication_job_conflict" | "publication_retry_forbidden" | "snapshot_invalid" | "snapshot_stale" | "build_trigger_failed";
                 message: string;
                 requestId: string;
                 fields?: {
@@ -878,6 +1004,11 @@ export interface components {
             payload: components["schemas"]["TypedPayload"];
             tagIds: number[];
             topicEntries: components["schemas"]["TopicEntry"][];
+            /**
+             * Format: int64
+             * @description Nullable cover selection included in the same full Draft snapshot and immutable Revision.
+             */
+            coverAssetId: number | null;
         };
         Draft: {
             /** Format: int64 */
@@ -906,6 +1037,12 @@ export interface components {
             updatedAt: number;
             tags: components["schemas"]["Tag"][];
             topicTargets: components["schemas"]["TopicTargetSummary"][];
+            /**
+             * Format: int64
+             * @description Nullable cover selection included in the same full Draft snapshot and immutable Revision.
+             */
+            coverAssetId: number | null;
+            coverAsset: components["schemas"]["AssetSummary"] | null;
         };
         /** @description Published selection is independent from editorialState. Editing a synced draft changes state to draft without changing the published revision. */
         ContentSummary: {
@@ -1062,6 +1199,12 @@ export interface components {
             creator: components["schemas"]["AuthorSummary"];
             byline: components["schemas"]["AuthorSummary"];
             restoreDraft: boolean;
+            /**
+             * Format: int64
+             * @description Nullable cover selection included in the same full Draft snapshot and immutable Revision.
+             */
+            coverAssetId: number | null;
+            coverAsset: components["schemas"]["AssetSummary"] | null;
         };
         PendingReview: {
             /** Format: int64 */
@@ -1106,9 +1249,9 @@ export interface components {
             /** Format: int64 */
             actorUserId: number;
             /** @enum {string} */
-            action: "auth.login" | "user.approved" | "user.role_changed" | "user.disabled" | "user.enabled" | "author.profile_updated" | "content.created" | "content.submitted" | "content.review_withdrawn" | "content.changes_requested" | "content.published" | "content.published_direct" | "content.unpublished" | "content.archived" | "content.archive_restored" | "content.revision_restored" | "tag.created" | "tag.updated";
+            action: "auth.login" | "user.approved" | "user.role_changed" | "user.disabled" | "user.enabled" | "author.profile_updated" | "content.created" | "content.submitted" | "content.review_withdrawn" | "content.changes_requested" | "content.published" | "content.published_direct" | "content.unpublished" | "content.archived" | "content.archive_restored" | "content.revision_restored" | "tag.created" | "tag.updated" | "asset.uploaded" | "asset.deleted" | "asset.restored" | "publication.retry_requested";
             /** @enum {string} */
-            entityType: "user" | "author" | "content" | "tag";
+            entityType: "user" | "author" | "content" | "tag" | "asset" | "publication";
             /** Format: int64 */
             entityId: number;
             /** Format: int64 */
@@ -1264,6 +1407,91 @@ export interface components {
             revision: components["schemas"]["Revision"];
             review: components["schemas"]["Review"] | null;
             actions: components["schemas"]["ReviewActions"];
+        };
+        AssetSummary: {
+            /** Format: int64 */
+            id: number;
+            url: string;
+            /** @enum {string} */
+            mimeType: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+            /** Format: int64 */
+            width: number;
+            /** Format: int64 */
+            height: number;
+            /** Format: int64 */
+            byteSize: number;
+        };
+        Asset: {
+            /** Format: int64 */
+            id: number;
+            url: string;
+            /** @enum {string} */
+            mimeType: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+            /** Format: int64 */
+            width: number;
+            /** Format: int64 */
+            height: number;
+            /** Format: int64 */
+            byteSize: number;
+            sha256: string;
+            /** Format: int64 */
+            createdAt: number;
+            deletedAt: number | null;
+            actions: {
+                delete: boolean;
+                restore: boolean;
+            };
+        };
+        AssetPage: {
+            items: components["schemas"]["Asset"][];
+            /** Format: int64 */
+            nextCursor: number | null;
+        };
+        PublicationJob: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            generation: number;
+            /** @enum {string} */
+            state: "pending" | "snapshot_uploaded" | "build_triggered" | "failed" | "superseded";
+            snapshotKey: string | null;
+            snapshotSha256: string | null;
+            /** Format: int64 */
+            attempts: number;
+            /** @enum {string} */
+            lastError: "" | "storage_unavailable" | "storage_integrity_error" | "snapshot_invalid" | "build_trigger_failed" | "dependency_unavailable";
+            nextAttemptAt: number | null;
+            /** Format: int64 */
+            createdAt: number;
+            /** Format: int64 */
+            updatedAt: number;
+            triggeredAt: number | null;
+            retry: boolean;
+        };
+        PublicationJobPage: {
+            items: components["schemas"]["PublicationJob"][];
+            /** Format: int64 */
+            nextCursor: number | null;
+        };
+        BuildMarker: {
+            /** @constant */
+            schemaVersion: 1;
+            /** Format: int64 */
+            generation: number;
+            snapshotSha256: string;
+            /** Format: date-time */
+            builtAt: string;
+            commitSha: string;
+            buildId: string;
+        };
+        PublicationStatus: {
+            /** Format: int64 */
+            desiredGeneration: number;
+            pipelineConfigured: boolean;
+            latestJob: components["schemas"]["PublicationJob"] | null;
+            publicMarker: components["schemas"]["BuildMarker"] | null;
+            /** @enum {string} */
+            computedState: "live" | "pending" | "behind" | "unknown";
         };
     };
     responses: {
@@ -2493,6 +2721,176 @@ export interface operations {
             401: components["responses"]["Error"];
             403: components["responses"]["Error"];
             404: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listAssets: {
+        parameters: {
+            query?: {
+                /** @description Exclusive keyset cursor returned as nextCursor. */
+                after?: number;
+                includeDeleted?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetPage"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    uploadAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description One PNG/JPEG/WebP/GIF, at most 10 MiB. Bytes determine format, filename is discarded.
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful operation */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Asset"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getPublicationStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationStatus"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listPublicationJobs: {
+        parameters: {
+            query?: {
+                /** @description Exclusive keyset cursor returned as nextCursor. */
+                after?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationJobPage"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    retryPublicationJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationJob"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Asset"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    restoreAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Asset"];
+                };
+            };
             default: components["responses"]["Error"];
         };
     };

@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev --host 127.0.0.1",
+    "dev": "node ../../scripts/prepare-web-content.mjs && astro dev --host 127.0.0.1",
     "typecheck": "astro check",
-    "build": "astro build && pagefind --site dist",
+    "build": "node ../../scripts/build-web.mjs",
     "preview": "astro preview --host 127.0.0.1"
   },
   "dependencies": {

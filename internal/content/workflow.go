@@ -8,6 +8,7 @@ import (
 	"github.com/deepfurry/gopher-atlas/internal/auth"
 	dbsqlc "github.com/deepfurry/gopher-atlas/internal/database/sqlc"
 	"github.com/deepfurry/gopher-atlas/internal/fault"
+	"github.com/deepfurry/gopher-atlas/internal/outbox"
 	"github.com/deepfurry/gopher-atlas/internal/policy"
 )
 
@@ -161,6 +162,8 @@ func (s *Service) Withdraw(ctx context.Context, actor auth.Principal, id int64) 
 	})
 }
 func (s *Service) PublishReviewed(ctx context.Context, actor auth.Principal, id, rid int64, comment string) (Detail, error) {
+	s.fence.Lock()
+	defer s.fence.Unlock()
 	return s.mutate(ctx, actor, id, func(q *dbsqlc.Queries, u dbsqlc.User, c dbsqlc.ContentItem, now int64) error {
 		if !policy.For(u.Role, u.Status).Publish {
 			return fault.Permission
@@ -184,10 +187,15 @@ func (s *Service) PublishReviewed(ctx context.Context, actor auth.Principal, id,
 		if err := q.PublishRevision(ctx, dbsqlc.PublishRevisionParams{ID: id, RevisionID: stamp(rid), Now: stamp(now)}); err != nil {
 			return dbError(err)
 		}
-		return appendEvent(ctx, q, u, id, rid, "content.published", now)
+		if err := appendEvent(ctx, q, u, id, rid, "content.published", now); err != nil {
+			return err
+		}
+		return outbox.MarkDirty(ctx, q, now)
 	})
 }
 func (s *Service) PublishDirect(ctx context.Context, actor auth.Principal, id, version int64) (Detail, error) {
+	s.fence.Lock()
+	defer s.fence.Unlock()
 	return s.mutate(ctx, actor, id, func(q *dbsqlc.Queries, u dbsqlc.User, c dbsqlc.ContentItem, now int64) error {
 		if !policy.CanDirectPublish(u) {
 			return fault.Permission
@@ -208,10 +216,15 @@ func (s *Service) PublishDirect(ctx context.Context, actor auth.Principal, id, v
 		if err := q.PublishRevision(ctx, dbsqlc.PublishRevisionParams{ID: id, RevisionID: stamp(r.ID), Now: stamp(now)}); err != nil {
 			return dbError(err)
 		}
-		return appendEvent(ctx, q, u, id, r.ID, "content.published_direct", now)
+		if err := appendEvent(ctx, q, u, id, r.ID, "content.published_direct", now); err != nil {
+			return err
+		}
+		return outbox.MarkDirty(ctx, q, now)
 	})
 }
 func (s *Service) Unpublish(ctx context.Context, actor auth.Principal, id int64) (Detail, error) {
+	s.fence.Lock()
+	defer s.fence.Unlock()
 	return s.mutate(ctx, actor, id, func(q *dbsqlc.Queries, u dbsqlc.User, c dbsqlc.ContentItem, now int64) error {
 		if !policy.CanUnpublish(u) {
 			return fault.Permission
@@ -225,10 +238,15 @@ func (s *Service) Unpublish(ctx context.Context, actor auth.Principal, id int64)
 		if err := q.UnpublishContent(ctx, dbsqlc.UnpublishContentParams{ID: id, UpdatedAt: now}); err != nil {
 			return dbError(err)
 		}
-		return appendEvent(ctx, q, u, id, c.PublishedRevisionID.Int64, "content.unpublished", now)
+		if err := appendEvent(ctx, q, u, id, c.PublishedRevisionID.Int64, "content.unpublished", now); err != nil {
+			return err
+		}
+		return outbox.MarkDirty(ctx, q, now)
 	})
 }
 func (s *Service) Archive(ctx context.Context, actor auth.Principal, id int64) (Detail, error) {
+	s.fence.Lock()
+	defer s.fence.Unlock()
 	return s.mutate(ctx, actor, id, func(q *dbsqlc.Queries, u dbsqlc.User, c dbsqlc.ContentItem, now int64) error {
 		if !policy.CanArchive(u) {
 			return fault.Permission
@@ -239,7 +257,13 @@ func (s *Service) Archive(ctx context.Context, actor auth.Principal, id int64) (
 		if err := q.ArchiveContent(ctx, dbsqlc.ArchiveContentParams{ID: id, Now: stamp(now)}); err != nil {
 			return dbError(err)
 		}
-		return appendEvent(ctx, q, u, id, 0, "content.archived", now)
+		if err := appendEvent(ctx, q, u, id, 0, "content.archived", now); err != nil {
+			return err
+		}
+		if c.PublishedRevisionID.Valid {
+			return outbox.MarkDirty(ctx, q, now)
+		}
+		return nil
 	})
 }
 func (s *Service) RestoreArchive(ctx context.Context, actor auth.Principal, id int64) (Detail, error) {

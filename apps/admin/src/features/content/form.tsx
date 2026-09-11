@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CoverField } from '@/features/assets/editor-assets';
 import { useMe } from '@/app/context';
 import {
   Controller,
@@ -13,6 +14,7 @@ import { AuthorSelect, TagSelect, TopicEntries } from './selectors';
 import { routePreview, type Content, type Snapshot } from './api';
 const text = (max: number) => z.string().max(max);
 export const draftSchema = z.object({
+  coverAssetId: z.number().int().positive().nullable(),
   title: text(200),
   slug: text(100).regex(
     /^(?:[a-z0-9]+(?:-[a-z0-9]+)*)?$/,
@@ -229,6 +231,7 @@ export function Metadata({ content }: { content: Content }) {
   return (
     <aside className="metadata-rail" aria-label="Content metadata">
       <h2>Metadata</h2>
+      <CoverField initial={content.draft?.coverAsset ?? null} />
       <Field label="Title" field="title" max={200} />
       <Field label="Slug" field="slug" max={100} />
       <p className="caption">

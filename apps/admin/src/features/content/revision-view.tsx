@@ -1,3 +1,4 @@
+import { AssetImage } from '@/features/assets/browser';
 import type { Schema } from '@/shared/api';
 import { date, name, types } from '@/shared/status';
 import { MarkdownPreview } from '@/shared/markdown';
@@ -37,6 +38,7 @@ export function RevisionView({
         <MarkdownPreview source={revision.bodyMarkdown} />
         <aside className="metadata-rail">
           <h3>Snapshot metadata</h3>
+          {revision.coverAsset && <AssetImage asset={revision.coverAsset} />}
           <dl>
             <dt>Summary</dt>
             <dd>{revision.summary || '—'}</dd>

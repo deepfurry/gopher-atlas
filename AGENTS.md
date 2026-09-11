@@ -1,10 +1,10 @@
 # GopherAtlas agent entry point
 
 GopherAtlas is a Go knowledge atlas and multi-author Markdown publication.
-This repository implements **P0-3: Admin Editorial UX**, on the existing P0-1/P0-2
-runtime and editorial domain. External publication remains deferred.
-Daily work branches from latest `dev` and returns there by PR. `main` is a release
-snapshot; never develop directly on either integration branch.
+This repository implements **P0-4: Assets & Publication Pipeline**, on the existing runtime/editorial UX.
+During early development the user authorizes work on clean, synchronized `dev`;
+commit/push there within task authorization. Never modify `main`, the future
+release snapshot. Real staging/deployment requires a separate request.
 
 Read `.agents/architecture.md`, `.agents/playbook.md`, relevant `contracts/*`,
 and the corresponding ADR before changing an area. Inspect implementation and
@@ -47,13 +47,20 @@ architecture and current scope are summarized in `docs/implementation-status.md`
   guard → app-wide Monitor → Recover order in `internal/app`.
 - `make dev-cms` explicitly loads optional `.env` without replacing process env;
   tests/checks/migrations do not load it. Production runs with process env only.
-- P0-3 adds no migration: preserve 00001/00002 and schema version 2.
+- Preserve 00001/00002; P0-4 adds only 00003 and schema version 3. No auto migration.
 - Admin features consume server action projections. One autosave queue owns full
   snapshots/versions; a conflict requires explicit reload. No browser Draft storage.
 - Preview never creates uncontrolled image elements, even before a save. UIW is
   source-only; the production module graph excludes raw HTML preview. See ADR 0007.
-- Publish ends at SQLite pointer + route + Audit. UI says Published in CMS.
-  Assets/R2/generation/jobs/snapshots/hooks are P0-4. Import/deploy remain deferred.
+- Public mutations atomically commit business state + Audit + generation/job.
+  Worker R2/Hook I/O is outside transactions. Public mutations take the shared
+  publication fence BEFORE their transaction; see ADR 0008. One active writer only.
+- Cover belongs to the full Draft snapshot; assets/generation snapshots are
+  immutable and only latest.json is mutable. Never physically delete assets.
+- Snapshot v1 exports selected published Revisions only. Web requires explicit
+  fixture or private R2 read-only input, no silent fallback or browser credentials.
+- UI says Published in CMS with independent marker status. P0-5 full Public
+  content/SEO/redirects and P0-6 import/cutover remain deferred.
 
 Completion gate: **`make check`**. Report actual commands and results, inspect the
 complete diff, and preserve local files. Commit/push only within user authorization.

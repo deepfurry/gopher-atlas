@@ -9,6 +9,7 @@ import (
 	dbsqlc "github.com/deepfurry/gopher-atlas/internal/database/sqlc"
 	"github.com/deepfurry/gopher-atlas/internal/fault"
 	"github.com/deepfurry/gopher-atlas/internal/markdown"
+	"github.com/deepfurry/gopher-atlas/internal/outbox"
 	"github.com/deepfurry/gopher-atlas/internal/policy"
 )
 
@@ -104,6 +105,8 @@ func (s *Service) UpdateProfile(ctx context.Context, actor Principal, input Prof
 
 // UpdateAuthorProfile reuses the same validation and audit path for explicit Admin edits.
 func (s *Service) UpdateAuthorProfile(ctx context.Context, actor Principal, id int64, input ProfileInput) (dbsqlc.AuthorProfile, error) {
+	s.fence.Lock()
+	defer s.fence.Unlock()
 	var result dbsqlc.AuthorProfile
 	input.DisplayName = strings.TrimSpace(input.DisplayName)
 	if input.DisplayName == "" || !utf8.ValidString(input.DisplayName) || utf8.RuneCountInString(input.DisplayName) > 100 || len(input.BioMarkdown) > 10000 || !utf8.ValidString(input.BioMarkdown) || !markdown.Valid(input.BioMarkdown) || (input.WebsiteURL != "" && !safeWebURL(input.WebsiteURL, false)) {
@@ -118,7 +121,17 @@ func (s *Service) UpdateAuthorProfile(ctx context.Context, actor Principal, id i
 		if err != nil {
 			return dbError(err)
 		}
-		return audit.Append(ctx, q, audit.Event{ActorID: current.User.ID, Action: "author.profile_updated", EntityType: "author", EntityID: id}, s.now().UnixMilli())
+		if err := audit.Append(ctx, q, audit.Event{ActorID: current.User.ID, Action: "author.profile_updated", EntityType: "author", EntityID: id}, s.now().UnixMilli()); err != nil {
+			return err
+		}
+		used, err := q.PublishedContentBylineExists(ctx, id)
+		if err != nil {
+			return fault.Unavailable
+		}
+		if used {
+			return outbox.MarkDirty(ctx, q, s.now().UnixMilli())
+		}
+		return nil
 	})
 	return result, err
 }

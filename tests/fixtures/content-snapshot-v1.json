@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "generation": 1,
+  "exportedAt": "2026-09-11T00:00:00Z",
+  "authors": [
+    {
+      "id": 1,
+      "slug": "fixture-author",
+      "displayName": "Fixture Author",
+      "bioMarkdown": "Local build fixture.",
+      "avatarUrl": "",
+      "websiteUrl": ""
+    }
+  ],
+  "assets": [
+    {
+      "id": 1,
+      "url": "https://assets.gopheratlas.com/media/sha256/aa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png",
+      "mimeType": "image/png",
+      "width": 1,
+      "height": 1,
+      "byteSize": 68
+    }
+  ],
+  "tags": [
+    {
+      "id": 1,
+      "name": "Go",
+      "slug": "go",
+      "description": "Fixture taxonomy"
+    }
+  ],
+  "content": [
+    {
+      "id": 1,
+      "type": "post",
+      "revisionNo": 1,
+      "canonicalPath": "/posts/fixture-post/",
+      "title": "Fixture post",
+      "slug": "fixture-post",
+      "summary": "Explicit local build fixture",
+      "bodyMarkdown": "## Fixture\n\nSafe public example.",
+      "authorId": 1,
+      "language": "en",
+      "featured": false,
+      "seoTitle": "",
+      "seoDescription": "",
+      "coverAssetId": 1,
+      "firstPublishedAt": 1789084800000,
+      "lastPublishedAt": 1789084800000,
+      "tagIds": [1],
+      "topicEntries": [],
+      "payload": {}
+    },
+    {
+      "id": 2,
+      "type": "note",
+      "revisionNo": 1,
+      "canonicalPath": "/notes/go/fixture-note/",
+      "title": "Fixture note",
+      "slug": "fixture-note",
+      "summary": "Explicit local build fixture",
+      "bodyMarkdown": "## Fixture\n\nSafe public example.",
+      "authorId": 1,
+      "language": "en",
+      "featured": false,
+      "seoTitle": "",
+      "seoDescription": "",
+      "coverAssetId": null,
+      "firstPublishedAt": 1789084800000,
+      "lastPublishedAt": 1789084800000,
+      "tagIds": [1],
+      "topicEntries": [],
+      "payload": {
+        "group": "Go",
+        "groupSlug": "go",
+        "order": 1
+      }
+    },
+    {
+      "id": 3,
+      "type": "curated_article",
+      "revisionNo": 1,
+      "canonicalPath": "/articles/fixture-curated/",
+      "title": "Fixture curated_article",
+      "slug": "fixture-curated",
+      "summary": "Explicit local build fixture",
+      "bodyMarkdown": "## Fixture\n\nSafe public example.",
+      "authorId": 1,
+      "language": "en",
+      "featured": false,
+      "seoTitle": "",
+      "seoDescription": "",
+      "coverAssetId": null,
+      "firstPublishedAt": 1789084800000,
+      "lastPublishedAt": 1789084800000,
+      "tagIds": [1],
+      "topicEntries": [],
+      "payload": {
+        "sourceUrl": "https://go.dev/doc/",
+        "originalUrl": "",
+        "sourceAuthor": "",
+        "sourceName": "Go documentation",
+        "sourcePublishedAt": "",
+        "sourceLanguage": "en",
+        "difficulty": "",
+        "rating": "",
+        "mustRead": false,
+        "relatedLinks": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "topic",
+      "revisionNo": 1,
+      "canonicalPath": "/topics/fixture-topic/",
+      "title": "Fixture topic",
+      "slug": "fixture-topic",
+      "summary": "Explicit local build fixture",
+      "bodyMarkdown": "## Fixture\n\nSafe public example.",
+      "authorId": 1,
+      "language": "en",
+      "featured": false,
+      "seoTitle": "",
+      "seoDescription": "",
+      "coverAssetId": null,
+      "firstPublishedAt": 1789084800000,
+      "lastPublishedAt": 1789084800000,
+      "tagIds": [],
+      "topicEntries": [
+        {
+          "position": 1,
+          "targetContentId": 1
+        },
+        {
+          "position": 2,
+          "targetContentId": 2
+        }
+      ],
+      "payload": {
+        "order": 1
+      }
+    }
+  ],
+  "routes": [
+    {
+      "path": "/posts/fixture-post/",
+      "kind": "canonical",
+      "contentId": 1
+    },
+    {
+      "path": "/notes/go/fixture-note/",
+      "kind": "canonical",
+      "contentId": 2
+    },
+    {
+      "path": "/articles/fixture-curated/",
+      "kind": "canonical",
+      "contentId": 3
+    },
+    {
+      "path": "/topics/fixture-topic/",
+      "kind": "canonical",
+      "contentId": 4
+    },
+    {
+      "path": "/posts/previous-fixture/",
+      "kind": "redirect",
+      "contentId": 1
+    }
+  ]
+}

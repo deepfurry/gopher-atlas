@@ -7,7 +7,8 @@ P0-1 scope overrides older main-based development and memory-only CSRF assumptio
 The complete GopherAtlas P0-2 — Content Domain & Editorial Workflow document
 (2026-09-11) defines the adopted domain/API. The complete P0-3 — Admin Editorial
 UX document (2026-09-11) defines the current interface scope: narrow read/API
-enhancements, no migration, and no external publication.
+enhancements, no migration, and no external publication. The complete P0-4 Assets
+& Publication Pipeline document (2026-09-11) now defines the current scope.
 
 P0-0 began from main at `3aa6aaf` (LICENSE only), implemented the executable
 foundation in `40c2709`, then the pnpm 12.3.4 toolchain upgrade landed in `fd77dbe`.
@@ -21,15 +22,15 @@ P0-3 began from synchronized dev at `9784819` on
 were added; existing toolchain/application pins remain unchanged. Both migrations
 are preserved and SchemaVersion remains 2.
 
-| Phase           | Actual scope                                                                                                                                                                                                                                                                              |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P0-0 (complete) | pnpm workspace, static Astro baseline, Admin/Base UI skeleton, Fiber shell, Markdown safety, OpenAPI/SQL tooling, design/contracts/ADRs, CI and make check                                                                                                                                |
-| P0-1 (complete) | Four real identity tables, sqlc, pooled SQLite PRAGMAs, GitHub OAuth and numeric identity, pending/active/disabled users, fixed roles/capabilities, author profiles, persistent hashed sessions/CSRF/state, Zap/Lumberjack/contrib logger and Monitor, readiness, embedded identity Admin |
-| P0-2 (complete) | Content/Draft/Revision, reviews, tags/topics, permanent routes, audit persistence, optimistic concurrency, editorial action APIs and state machine                                                                                                                                        |
-| P0-3 (complete) | Feature-based Admin, safe Markdown editor/preview, autosave/conflicts, immutable Review Workspace/History, typed forms/Tags/Topics, Authors/Users/Audit/Monitor, server projections                                                                                                       |
-| P0-4 (deferred) | R2 assets, published projection v1, generation/jobs/snapshots, hook/recovery/coalescing                                                                                                                                                                                                   |
-| P0-5 (deferred) | Full Public route families, publication design, loader/search/SEO/redirects/build marker and production Wrangler                                                                                                                                                                          |
-| P0-6 (deferred) | Legacy import/verification, route preservation, backup/restore drill, deployment and cutover                                                                                                                                                                                              |
+| Phase                               | Actual scope                                                                                                                                                                                                                                                                              |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0-0 (complete)                     | pnpm workspace, static Astro baseline, Admin/Base UI skeleton, Fiber shell, Markdown safety, OpenAPI/SQL tooling, design/contracts/ADRs, CI and make check                                                                                                                                |
+| P0-1 (complete)                     | Four real identity tables, sqlc, pooled SQLite PRAGMAs, GitHub OAuth and numeric identity, pending/active/disabled users, fixed roles/capabilities, author profiles, persistent hashed sessions/CSRF/state, Zap/Lumberjack/contrib logger and Monitor, readiness, embedded identity Admin |
+| P0-2 (complete)                     | Content/Draft/Revision, reviews, tags/topics, permanent routes, audit persistence, optimistic concurrency, editorial action APIs and state machine                                                                                                                                        |
+| P0-3 (complete)                     | Feature-based Admin, safe Markdown editor/preview, autosave/conflicts, immutable Review Workspace/History, typed forms/Tags/Topics, Authors/Users/Audit/Monitor, server projections                                                                                                       |
+| P0-4 (implemented; staging pending) | R2 assets, published projection v1, generation/jobs/snapshots, hook/recovery/coalescing                                                                                                                                                                                                   |
+| P0-5 (deferred)                     | Full Public route families, publication design, search/SEO/redirects and production cutover                                                                                                                                                                                               |
+| P0-6 (deferred)                     | Legacy import/verification, route preservation, backup/restore drill, deployment and cutover                                                                                                                                                                                              |
 
 P0-1 validation covers migration up/down/rollback, pooled PRAGMAs/FKs, bootstrap,
 last-Admin concurrency, state replay/mismatch/expiry, hashed session rotation/
@@ -37,9 +38,9 @@ revocation/expiry/restart, Origin/CSRF, role policy, profile safety, API boundar
 Monitor guard/error/panic metrics, sensitive log omission, identity UI and embed.
 `make generate` and `make check` remain authoritative executable gates. Tests use
 fake providers and isolated databases; real GitHub OAuth and production deployment
-are not claimed verified. Public remains its empty fixture/RSS and three static pages.
+are not claimed verified. Public keeps its three bootstrap pages; P0-4 adds validated v1 input and a marker.
 
-Normal work starts from dev and returns via PR to dev. Main contains release
+Early centralized work now commits directly to dev by explicit user request. Main contains release
 snapshots. Push/PR CI covers both branches on GitHub-hosted Linux, includes the
 race gate, and never uses the shared Infra server. No repository default-branch,
 Ruleset, production service or Cloudflare setting was changed.
@@ -53,7 +54,7 @@ approve/withdraw, route claim/claim, direct/direct, restore/save and archive/pub
 The same Linux `go test -race -tags=adminembed ./...` command was also run locally
 in the existing WSL verification environment with pinned Go 1.26.8.
 
-P0-3 publication still stops at SQLite published pointer + route + Audit. No
+At completion of P0-3, publication stopped at SQLite published pointer + route + Audit. At that stage no
 assets, cover_asset_id, R2, site_state, generation, publication_jobs, snapshot v1,
 latest.json, Deploy Hook, public Astro content or legacy import was implemented.
 
@@ -80,3 +81,50 @@ Public/Admin builds and embedded SPA/chunk checks. Linux
 with pinned Go 1.26.8. A separate production build with synthetic process-env
 credentials verified that all 44 Admin/dist and embedded output files contain
 neither the injected markers nor `.env` files. No real secrets were inspected.
+
+## P0-4 implementation
+
+Started directly on clean synchronized dev at
+`ee6f803a7ebc03de4ad3137140326aef7f9f552a`, per the user's explicit early-development
+workflow. No feature branch or main update. The supplied P0-4 plan was read before
+implementation; current code/schema remain the source of truth.
+
+Migration 00003 adds immutable assets, cover references, site_state and durable
+publication_jobs, safely rebuilds Audit and requires schema 3. Existing migrations
+are preserved. Public business mutation/Audit/generation/job is atomic; snapshot
+v1 exports only selected published Revisions and referenced public entities.
+One durable worker coalesces, uploads immutable snapshot, writes latest, triggers
+Hook and recovers/retries. A shared pre-transaction fence closes latest PUT races.
+
+Admin has Assets, cover/image pickers and Publication status/retry. Web has only
+private build loading/validation and a generation marker; full P0-5 content routes,
+final redirect output, search/SEO/RSS content and P0-6 importer remain deferred.
+Only required AWS SDK and pure Go WebP dependencies were added; existing pins
+were not intentionally upgraded. Tests use synthetic fixtures, memory storage and
+loopback HTTP, not local secrets or real external deployment. Final executable
+verification results are recorded after the completion gate.
+
+P0-4 final verification (2026-09-11): pnpm 12.3.4 and frozen install passed;
+`make generate` and full `make check` passed (95 Vitest tests, Go tests/vet/
+staticcheck, SQL migration tooling, OpenAPI and generation drift, Public/Admin
+builds, embedded SPA/chunks and binary). Final Linux
+`go test -race -tags=adminembed ./...` passed in the existing WSL environment with
+pinned Go 1.26.8. The gate's synthetic secret-output scan passed for Public,
+Admin and embedded output; source credential-signature and environment-file
+checks passed. Existing dependency pins and migrations 00001/00002 are preserved.
+
+Browser checks used an isolated fake OAuth provider, real temporary SQLite,
+in-memory object storage and loopback fake Hook/marker. Verified upload/dedupe,
+soft delete/restore, cover selection, required-alt Markdown insertion, autosave
+flush before direct publication, generation/job completion and matching fake
+marker. Desktop Light/Dark and 360px layouts were inspected. A local service
+worker supplied fixture image bytes, so thumbnails did not contact real R2.
+The real SQLite export also passed the Web schema/graph validator. Reduced-motion
+and privacy behavior remain covered by tests; no real staging claim is made.
+
+Preview processes/tabs were closed and their listening ports released. Automatic
+approval review rejected cleanup of the ignored `.cache/p0-4-preview` directory
+with “blocked by policy”; it remains local and is excluded from the commit.
+No real secrets, R2 writes, Deploy Hook calls, Cloudflare dashboard changes or
+production DNS changes were used. The next step is the separately authorized
+manual staging checklist in docs/operations/cloudflare.md; stop before P0-5.

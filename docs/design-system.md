@@ -58,7 +58,8 @@ protect unsaved/in-flight edits; no Draft is written to browser storage.
 UIW supplies only source input and an H2/H3/formatting toolbar. Source, Preview and
 Split all use the same in-memory Draft. Preview uses react-markdown/GFM with safe
 URL and image renderers; raw HTML is omitted, external images become warnings,
-and Markdown feedback does not rewrite source. There is no upload-image action.
+and Markdown feedback does not rewrite source. P0-4 adds a separate Asset picker/upload action with required alt; it does not
+enable UIW raw image URLs or HTML preview.
 Reviewer workspaces and history display immutable snapshots without Draft inputs.
 
 System / Light / Dark uses the existing light/dark token pairs and stores only
@@ -79,3 +80,19 @@ of horizontal page overflow, and reduced-motion behavior. A successful compiler
 or build is not proof of visual conformance. New shared colors belong in tokens;
 use spacing/type/semantic classes in page code. Auth and editor releases require
 their own keyboard and assistive-technology checks.
+
+## P0-4 Assets and publication surfaces
+
+Assets is a compact grid of bordered thumbnails with dimensions/MIME/size/time,
+copy URL, upload and server-projected delete/restore controls. The shared Base UI
+Dialog picker traps focus, returns it on close, and fits 360 px. Cover selection
+and required-alt Markdown insertion update the existing RHF/autosave snapshot.
+External URLs never create image elements; all thumbnails use the shared safety
+helper. Soft deletion explains that historical public URLs remain available.
+
+Publication is visible through retryBuild permission for Reviewer/Admin. It shows
+CMS desired generation, observed public marker/status, worker configuration and
+bounded job history with safe errors and explicit retry. It never renders config,
+Hook URL or arbitrary response properties. Published in CMS remains distinct from
+live build observation. Tables scroll inside named regions; tokens/themes and
+reduced-motion/focus rules are unchanged. No metrics iframe or P0-5 public design.

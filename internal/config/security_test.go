@@ -8,6 +8,9 @@ import (
 
 func TestProductionConfigFailsClosed(t *testing.T) {
 	valid := map[string]string{"APP_ENV": "production", "CMS_BASE_URL": "https://cms.example", "GITHUB_OAUTH_CLIENT_ID": "example-client", "GITHUB_OAUTH_CLIENT_SECRET": rand.Text(), "GITHUB_OAUTH_REDIRECT_URI": "https://cms.example/api/auth/github/callback", "BOOTSTRAP_ADMIN_GITHUB_ID": "1"}
+	for k, v := range externalConfig() {
+		valid[k] = v
+	}
 	if cfg, err := Load(func(key string) string { return valid[key] }); err != nil || !cfg.SecureCookies() {
 		t.Fatal("valid production config rejected")
 	}

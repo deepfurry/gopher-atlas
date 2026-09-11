@@ -15,6 +15,8 @@ import (
 	"github.com/deepfurry/gopher-atlas/internal/database"
 	"github.com/deepfurry/gopher-atlas/internal/logging"
 	"github.com/deepfurry/gopher-atlas/internal/oauth"
+	"github.com/deepfurry/gopher-atlas/internal/publication"
+	"github.com/deepfurry/gopher-atlas/internal/storage"
 	fiberzap "github.com/gofiber/contrib/v3/zap"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
@@ -55,7 +57,17 @@ func run() error {
 		provider = oauth.NewGitHub(cfg.OAuthClientID, cfg.OAuthClientSecret, cfg.OAuthRedirectURI)
 	}
 	service := auth.New(pool, cfg, provider)
-	server := app.New(app.Dependencies{Config: cfg, DB: pool, Auth: service, Logger: logger})
+	var objects storage.ObjectStore
+	if cfg.Publication.Configured() {
+		objects = storage.NewR2(cfg.Publication.Endpoint, cfg.Publication.AccessKeyID, cfg.Publication.SecretAccessKey)
+	}
+	pipeline := publication.New(pool, cfg.Publication, objects, service.PublicationFence(), logger)
+	workerCtx, cancelWorker := context.WithCancel(ctx)
+	workerDone := make(chan struct{})
+	go func() { defer close(workerDone); pipeline.Run(workerCtx) }()
+	// Stop and join before closing SQLite, including a listener startup failure.
+	defer func() { cancelWorker(); <-workerDone }()
+	server := app.New(app.Dependencies{Config: cfg, DB: pool, Auth: service, Logger: logger, Store: objects, Publication: pipeline})
 	logger.Info("CMS starting")
 	err = server.Listen(cfg.ListenAddr, fiber.ListenConfig{
 		DisableStartupMessage: true,

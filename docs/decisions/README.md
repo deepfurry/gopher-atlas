@@ -16,5 +16,7 @@ history. Routine code choices do not need an ADR.
 
 | [0007](0007-admin-editorial-ux.md) | Server-projected editorial UX, serialized saves and safe preview | Accepted; implemented P0-3 |
 
+| [0008](0008-publication-generation-and-r2-snapshots.md) | Atomic publication outbox, immutable assets/snapshots and build observation | Accepted; implemented P0-4 |
+
 New records should include date, status, context, decision, alternatives,
 consequences, and implementation scope.

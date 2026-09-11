@@ -2,6 +2,8 @@
 package policy
 
 type Permissions struct {
+	UploadAssets         bool `json:"uploadAssets"`
+	ManageAssets         bool `json:"manageAssets"`
 	ManageUsers          bool `json:"manageUsers"`
 	ManageAuthorProfiles bool `json:"manageAuthorProfiles"`
 	EditOwnProfile       bool `json:"editOwnProfile"`
@@ -20,11 +22,11 @@ func For(role, status string) Permissions {
 	}
 	switch role {
 	case "admin":
-		return Permissions{true, true, true, true, true, true, true, true, true, true}
+		return Permissions{UploadAssets: true, ManageAssets: true, ManageUsers: true, ManageAuthorProfiles: true, EditOwnProfile: true, Review: true, Publish: true, ManageTaxonomy: true, RetryBuild: true, ViewAudit: true, ViewMonitor: true, CreateTopic: true}
 	case "reviewer":
-		return Permissions{EditOwnProfile: true, Review: true, Publish: true, RetryBuild: true, ViewAudit: true}
+		return Permissions{UploadAssets: true, EditOwnProfile: true, Review: true, Publish: true, RetryBuild: true, ViewAudit: true}
 	case "editor":
-		return Permissions{EditOwnProfile: true}
+		return Permissions{UploadAssets: true, EditOwnProfile: true}
 	default:
 		return Permissions{}
 	}

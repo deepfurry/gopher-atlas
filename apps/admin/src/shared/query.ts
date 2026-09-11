@@ -25,7 +25,7 @@ export function useEditorialRefresh() {
   const cache = useQueryClient();
   return async () => {
     await Promise.all(
-      ['content', 'revisions', 'reviews', 'audit'].map((key) =>
+      ['content', 'revisions', 'reviews', 'audit', 'publication'].map((key) =>
         cache.invalidateQueries({ queryKey: [key] }),
       ),
     );

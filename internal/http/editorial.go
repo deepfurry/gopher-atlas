@@ -48,6 +48,9 @@ func (h *Handler) listRoutes(c fiber.Ctx) error {
 // Whole-snapshot PUTs require every property, including false/empty values.
 // This transport-only presence check does not interpret subtype payloads.
 func decodeRequired(c fiber.Ctx, target any, keys ...string) error {
+	return decodeRequiredNullable(c, target, nil, keys...)
+}
+func decodeRequiredNullable(c fiber.Ctx, target any, nullable []string, keys ...string) error {
 	if err := decode(c, target); err != nil {
 		return err
 	}
@@ -55,14 +58,22 @@ func decodeRequired(c fiber.Ctx, target any, keys ...string) error {
 	if json.Unmarshal(c.Body(), &props) != nil {
 		return fault.Validation
 	}
-	for _, value := range props {
-		if bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
+	allowsNull := func(key string) bool {
+		for _, n := range nullable {
+			if n == key {
+				return true
+			}
+		}
+		return false
+	}
+	for key, value := range props {
+		if !allowsNull(key) && bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
 			return fault.Validation
 		}
 	}
 	for _, key := range keys {
 		value, ok := props[key]
-		if !ok || bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
+		if !ok || (!allowsNull(key) && bytes.Equal(bytes.TrimSpace(value), []byte("null"))) {
 			return fault.Validation
 		}
 	}
@@ -143,7 +154,7 @@ func (h *Handler) saveDraft(c fiber.Ctx) error {
 		return err
 	}
 	var input content.DraftInput
-	if err := decodeRequired(c, &input, "version", "title", "slug", "summary", "bodyMarkdown", "bylineUserId", "language", "featured", "seoTitle", "seoDescription", "payload", "tagIds", "topicEntries"); err != nil {
+	if err := decodeRequiredNullable(c, &input, []string{"coverAssetId"}, "coverAssetId", "version", "title", "slug", "summary", "bodyMarkdown", "bylineUserId", "language", "featured", "seoTitle", "seoDescription", "payload", "tagIds", "topicEntries"); err != nil {
 		return err
 	}
 	if input.Version <= 0 {

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Implement P0-4 immutable assets/upload/soft deletion, full-snapshot cover and
+  image pickers; preserve published Revision covers and historical URLs.
+- Add migration 00003, Audit-preserving constraint rebuild, schema-3 readiness,
+  atomic publication generation/outbox and strict public snapshot v1 export.
+- Add R2 adapters, durable coalescing worker, bounded Hook/retry/recovery,
+  Publication status UI, private Web build loader and safe public build marker.
+- Verify with fake external dependencies and explicit fixtures; keep migrations
+  00001/00002 and existing pins. Direct dev work is authorized for early development.
+  Real staging/deployment and P0-5 public content remain outside this increment.
+
 - Implement P0-3 feature-based Admin shell, lazy routes, dense content table/editor,
   typed metadata, safe Source/Preview/Split, serialized autosave and explicit conflict
   recovery, navigation guards, immutable review workspace/history and revision restore.

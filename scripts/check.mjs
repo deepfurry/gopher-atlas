@@ -1,5 +1,7 @@
+import { randomBytes } from 'node:crypto';
+import { resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { files, go, pnpm, run, tool, goEnv } from './lib.mjs';
 
 run('node', ['scripts/check-boundaries.mjs']);
@@ -19,7 +21,38 @@ pnpm('test');
 pnpm('exec', 'redocly', 'lint', 'contracts/openapi.yaml');
 run('node', ['scripts/generate.mjs', '--check']);
 run('node', ['scripts/check-sql.mjs']);
+const canary = 'synthetic-' + randomBytes(24).toString('hex');
+for (const key of [
+  'R2_SECRET_ACCESS_KEY',
+  'R2_ACCESS_KEY_ID',
+  'CONTENT_R2_SECRET_ACCESS_KEY',
+  'CONTENT_R2_ACCESS_KEY_ID',
+  'GITHUB_OAUTH_CLIENT_SECRET',
+  'CLOUDFLARE_DEPLOY_HOOK_URL',
+])
+  process.env[key] = canary;
+process.env.CONTENT_SNAPSHOT_FILE = resolve(
+  'tests/fixtures/content-snapshot-v1.json',
+);
 pnpm('build');
+for (const root of [
+  'apps/web/dist',
+  'apps/admin/dist',
+  'internal/adminui/dist',
+]) {
+  const walk = (dir) =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? walk(dir + '/' + e.name) : [dir + '/' + e.name],
+    );
+  for (const path of walk(root)) {
+    if (
+      path.split('/').at(-1).startsWith('.env') ||
+      readFileSync(path).includes(Buffer.from(canary))
+    )
+      throw new Error('Synthetic secret-output scan failed');
+  }
+}
+console.log('Synthetic secret-output scan passed.');
 mkdirSync('.cache/bin', { recursive: true });
 go('test', '-tags=adminembed', './internal/adminui', './internal/app');
 go(
@@ -31,6 +64,7 @@ go(
 );
 for (const path of [
   'apps/web/dist/index.html',
+  'apps/web/dist/.well-known/gopheratlas-build.json',
   'apps/web/dist/about/index.html',
   'apps/web/dist/contribute/index.html',
   'apps/web/dist/rss.xml',
@@ -46,5 +80,5 @@ const rss = readFileSync('apps/web/dist/rss.xml', 'utf8');
 if (!rss.includes('<rss') || !rss.includes('GopherAtlas'))
   throw new Error('Invalid bootstrap RSS');
 console.log(
-  'All P0-3 checks passed. No production services or credentials used.',
+  'All P0-4 checks passed. No production services or credentials used.',
 );

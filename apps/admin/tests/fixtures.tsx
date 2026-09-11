@@ -30,6 +30,8 @@ export function me(role: Schema<'User'>['role'] = 'editor'): Schema<'Me'> {
       websiteUrl: '',
     },
     permissions: {
+      uploadAssets: true,
+      manageAssets: role === 'admin',
       manageUsers: role === 'admin',
       manageAuthorProfiles: role === 'admin',
       editOwnProfile: true,
@@ -60,6 +62,8 @@ export function content(
   admin = false,
 ): Schema<'Content'> {
   const draft: Schema<'Draft'> = {
+    coverAssetId: null,
+    coverAsset: null,
     version: 5,
     title: 'A useful post',
     slug: 'useful-post',
@@ -137,6 +141,8 @@ export function revision(c: Schema<'Content'>, no = 1): Schema<'Revision'> {
     id: 42,
     contentId: c.id,
     revisionNo: no,
+    coverAssetId: d.coverAssetId,
+    coverAsset: d.coverAsset,
     title: d.title,
     slug: d.slug,
     summary: d.summary,

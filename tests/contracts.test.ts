@@ -8,9 +8,9 @@ const read = (path: string) =>
 const ajv = new Ajv2020({ strict: true });
 addFormats(ajv);
 const validate = ajv.compile(read('../contracts/content-snapshot.schema.json'));
-const fixture = read('./fixtures/snapshots/bootstrap.json');
+const fixture = read('./fixtures/content-snapshot-v1.json');
 
-it('accepts only the empty bootstrap envelope', () => {
+it('accepts the closed public v1 envelope', () => {
   expect(validate(fixture)).toBe(true);
 });
 it.each(['drafts', 'sessions', 'roles', 'audit', 'secrets'])(
@@ -19,8 +19,8 @@ it.each(['drafts', 'sessions', 'roles', 'audit', 'secrets'])(
     expect(validate({ ...fixture, [key]: [] })).toBe(false);
   },
 );
-it('rejects unmodelled entities and production versions', () => {
+it('rejects unmodelled entities and obsolete versions', () => {
   expect(validate({ ...fixture, content: [{ draft: 'private' }] })).toBe(false);
-  expect(validate({ ...fixture, schemaVersion: 1 })).toBe(false);
+  expect(validate({ ...fixture, schemaVersion: 0 })).toBe(false);
   expect(validate({ ...fixture, exportedAt: 'invalid' })).toBe(false);
 });

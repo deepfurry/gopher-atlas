@@ -83,6 +83,18 @@ export const routes: RouteObject[] = [
           Component: (await import('@/features/audit/page')).default,
         }),
       },
+      {
+        path: 'assets',
+        lazy: async () => ({
+          Component: (await import('@/features/assets/page')).default,
+        }),
+      },
+      {
+        path: 'publication',
+        lazy: async () => ({
+          Component: (await import('@/features/publication/page')).default,
+        }),
+      },
       { path: '*', element: <h1>页面不可用</h1> },
     ],
   },

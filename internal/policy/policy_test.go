@@ -18,7 +18,7 @@ func TestRoleCapabilities(t *testing.T) {
 	if !reviewer.Review || !reviewer.Publish || !reviewer.ViewAudit || !reviewer.RetryBuild || reviewer.ManageUsers || reviewer.ManageTaxonomy || reviewer.ViewMonitor || reviewer.CreateTopic {
 		t.Fatal("reviewer capabilities incorrect")
 	}
-	if For("editor", "active") != (Permissions{EditOwnProfile: true}) || For("unknown", "active") != (Permissions{}) {
+	if For("editor", "active") != (Permissions{UploadAssets: true, EditOwnProfile: true}) || For("unknown", "active") != (Permissions{}) {
 		t.Fatal("unknown/editor capabilities incorrect")
 	}
 }

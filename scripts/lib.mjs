@@ -46,6 +46,7 @@ export function files(directory) {
         'dist',
         '.git',
         '.astro',
+        '.generated',
         '.tools',
         '.cache',
         '.wrangler',

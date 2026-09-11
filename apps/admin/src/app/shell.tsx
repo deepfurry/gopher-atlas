@@ -61,6 +61,7 @@ export function Shell() {
           {link('/', 'Overview')}
           <p className="nav-group">Content</p>
           {link('/content', 'All Content')}
+          {me.permissions.uploadAssets && link('/assets', 'Assets')}
           {link('/content?type=post', 'Posts')}
           {link('/content?type=note', 'Notes')}
           {link('/content?type=curated_article', 'Curated')}
@@ -86,6 +87,7 @@ export function Shell() {
           {(me.permissions.viewAudit || me.permissions.viewMonitor) && (
             <p className="nav-group">Operations</p>
           )}
+          {me.permissions.retryBuild && link('/publication', 'Publication')}
           {me.permissions.viewAudit && link('/audit', 'Audit')}
           {me.permissions.viewMonitor && (
             <a href="/ops/monitor">Monitor · 运行监控</a>

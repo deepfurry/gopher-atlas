@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://gopheratlas.com/contracts/content-snapshot.schema.json",
-  "title": "P0-0 empty bootstrap snapshot",
-  "description": "Version 0 is a local tooling fixture only, not a production publication format. P0-4 must define version 1 public entities explicitly. Unknown fields and nonempty entity arrays fail closed.",
+  "title": "GopherAtlas public snapshot v1",
+  "description": "Closed public projection of selected immutable published revisions. No private fields. Cross-reference, Markdown safety, byte limits and route graph validation also run at export and build time.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -10,17 +10,530 @@
     "generation",
     "exportedAt",
     "authors",
-    "content",
+    "assets",
     "tags",
+    "content",
     "routes"
   ],
   "properties": {
-    "schemaVersion": { "const": 0 },
-    "generation": { "const": 0 },
-    "exportedAt": { "type": "string", "format": "date-time" },
-    "authors": { "type": "array", "maxItems": 0, "items": false },
-    "content": { "type": "array", "maxItems": 0, "items": false },
-    "tags": { "type": "array", "maxItems": 0, "items": false },
-    "routes": { "type": "array", "maxItems": 0, "items": false }
+    "schemaVersion": {
+      "const": 1
+    },
+    "generation": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "exportedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "authors": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/author"
+      }
+    },
+    "assets": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/asset"
+      }
+    },
+    "tags": {
+      "type": "array",
+      "maxItems": 100000,
+      "items": {
+        "$ref": "#/$defs/tag"
+      }
+    },
+    "content": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/content"
+      }
+    },
+    "routes": {
+      "type": "array",
+      "maxItems": 100000,
+      "items": {
+        "$ref": "#/$defs/route"
+      }
+    }
+  },
+  "$defs": {
+    "author": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "slug",
+        "displayName",
+        "bioMarkdown",
+        "avatarUrl",
+        "websiteUrl"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "slug": {
+          "type": "string",
+          "maxLength": 100,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 100,
+          "minLength": 1
+        },
+        "bioMarkdown": {
+          "type": "string",
+          "maxLength": 10000
+        },
+        "avatarUrl": {
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^(?:https?://[^\\s]+)?$"
+        },
+        "websiteUrl": {
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^(?:https?://[^\\s]+)?$"
+        }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "url", "mimeType", "width", "height", "byteSize"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "url": {
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^https://assets\\.gopheratlas\\.com/media/sha256/[a-f0-9]{2}/[a-f0-9]{64}\\.(png|jpg|webp|gif)$"
+        },
+        "mimeType": {
+          "enum": ["image/png", "image/jpeg", "image/webp", "image/gif"]
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16384
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16384
+        },
+        "byteSize": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10485760
+        }
+      }
+    },
+    "tag": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "slug", "description"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 100,
+          "minLength": 1
+        },
+        "slug": {
+          "type": "string",
+          "maxLength": 100,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000
+        }
+      }
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position", "targetContentId"],
+      "properties": {
+        "position": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "targetContentId": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "contentId"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "maxLength": 512,
+          "pattern": "^/(?:articles|posts|topics)/[a-z0-9]+(?:-[a-z0-9]+)*/$|^/notes/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*/$"
+        },
+        "kind": {
+          "enum": ["canonical", "redirect"]
+        },
+        "contentId": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "post": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {}
+    },
+    "note": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["group", "groupSlug", "order"],
+      "properties": {
+        "group": {
+          "type": "string",
+          "maxLength": 100,
+          "minLength": 1
+        },
+        "groupSlug": {
+          "type": "string",
+          "maxLength": 100,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        }
+      }
+    },
+    "topic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["order"],
+      "properties": {
+        "order": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        }
+      }
+    },
+    "curated_article": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceUrl",
+        "originalUrl",
+        "sourceAuthor",
+        "sourceName",
+        "sourcePublishedAt",
+        "sourceLanguage",
+        "difficulty",
+        "rating",
+        "mustRead",
+        "relatedLinks"
+      ],
+      "properties": {
+        "sourceUrl": {
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^https?://[^\\s]+$"
+        },
+        "originalUrl": {
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^(?:https?://[^\\s]+)?$"
+        },
+        "sourceAuthor": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "sourceName": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "sourcePublishedAt": {
+          "type": "string",
+          "maxLength": 10,
+          "pattern": "^(?:[0-9]{4}-[0-9]{2}-[0-9]{2})?$"
+        },
+        "sourceLanguage": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "difficulty": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "rating": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "mustRead": {
+          "type": "boolean"
+        },
+        "relatedLinks": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "url"],
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              "url": {
+                "type": "string",
+                "maxLength": 2048,
+                "pattern": "^https?://[^\\s]+$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "revisionNo",
+        "canonicalPath",
+        "title",
+        "slug",
+        "summary",
+        "bodyMarkdown",
+        "authorId",
+        "language",
+        "featured",
+        "seoTitle",
+        "seoDescription",
+        "coverAssetId",
+        "firstPublishedAt",
+        "lastPublishedAt",
+        "tagIds",
+        "topicEntries",
+        "payload"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "type": {
+          "enum": ["post", "note", "curated_article", "topic"]
+        },
+        "revisionNo": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "canonicalPath": {
+          "type": "string",
+          "maxLength": 512,
+          "pattern": "^/(?:articles|posts|topics)/[a-z0-9]+(?:-[a-z0-9]+)*/$|^/notes/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*/$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200,
+          "minLength": 1
+        },
+        "slug": {
+          "type": "string",
+          "maxLength": 100,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "bodyMarkdown": {
+          "type": "string",
+          "maxLength": 524288
+        },
+        "authorId": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "language": {
+          "type": "string",
+          "maxLength": 32,
+          "minLength": 1
+        },
+        "featured": {
+          "type": "boolean"
+        },
+        "seoTitle": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "seoDescription": {
+          "type": "string",
+          "maxLength": 320
+        },
+        "coverAssetId": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "firstPublishedAt": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "lastPublishedAt": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "tagIds": {
+          "type": "array",
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "topicEntries": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/entry"
+          }
+        },
+        "payload": {
+          "type": "object"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "post"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "$ref": "#/$defs/post"
+              },
+              "topicEntries": {
+                "maxItems": 0,
+                "type": "array"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "note"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "$ref": "#/$defs/note"
+              },
+              "topicEntries": {
+                "maxItems": 0,
+                "type": "array"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "curated_article"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "$ref": "#/$defs/curated_article"
+              },
+              "topicEntries": {
+                "maxItems": 0,
+                "type": "array"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "topic"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "$ref": "#/$defs/topic"
+              },
+              "tagIds": {
+                "maxItems": 0,
+                "type": "array"
+              }
+            }
+          }
+        }
+      ]
+    }
   }
 }

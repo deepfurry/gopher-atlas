@@ -13,6 +13,7 @@ export async function getContent(id: number, signal?: AbortSignal) {
 }
 export function snapshot(d: Schema<'DraftInput'>): Snapshot {
   return {
+    coverAssetId: d.coverAssetId,
     title: d.title,
     slug: d.slug,
     summary: d.summary,

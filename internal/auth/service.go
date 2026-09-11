@@ -15,9 +15,11 @@ import (
 	dbsqlc "github.com/deepfurry/gopher-atlas/internal/database/sqlc"
 	"github.com/deepfurry/gopher-atlas/internal/fault"
 	"github.com/deepfurry/gopher-atlas/internal/oauth"
+	"github.com/deepfurry/gopher-atlas/internal/outbox"
 )
 
 type Service struct {
+	fence    *outbox.Fence
 	db       *sql.DB
 	queries  *dbsqlc.Queries
 	cfg      config.Config
@@ -27,8 +29,10 @@ type Service struct {
 }
 
 func New(db *sql.DB, cfg config.Config, provider oauth.Provider) *Service {
-	return &Service{db: db, queries: dbsqlc.New(db), cfg: cfg, provider: provider, now: time.Now, token: RandomToken}
+	return &Service{fence: &outbox.Fence{}, db: db, queries: dbsqlc.New(db), cfg: cfg, provider: provider, now: time.Now, token: RandomToken}
 }
+
+func (s *Service) PublicationFence() *outbox.Fence { return s.fence }
 
 // RandomToken carries 256 bits of entropy. Raw values are only returned to the browser.
 func RandomToken() (string, error) {

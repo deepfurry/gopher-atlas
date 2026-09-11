@@ -10,6 +10,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/deepfurry/gopher-atlas/internal/assets"
 	"github.com/deepfurry/gopher-atlas/internal/auth"
 	"github.com/deepfurry/gopher-atlas/internal/config"
 	"github.com/deepfurry/gopher-atlas/internal/content"
@@ -17,14 +18,17 @@ import (
 	dbsqlc "github.com/deepfurry/gopher-atlas/internal/database/sqlc"
 	"github.com/deepfurry/gopher-atlas/internal/fault"
 	"github.com/deepfurry/gopher-atlas/internal/policy"
+	"github.com/deepfurry/gopher-atlas/internal/publication"
 	"github.com/gofiber/fiber/v3"
 )
 
 type Handler struct {
-	Auth    *auth.Service
-	DB      *sql.DB
-	Config  config.Config
-	Content *content.Service
+	Publication *publication.Service
+	Assets      *assets.Service
+	Auth        *auth.Service
+	DB          *sql.DB
+	Config      config.Config
+	Content     *content.Service
 }
 type principalKey struct{}
 

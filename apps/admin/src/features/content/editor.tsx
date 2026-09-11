@@ -22,6 +22,7 @@ import {
 } from './api';
 import { AutosaveQueue } from './autosave';
 import { draftSchema, formValues, Metadata, type FormValues } from './form';
+import { InsertImage } from '@/features/assets/editor-assets';
 import { MarkdownEditor } from './markdown-editor';
 import { RevisionView } from './revision-view';
 import { RevisionHistory, RouteHistory } from './history';
@@ -32,7 +33,7 @@ const confirmations: Partial<
   direct: {
     title: 'Direct publish in CMS?',
     description:
-      'Bypasses review. Creates and publishes a new immutable Revision in CMS. This does not make the public site live.',
+      'Bypasses review. Creates and publishes a new immutable Revision in CMS. Queues a public snapshot build; check Publication for the observed public generation.',
     confirm: 'Publish in CMS',
   },
   unpublish: {
@@ -95,6 +96,7 @@ function DraftWorkspace({
   const [inspecting, setInspecting] = useState(false);
   const initial = content.draft;
   const empty = {
+    coverAssetId: null,
     title: '',
     slug: '',
     summary: '',
@@ -365,13 +367,18 @@ function DraftWorkspace({
           >
             <fieldset disabled={busy || locked} className="editor-fieldset">
               <div className="editor-layout">
-                <MarkdownEditor
-                  value={values.bodyMarkdown ?? ''}
-                  onChange={(value) =>
-                    form.setValue('bodyMarkdown', value, { shouldDirty: true })
-                  }
-                  readOnly={locked}
-                />
+                <div className="editor-source-column">
+                  {!locked && <InsertImage />}
+                  <MarkdownEditor
+                    value={values.bodyMarkdown ?? ''}
+                    onChange={(value) =>
+                      form.setValue('bodyMarkdown', value, {
+                        shouldDirty: true,
+                      })
+                    }
+                    readOnly={locked}
+                  />
+                </div>
                 <Metadata content={content} />
               </div>
             </fieldset>

@@ -9,6 +9,7 @@ import (
 	"github.com/deepfurry/gopher-atlas/internal/auth"
 	dbsqlc "github.com/deepfurry/gopher-atlas/internal/database/sqlc"
 	"github.com/deepfurry/gopher-atlas/internal/fault"
+	"github.com/deepfurry/gopher-atlas/internal/outbox"
 	"github.com/deepfurry/gopher-atlas/internal/policy"
 )
 
@@ -56,6 +57,8 @@ func (s *Service) Tags(ctx context.Context, actor auth.Principal, after int64) (
 // PutTag creates for id=0; an existing tag keeps its explicit slug unless the
 // Admin sends a different valid slug. There is no delete operation.
 func (s *Service) PutTag(ctx context.Context, actor auth.Principal, id int64, in TagInput) (Tag, error) {
+	s.fence.Lock()
+	defer s.fence.Unlock()
 	var result Tag
 	err := s.transact(ctx, actor, func(q *dbsqlc.Queries, u dbsqlc.User, now int64) error {
 		if !policy.For(u.Role, u.Status).ManageTaxonomy {
@@ -93,7 +96,19 @@ func (s *Service) PutTag(ctx context.Context, actor auth.Principal, id int64, in
 			return dbError(err)
 		}
 		result = tagDTO(row)
-		return audit.Append(ctx, q, audit.Event{ActorID: u.ID, Action: action, EntityType: "tag", EntityID: row.ID}, now)
+		if err := audit.Append(ctx, q, audit.Event{ActorID: u.ID, Action: action, EntityType: "tag", EntityID: row.ID}, now); err != nil {
+			return err
+		}
+		if id > 0 {
+			used, err := q.PublishedRevisionUsesTag(ctx, id)
+			if err != nil {
+				return fault.Unavailable
+			}
+			if used {
+				return outbox.MarkDirty(ctx, q, now)
+			}
+		}
+		return nil
 	})
 	return result, err
 }

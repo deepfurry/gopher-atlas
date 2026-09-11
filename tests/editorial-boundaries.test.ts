@@ -3,12 +3,16 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { expect, it } from 'vitest';
 const source = (path: string) =>
   readFileSync(path, 'utf8').replaceAll('\r\n', '\n');
-it('keeps P0-3 on the two immutable schema-2 migrations', () => {
+it('preserves migrations 1/2 and adds only the P0-4 schema-3 migration', () => {
   expect(
     readdirSync('db/migrations')
       .filter((name) => name.endsWith('.sql'))
       .sort(),
-  ).toEqual(['00001_identity.sql', '00002_editorial.sql']);
+  ).toEqual([
+    '00001_identity.sql',
+    '00002_editorial.sql',
+    '00003_publication.sql',
+  ]);
   for (const [name, hash] of Object.entries({
     '00001_identity.sql':
       '5e50419901720610849d7e341904083d9ccdc9e0051dcb3ee46d785c73042235',
@@ -21,7 +25,7 @@ it('keeps P0-3 on the two immutable schema-2 migrations', () => {
         .digest('hex'),
     ).toBe(hash);
   expect(source('internal/database/database.go')).toContain(
-    'const SchemaVersion = 2',
+    'const SchemaVersion = 3',
   );
 });
 it('reserves browser persistence for theme and retains reduced-motion/focus rules', () => {

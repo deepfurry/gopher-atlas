@@ -8,3 +8,5 @@ go.sum
 packages/api-client/src/generated/
 internal/database/sqlc/
 tests/fixtures/markdown/
+
+apps/web/.generated/

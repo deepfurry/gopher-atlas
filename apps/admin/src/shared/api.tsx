@@ -27,6 +27,17 @@ export function unwrap<T>(
   return result.data;
 }
 const messages: Record<string, string> = {
+  asset_invalid: '图片无效，请选择有效的 PNG/JPEG/WebP/GIF。',
+  asset_too_large: '图片不得超过 10 MiB。',
+  asset_format_unsupported: '仅支持 PNG/JPEG/WebP/GIF，不支持 SVG。',
+  asset_dimension_invalid: '图片尺寸超过 16384 px 或 100M 像素限制。',
+  asset_deleted: '图片已被停用，请更换封面或由 Admin 恢复图片。',
+  storage_unavailable: '对象存储暂不可用，请稍后重试。',
+  storage_integrity_error: '不可变对象完整性检查失败。',
+  publication_not_configured: '尚未配置 R2 与发布流水线。',
+  publication_job_conflict: '发布任务正在处理或状态已改变，请刷新。',
+  publication_retry_forbidden: '仅可重试当前 generation 的失败任务。',
+
   last_admin_required: '必须保留至少一位已启用的管理员。请先授权另一位管理员。',
   account_disabled: '账户已停用，请联系管理员。',
   account_pending: '账户正在等待管理员审批。',

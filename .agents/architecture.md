@@ -3,22 +3,22 @@
 The public and control planes have separate availability and trust boundaries:
 
 ```text
-Private CMS → future published R2 snapshot → Astro build → static public site
+Private CMS → SQLite generation/job → private R2 snapshot/latest → Hook → Astro → marker
 ```
 
-P0-3 adds Admin editorial UX and narrow projections to the existing domain/API.
-Public still builds its version 0 empty fixture. R2/jobs, public content rendering,
-legacy importer and deployment remain deferred.
+P0-4 adds immutable assets, snapshot v1 and durable publication. Public builds
+validated input and a generation marker; full public content rendering, legacy
+import and real staging/deployment remain deferred.
 
 Dependency direction:
 
 - `apps/web` → shared Markdown; never Admin/API client/private services.
 - `apps/admin` → generated API client, shared Markdown and server-derived actions.
-  Shell/router/providers route to content/reviews/tags/people/audit features. Query
+  Shell/router/providers route to content/reviews/tags/people/audit/assets/publication features. Query
   owns server caches; RHF plus one autosave queue owns the in-memory Draft.
   Immutable review endpoints never return a Draft, including for Admin.
   Author/owner/byline/actor labels are batched on the server.
-- `cmd` constructs config, one logger, SQLite pool, OAuth provider and auth service.
+- `cmd` constructs config, one logger, SQLite pool, OAuth/auth, R2 adapter and a joined publication worker.
 - `internal/app` assembles HTTP middleware; `internal/http` translates transport;
   `internal/auth` owns identity/session transactions and calls sqlc directly.
 - `internal/content` owns Draft/Revision/Review/Tag/Route transactions and bounded
@@ -42,8 +42,9 @@ from the selected publication. Submit snapshots scalar fields and relations;
 reviewed publication uses that exact pending Revision. Routes retain identity
 ownership permanently and resolve redirects directly to the current canonical.
 Audit is append-only, transactional and excludes body/payload/comment/credentials.
-Only SQLite pointer/route/audit changes happen on Publish; see ADR 0006.
-P0-3 preserves schema version 2 and both migration files. ADR 0007 records the
+P0-4 additionally couples generation/job to public-state transactions; ADR 0008
+extends the P0-2 publication boundary without changing editorial semantics.
+Migration 00003 preserves 00001/00002. ADR 0007 records the
 queue, conflict/navigation recovery, action projections and safe preview boundary.
 
 `internal/app` is the single middleware assembly point:
@@ -66,5 +67,9 @@ not falsely claim to contain the production UI. The final `make check` build
 always uses freshly built assets and runs embed-specific route/cache tests.
 
 OpenAPI and migration/SQL inputs are authoritative for executable interfaces.
-The snapshot schema remains version 0 and rejects nonempty entities. Published
-snapshot version 1 and public/private export isolation belong to P0-4.
+Snapshot v1 is a closed public projection. Export uses one deferred SQLite read
+transaction, then closes it and rechecks freshness before network I/O. A shared
+in-process fence closes the stale latest PUT race: services acquire it before
+BEGIN; worker acquires it around latest/Hook without a DB transaction.
+Asset upload validates/uploads before a short reauthorized row/Audit transaction.
+The Web loader keeps RO credentials in Node; Astro env loading is disabled.

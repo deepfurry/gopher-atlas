@@ -18,6 +18,7 @@ import (
 	"github.com/deepfurry/gopher-atlas/internal/config"
 	"github.com/deepfurry/gopher-atlas/internal/fault"
 	"github.com/deepfurry/gopher-atlas/internal/oauth"
+	"github.com/deepfurry/gopher-atlas/internal/storage"
 	"github.com/deepfurry/gopher-atlas/internal/testkit"
 	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
@@ -51,7 +52,7 @@ type runtimeTest struct {
 	cfg      config.Config
 }
 
-func runtime(t *testing.T, secure bool) runtimeTest {
+func runtime(t *testing.T, secure bool, stores ...storage.ObjectStore) runtimeTest {
 	t.Helper()
 	pool := testkit.Database(t)
 	cfg := config.Config{BaseURL: "http://127.0.0.1:5173", BootstrapAdminID: 1, SessionTTL: time.Hour, StateTTL: time.Minute}
@@ -61,7 +62,12 @@ func runtime(t *testing.T, secure bool) runtimeTest {
 	provider := &fakeOAuth{identities: map[string]int64{}}
 	service := auth.New(pool, cfg, provider)
 	core, logs := observer.New(zapcore.DebugLevel)
-	return runtimeTest{New(Dependencies{Config: cfg, DB: pool, Auth: service, Logger: zap.New(core)}), service, provider, logs, cfg}
+	var store storage.ObjectStore
+	if len(stores) > 0 {
+		store = stores[0]
+		cfg.Publication.AssetsBucket = "assets"
+	}
+	return runtimeTest{New(Dependencies{Config: cfg, DB: pool, Auth: service, Logger: zap.New(core), Store: store}), service, provider, logs, cfg}
 }
 func perform(t *testing.T, app *fiber.App, method, path string, cookies []*http.Cookie, body string, headers map[string]string) (*http.Response, []byte) {
 	t.Helper()

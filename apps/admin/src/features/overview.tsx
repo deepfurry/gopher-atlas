@@ -27,8 +27,8 @@ export default function Overview() {
           {me.permissions.review && <Link to="/reviews">Pending reviews</Link>}
         </div>
         <p className="caption">
-          Published in CMS 表示已选择 SQLite 中的
-          Revision；公共站发布管线尚未接入。
+          Published in CMS 表示已选择 SQLite 中的 Revision
+          并排队构建。Publication 页面显示独立的公开构建状态。
         </p>
       </section>
       <section className="workspace-section">

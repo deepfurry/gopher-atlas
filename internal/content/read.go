@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/deepfurry/gopher-atlas/internal/assets"
 	"github.com/deepfurry/gopher-atlas/internal/auth"
 	dbsqlc "github.com/deepfurry/gopher-atlas/internal/database/sqlc"
 	"github.com/deepfurry/gopher-atlas/internal/fault"
@@ -28,13 +29,22 @@ func loadDraft(ctx context.Context, q *dbsqlc.Queries, id int64) (Draft, error) 
 	for _, e := range entries {
 		topic = append(topic, TopicEntry{e.TargetContentID})
 	}
-	return Draft{DraftInput: DraftInput{Version: d.Version, Fields: draftFields(d), Relations: Relations{tags, topic}},
+	cover, err := assets.Cover(ctx, q, pointer(d.CoverAssetID))
+	if err != nil {
+		return Draft{}, err
+	}
+	return Draft{CoverAsset: cover, DraftInput: DraftInput{Version: d.Version, Fields: draftFields(d), Relations: Relations{tags, topic}},
 		PayloadSchemaVersion: d.PayloadSchemaVersion, UpdatedBy: d.UpdatedBy, UpdatedAt: d.UpdatedAt}, nil
 }
 func loadRevision(ctx context.Context, q *dbsqlc.Queries, c dbsqlc.ContentItem, r dbsqlc.ContentRevision) (Revision, error) {
 	result := Revision{ID: r.ID, ContentID: r.ContentID, RevisionNo: r.RevisionNo, Fields: revisionFields(r), PayloadSchemaVersion: r.PayloadSchemaVersion,
 		CreatedBy: r.CreatedBy, CreatedAt: r.CreatedAt, Pending: c.PendingReviewRevisionID.Valid && c.PendingReviewRevisionID.Int64 == r.ID,
 		Published: c.PublishedRevisionID.Valid && c.PublishedRevisionID.Int64 == r.ID}
+	cover, err := assets.Cover(ctx, q, pointer(r.CoverAssetID))
+	if err != nil {
+		return result, err
+	}
+	result.CoverAsset = cover
 	tags, err := q.RevisionTagIDs(ctx, r.ID)
 	if err != nil {
 		return result, dbError(err)

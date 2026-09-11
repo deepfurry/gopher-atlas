@@ -12,7 +12,7 @@ INSERT INTO content_drafts(content_id, byline_user_id, payload_schema_version, p
 VALUES (?, ?, 1, ?, ?, ?);
 
 -- name: SaveDraft :execrows
-UPDATE content_drafts SET title = sqlc.arg(title), slug = sqlc.arg(slug), summary = sqlc.arg(summary), body_markdown = sqlc.arg(body_markdown), byline_user_id = sqlc.arg(byline_user_id), language = sqlc.arg(language), featured = sqlc.arg(featured), seo_title = sqlc.arg(seo_title), seo_description = sqlc.arg(seo_description), payload_schema_version = sqlc.arg(payload_schema_version), payload_json = sqlc.arg(payload_json),
+UPDATE content_drafts SET cover_asset_id = sqlc.narg(cover_asset_id), title = sqlc.arg(title), slug = sqlc.arg(slug), summary = sqlc.arg(summary), body_markdown = sqlc.arg(body_markdown), byline_user_id = sqlc.arg(byline_user_id), language = sqlc.arg(language), featured = sqlc.arg(featured), seo_title = sqlc.arg(seo_title), seo_description = sqlc.arg(seo_description), payload_schema_version = sqlc.arg(payload_schema_version), payload_json = sqlc.arg(payload_json),
 version = version + 1, updated_by = sqlc.arg(updated_by), updated_at = sqlc.arg(updated_at)
 WHERE content_id = sqlc.arg(content_id) AND version = sqlc.arg(expected_version);
 
@@ -42,9 +42,9 @@ pending_review_revision_id = NULL, editorial_state = 'draft', updated_at = sqlc.
 UPDATE content_items SET archived_at = NULL, editorial_state = 'draft', updated_at = ? WHERE id = ?;
 
 -- name: SnapshotDraft :one
-INSERT INTO content_revisions(content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at)
+INSERT INTO content_revisions(content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, cover_asset_id, created_by, created_at)
 SELECT d.content_id, (SELECT COALESCE(MAX(r.revision_no), 0) + 1 FROM content_revisions r WHERE r.content_id = d.content_id),
-d.title, d.slug, d.summary, d.body_markdown, d.byline_user_id, d.language, d.featured, d.seo_title, d.seo_description, d.payload_schema_version, d.payload_json, sqlc.arg(actor_id), sqlc.arg(now)
+d.title, d.slug, d.summary, d.body_markdown, d.byline_user_id, d.language, d.featured, d.seo_title, d.seo_description, d.payload_schema_version, d.payload_json, d.cover_asset_id, sqlc.arg(actor_id), sqlc.arg(now)
 FROM content_drafts d WHERE d.content_id = sqlc.arg(content_id) RETURNING *;
 
 -- name: GetRevision :one

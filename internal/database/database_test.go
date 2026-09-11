@@ -112,7 +112,7 @@ func TestEditorialMigrationPreservesIdentityAcrossUpgradeAndDown(t *testing.T) {
 	ctx := context.Background()
 	pool := testkit.Open(t)
 	provider := testkit.Migrate(t, pool)
-	if _, err := provider.Down(ctx); err != nil {
+	if _, err := provider.DownTo(ctx, 1); err != nil {
 		t.Fatal(err)
 	}
 	q := dbsqlc.New(pool)
@@ -128,13 +128,13 @@ func TestEditorialMigrationPreservesIdentityAcrossUpgradeAndDown(t *testing.T) {
 			t.Fatal(err)
 		}
 		if database.Ready(ctx, pool) != nil {
-			t.Fatal("schema 2 not ready")
+			t.Fatal("current schema not ready")
 		}
 		got, err := q.GetUser(ctx, user.ID)
 		if err != nil || got.GithubUserID != 42 {
 			t.Fatal("upgrade lost identity")
 		}
-		if _, err := provider.Down(ctx); err != nil {
+		if _, err := provider.DownTo(ctx, 1); err != nil {
 			t.Fatal(err)
 		}
 		got, err = q.GetUser(ctx, user.ID)

@@ -3,21 +3,22 @@
 **Technical Journal × Knowledge Atlas** — 面向 Go 开发者的知识地图与多作者
 Markdown 出版平台。
 
-当前完成 **P0-3：Admin Editorial UX**。
+当前完成 **P0-4：Assets & Publication Pipeline**。
 私有 CMS 提供内容表格、Markdown 编辑/安全预览、串行 autosave、审核工作区、
 Revision History、Tags/Authors/Users/Audit 和 Monitor。Publish 仅表示 **已在 CMS 发布**；
-R2 和公共站发布管线尚未实现。
+已实现 Assets/R2、原子 generation/outbox、Snapshot v1、Worker/Hook 和公开构建 marker。
+尚未执行真实 staging；完整 Public 内容界面留给 P0-5。
 详见 [阶段范围](docs/implementation-status.md)。
 
 ## 架构
 
 ```text
 当前私有 CMS：Go / Fiber v3 + 内嵌 React Admin → SQLite / sqlc / goose
-未来发布链路：CMS → 私有 R2 快照 → Astro 静态构建 → Workers Static Assets
+发布链路：CMS → 私有 R2 快照 → Astro 静态构建 → Workers Static Assets
                     └── 不可变 R2 图片 ──────────────→ 公共读者
 ```
 
-公共站不在请求时依赖 CMS；私有服务器离线不影响读者。源码留在 Git，未来内容
+公共站不在请求时依赖 CMS；私有服务器离线不影响读者。源码留在 Git，内容
 通过 CMS 编辑与发布；about/contribute 页面继续随仓库维护。
 
 | 目录                                 | 当前职责                                                                    |
@@ -35,8 +36,8 @@ R2 和公共站发布管线尚未实现。
 
 ## 分支模型
 
-日常功能从最新 `dev` 创建 feature 分支，PR 合入 `dev`。`main` 仅保存发布快照，
-通过发布流程接收 `dev` 的已验收版本。禁止直接在 `dev` / `main` 开发。
+初期集中开发按用户授权直接在 clean、已同步的 `dev` 提交和 push。
+`main` 仅保存未来发布快照，不直接开发，也不由本阶段同步。
 CI 检查 push 与 PR 的 `dev`、`main`；仓库默认分支和 Ruleset 由维护者管理。
 
 ## 本地开始
@@ -64,16 +65,16 @@ make db-up
 
 Bash 使用 `mkdir -p data` 和 `export DATABASE_PATH=./data/gopheratlas.db` 后运行相同
 make 命令。迁移脚本不隐式加载 `.env`；CMS 启动和 `/readyz` 也不会执行迁移。
-已有 P0-1 数据库也需显式运行 `make db-up` 应用 `00002_editorial.sql`；
-P0-3 不新增 migration，`00001_identity.sql`、`00002_editorial.sql` 均保持不变，
-readiness 继续要求 schema version 2。
+已有数据库需显式运行 `make db-up` 至 `00003_publication.sql`。00001/00002 保持不变，
+readiness 要求 schema version 3、cover 列、assets/jobs 和 site_state singleton。
 
 分三个终端启动：
 
 ```sh
 make dev-cms     # CMS: 127.0.0.1:46217
 make dev-admin   # 浏览器: http://127.0.0.1:5173
-make dev-web     # Public: http://127.0.0.1:4321
+CONTENT_SNAPSHOT_FILE=../../tests/fixtures/content-snapshot-v1.json make dev-web
+# Public: http://127.0.0.1:4321；路径相对于 apps/web
 ```
 
 `make dev-cms` 通过 Node 的 `--env-file-if-exists=.env` 读取根 `.env`，已有进程变量
@@ -126,8 +127,8 @@ make build-cms
 使用内嵌 Admin 本地验证时，将 `CMS_BASE_URL` 和 OAuth 回调改为实际 CMS 浏览器
 origin（例如 `http://127.0.0.1:46217`）。构建产物不包含 `.env` 或 OAuth Secret。
 
-`/healthz` 只表示进程存活；`/readyz` 检查 SQLite 和 P0-2 migration/列集合，缺失或
-不兼容返回 503。GitHub 是否在线不影响 readiness。`/ops/monitor` 只有 active
+`/healthz` 只表示进程存活；`/readyz` 检查 SQLite 和 P0-4 migration/列集合，缺失或
+不兼容返回 503。GitHub、R2、Hook 和公开 marker 是否在线均不影响 readiness。`/ops/monitor` 只有 active
 Admin 能打开；一个 app-wide Monitor 包裹业务请求，Recover 在其后。
 
 一个共享 Zap logger 同时写 JSON 到 stdout 和 Lumberjack JSONL 文件。默认
@@ -167,7 +168,7 @@ pending Revision，不能审核自己 owned/byline 的内容；Admin 可以 bypa
 direct publish。发布后继续编辑只改变 Draft，已发布 Revision 指针保持独立。
 Tag 写入、Topic 创建、featured 变更、unpublish/archive 仅 Admin 可操作。
 
-Publish **只表示 SQLite 选定 Revision**，并不表示公共网站已重建。路由历史永久
+Publish **表示 SQLite 选定 Revision 并原子排队 generation/job**，并不表示公共网站已重建。路由历史永久
 保留，重命名将旧路径转为按 Content identity 解析的 redirect；unpublish/archive
 不释放路径。Audit 与重要 mutation 同事务，覆盖身份变更，但不记录 Draft autosave、
 正文、Review comment、payload 或凭据。各 list 使用最多 100 条的 keyset 分页。
@@ -176,25 +177,54 @@ Publish **只表示 SQLite 选定 Revision**，并不表示公共网站已重建
 [Data contract](contracts/data.md) 和 [ADR 0006](docs/decisions/0006-content-revision-and-route-model.md)。
 P0-3 增加 author summaries、immutable Review detail、列表筛选及 server action projection；
 筛选不绕过 object policy，Reviewer 的历史详情也不返回他人的 Draft。
-P0-4 才加入 assets/R2/generation/jobs/snapshot v1/Cloudflare hook；旧站导入和生产切换更晚。
+P0-4 publication 网络步骤独立于 SQLite 事务；旧站导入和生产切换更晚。
 
 ## 编辑工作台
 
 - Content 下四个类型入口复用同一张可筛选、cursor 分页的表格。创建后直接进入编辑器；
   Topic 仅 Admin 可创建，Tags 在独立管理页面创建/更新。
 - Source / Preview / Split 使用 UIW source 输入和 react-markdown/GFM 安全预览。
-  外部图片只显示 warning placeholder，不发起图片请求；无 H1、HTML 或上传命令。
+  外部图片只显示 warning placeholder，不发起图片请求；无 H1/HTML 命令；Insert image 通过 Asset picker 和必填 alt 插入受控 URL。
 - 空闲 1.7 秒保存完整 Draft，始终只有一个 PUT 在途；后续输入合并并使用新 version。
   Ctrl/Cmd+S、Submit 和 Direct Publish 复用同一个队列。409 后暂停自动重试，提供
   Copy、Inspect 和显式 Reload；离开未保存页面会提示。Draft 从不写浏览器存储。
 - 审核始终显示 exact immutable Revision；反馈、resubmit、历史查看/恢复、归档和
   直接发布均沿用 P0-2 服务。编辑下一版不改变已发布 pointer。
 - System / Light / Dark 仅持久化主题偏好。360px 下侧栏折叠、metadata 堆叠。
-  Monitor 是普通 Admin 链接；没有 Assets/Builds/Publication 导航。
+  Monitor 是普通 Admin 链接；Assets 对 active roles 开放，Publication 仅 Reviewer/Admin。
 
 生产构建包含所有 lazy chunks，仍由单个 Go 二进制提供。Vite 构建门禁拒绝 raw HTML
 preview 或禁止的 editor/primitives 模块进入产物。工程决定见
 [ADR 0007](docs/decisions/0007-admin-editorial-ux.md)。
+
+## Assets 与 Publication
+
+图片按 bytes/header 检测 PNG/JPEG/WebP/GIF，最大 10 MiB、16384 px/边、100M 像素。
+SHA-256 决定永久 key，同 bytes 去重、缓存一年 immutable，不保存原始本地文件名。
+不剥离 EXIF/二进制 metadata。Admin soft delete 停止新选择，不删除 R2 对象。
+封面与 Markdown 插入均进入原有 autosave，历史 Revision/已发布封面保持不变。
+
+Publish/Unpublish、原本已发布内容的 Archive、公开内容使用的 Author/Tag 更新，在
+同事务内递增 generation 并插入 durable job。Worker 合并旧 generation，上传私有
+`snapshots/generation-N.json`，再写 `latest.json`，再 POST Hook。Hook 为至少一次投递；
+失败退避，六次自动尝试后保留 failed，由 Reviewer/Admin Retry。只支持一个 active CMS writer。
+
+development 的八个 P0-4 变量全部留空时，Worker disabled，公开 mutation 仍排队，
+上传返回稳定 unavailable。部分配置会启动失败，production 必须配全。参见
+[部署与恢复](docs/operations/deployment.md) 和 [首次 staging 清单](docs/operations/cloudflare.md)。
+
+Web 显式使用 `CONTENT_SNAPSHOT_FILE` 或完整 `CONTENT_R2_*` 只读配置，缺少输入即失败。
+PowerShell 从根目录选择 fixture 后可运行构建或 `make dev-web`，不读取 `.env`：
+
+```powershell
+$env:CONTENT_SNAPSHOT_FILE = (Resolve-Path tests/fixtures/content-snapshot-v1.json).Path
+pnpm --filter @gopheratlas/web build
+```
+
+构建校验 latest、SHA-256、Schema v1、Markdown 和引用图，输出忽略的 `.generated`
+快照及 `/.well-known/gopheratlas-build.json`。`make check` 固定显式 fixture 并进行
+synthetic secret-output scan。生产不配置 fixture fallback；内容桶始终私有，CMS RW
+与 Web RO 凭据分离。本阶段未使用真实 R2/Hook 或修改 Cloudflare/DNS。
 
 ## License
 

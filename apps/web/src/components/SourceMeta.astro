@@ -1,0 +1,63 @@
+---
+import type { CuratedPayload } from '../lib/publication/types';
+interface Props {
+  payload: CuratedPayload;
+}
+const { payload: p } = Astro.props;
+const fields = [
+  ['来源作者', p.sourceAuthor],
+  ['来源', p.sourceName],
+  ['发布日期', p.sourcePublishedAt],
+  ['原文语言', p.sourceLanguage],
+  ['阅读难度', p.difficulty],
+  ['推荐评分', p.rating],
+];
+---
+
+<aside class="source-meta" aria-label="外部来源">
+  <h2>阅读原文</h2>
+  <p>下文是 GopherAtlas 的推荐与评论。完整文章请前往外部来源阅读。</p>
+  <p class="source-links">
+    <a href={p.sourceUrl} rel="noopener noreferrer"
+      >{p.sourceName || '来源文章'}</a
+    >{
+      p.originalUrl && (
+        <a href={p.originalUrl} rel="noopener noreferrer">
+          原始链接
+        </a>
+      )
+    }{p.mustRead && <span class="label">必读</span>}
+  </p>
+  <dl>
+    {
+      fields
+        .filter(([, value]) => value)
+        .map(([label, value]) => (
+          <div>
+            <>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </>
+          </div>
+        ))
+    }
+  </dl>
+  {
+    p.relatedLinks.length > 0 && (
+      <>
+        <>
+          <h3>延伸阅读</h3>
+          <ul>
+            {p.relatedLinks.map((link) => (
+              <li>
+                <a href={link.url} rel="noopener noreferrer">
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </>
+      </>
+    )
+  }
+</aside>

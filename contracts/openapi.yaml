@@ -12,8 +12,8 @@ info:
     name: MIT
     identifier: MIT
 servers:
-  - url: https://blog.go-furry.com
-    description: Private Tailscale HTTPS origin
+  - url: /
+    description: Private same-origin Tailscale Serve HTTPS deployment
   - url: http://127.0.0.1:5173
     description: Loopback Vite same-origin proxy; CMS_BASE_URL/redirect must match
 security:
@@ -1034,7 +1034,8 @@ paths:
         prohibition except Admin. Direct mode: Admin from draft/changes_requested, expected Draft
         version, create new immutable revision without fake approval. Topic targets must be
         published/unarchived. Route, pointer, review if any and audit commit together. Direct audit
-        action is content.published_direct. No R2, generation, jobs or deploy hook.'
+        action is content.published_direct. Generation/job commits atomically; R2 and Hook run
+        asynchronously outside the transaction.'
       responses:
         '200':
           description: Successful operation

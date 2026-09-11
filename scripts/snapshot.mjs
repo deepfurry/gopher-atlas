@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
+import snapshotSchema from '../contracts/content-snapshot.schema.json' with { type: 'json' };
 import {
   isSafeLink,
   validateMarkdown,
@@ -11,14 +12,7 @@ export const maxSnapshotBytes = 128 * 1024 * 1024;
 export const sha256 = (data) => createHash('sha256').update(data).digest('hex');
 const ajv = new Ajv2020({ strict: true });
 addFormats(ajv);
-const validate = ajv.compile(
-  JSON.parse(
-    readFileSync(
-      new URL('../contracts/content-snapshot.schema.json', import.meta.url),
-      'utf8',
-    ),
-  ),
-);
+const validate = ajv.compile(snapshotSchema);
 const invalid = () => {
   throw new Error('snapshot_invalid');
 };

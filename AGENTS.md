@@ -1,10 +1,11 @@
 # GopherAtlas agent entry point
 
 GopherAtlas is a Go knowledge atlas and multi-author Markdown publication.
-This repository implements **P0-4: Assets & Publication Pipeline**, on the existing runtime/editorial UX.
+This repository implements **P0-5: Full Public Astro Site**, on the existing publication pipeline.
 During early development the user authorizes work on clean, synchronized `dev`;
-commit/push there within task authorization. Never modify `main`, the future
-release snapshot. Real staging/deployment requires a separate request.
+commit/push there within task authorization. Never modify `main`, the Production
+release snapshot. Development and Production are the only environments.
+Production operations require a separate request; use no production credentials.
 
 Read `.agents/architecture.md`, `.agents/playbook.md`, relevant `contracts/*`,
 and the corresponding ADR before changing an area. Inspect implementation and
@@ -47,7 +48,10 @@ architecture and current scope are summarized in `docs/implementation-status.md`
   guard → app-wide Monitor → Recover order in `internal/app`.
 - `make dev-cms` explicitly loads optional `.env` without replacing process env;
   tests/checks/migrations do not load it. Production runs with process env only.
-- Preserve 00001/00002; P0-4 adds only 00003 and schema version 3. No auto migration.
+- Preserve migrations 00001–00003 and schema version 3. No auto migration.
+- Public routes use snapshot canonicalPath. Derived pages/indexes fail on broken
+  references or route/group conflicts. Redirect overflow fails, never truncates.
+  See ADR 0009; no Public runtime CMS/R2/API or backend contract expansion.
 - Admin features consume server action projections. One autosave queue owns full
   snapshots/versions; a conflict requires explicit reload. No browser Draft storage.
 - Preview never creates uncontrolled image elements, even before a save. UIW is
@@ -59,8 +63,8 @@ architecture and current scope are summarized in `docs/implementation-status.md`
   immutable and only latest.json is mutable. Never physically delete assets.
 - Snapshot v1 exports selected published Revisions only. Web requires explicit
   fixture or private R2 read-only input, no silent fallback or browser credentials.
-- UI says Published in CMS with independent marker status. P0-5 full Public
-  content/SEO/redirects and P0-6 import/cutover remain deferred.
+- UI says Published in CMS with independent marker status. P0-5 builds Public
+  routes/search/SEO from snapshot v1 only. P0-6 import/cutover remains deferred.
 
 Completion gate: **`make check`**. Report actual commands and results, inspect the
 complete diff, and preserve local files. Commit/push only within user authorization.

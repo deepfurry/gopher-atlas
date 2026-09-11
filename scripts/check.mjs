@@ -29,12 +29,15 @@ for (const key of [
   'CONTENT_R2_ACCESS_KEY_ID',
   'GITHUB_OAUTH_CLIENT_SECRET',
   'CLOUDFLARE_DEPLOY_HOOK_URL',
+  'CMS_BASE_URL',
+  'GITHUB_OAUTH_REDIRECT_URI',
 ])
   process.env[key] = canary;
 process.env.CONTENT_SNAPSHOT_FILE = resolve(
   'tests/fixtures/content-snapshot-v1.json',
 );
 pnpm('build');
+run('node', ['scripts/check-public-build.mjs']);
 for (const root of [
   'apps/web/dist',
   'apps/admin/dist',
@@ -78,7 +81,7 @@ for (const path of [
 }
 const rss = readFileSync('apps/web/dist/rss.xml', 'utf8');
 if (!rss.includes('<rss') || !rss.includes('GopherAtlas'))
-  throw new Error('Invalid bootstrap RSS');
+  throw new Error('Invalid publication RSS');
 console.log(
-  'All P0-4 checks passed. No production services or credentials used.',
+  'All P0-5 checks passed. No production services or credentials used.',
 );

@@ -1,0 +1,149 @@
+---
+import Layout from '../layouts/Layout.astro';
+import MarkdownBody from './MarkdownBody.astro';
+import SourceMeta from './SourceMeta.astro';
+import ContentList from './ContentList.astro';
+import {
+  dateLabel,
+  required,
+  seo,
+  typeInfo,
+  type Publication,
+} from '../lib/publication/indexes';
+import { renderMarkdown } from '../lib/publication/markdown';
+import type { Content } from '../lib/publication/types';
+interface Props {
+  content: Content;
+  publication: Publication;
+}
+const { content: item, publication: p } = Astro.props;
+const author = required(p.authorById, item.authorId);
+const cover =
+  item.coverAssetId === null
+    ? undefined
+    : required(p.assetById, item.coverAssetId);
+const tags = item.tagIds.map((id) => required(p.tagById, id));
+const rendered = await renderMarkdown(item.bodyMarkdown);
+const headings = rendered.metadata.headings.filter(
+  (h) => h.depth === 2 || h.depth === 3,
+);
+const info = typeInfo[item.type];
+---
+
+<Layout
+  {...seo(item)}
+  canonical={item.canonicalPath}
+  lang={item.language}
+  image={cover?.url}
+  imageAlt=""
+  ogType={item.type === 'topic' ? 'website' : 'article'}
+  searchIndex
+>
+  <div class="reading-layout">
+    <article class="prose content-detail">
+      <header>
+        <nav class="breadcrumb" aria-label="内容位置" data-pagefind-ignore>
+          <a href={info.path}>{info.title}</a>{
+            item.type === 'note' && (
+              <a href={`/notes/${item.payload.groupSlug}/`}>
+                {item.payload.group}
+              </a>
+            )
+          }
+        </nav>
+        <h1 data-pagefind-meta="title">{item.title}</h1>
+        {item.summary && <p class="lede">{item.summary}</p>}
+        <div class="publication-meta">
+          <a
+            href={`/authors/${author.slug}/`}
+            rel="author"
+            data-pagefind-meta="author">{author.displayName}</a
+          >
+          <span
+            >发布于 <time
+              datetime={new Date(item.firstPublishedAt).toISOString()}
+              >{dateLabel(item.firstPublishedAt)}</time
+            ></span
+          >
+          {
+            item.lastPublishedAt !== item.firstPublishedAt && (
+              <span>
+                更新于{' '}
+                <time datetime={new Date(item.lastPublishedAt).toISOString()}>
+                  {dateLabel(item.lastPublishedAt)}
+                </time>
+              </span>
+            )
+          }
+        </div>
+        {
+          tags.length > 0 && (
+            <ul class="tag-list" aria-label="标签">
+              {tags.map((tag) => (
+                <li>
+                  <a href={`/tags/${tag.slug}/`}>{tag.name}</a>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </header>
+      {
+        cover && (
+          <img
+            class="cover-image"
+            src={cover.url}
+            alt=""
+            width={cover.width}
+            height={cover.height}
+            decoding="async"
+            referrerpolicy="no-referrer"
+          />
+        )
+      }
+      {item.type === 'curated_article' && <SourceMeta payload={item.payload} />}
+      <div class="markdown" set:html={rendered.code} />
+      {
+        item.type === 'topic' && (
+          <section class="topic-entries" aria-label="专题阅读路径">
+            <h2>阅读路径</h2>
+            <ol>
+              {(p.topicTargets.get(item.id) ?? []).map((entry) => (
+                <li value={entry.position}>
+                  <ContentList
+                    items={[entry.content]}
+                    publication={p}
+                    heading="h3"
+                  />
+                </li>
+              ))}
+            </ol>
+          </section>
+        )
+      }
+      <aside class="author-note" data-pagefind-ignore>
+        <h2>关于作者</h2><a href={`/authors/${author.slug}/`}
+          >{author.displayName}</a
+        >{author.bioMarkdown && <MarkdownBody source={author.bioMarkdown} />}
+      </aside>
+    </article>
+    {
+      headings.length > 1 && (
+        <aside class="toc" data-pagefind-ignore>
+          <nav aria-label="本页目录">
+            <>
+              <p>本页目录</p>
+              <ul>
+                {headings.map((heading) => (
+                  <li class:list={{ nested: heading.depth === 3 }}>
+                    <a href={`#${heading.slug}`}>{heading.text}</a>
+                  </li>
+                ))}
+              </ul>
+            </>
+          </nav>
+        </aside>
+      )
+    }
+  </div>
+</Layout>

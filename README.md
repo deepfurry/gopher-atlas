@@ -3,11 +3,13 @@
 **Technical Journal × Knowledge Atlas** — 面向 Go 开发者的知识地图与多作者
 Markdown 出版平台。
 
-当前完成 **P0-4：Assets & Publication Pipeline**。
+当前完成 **P0-5：Full Public Astro Site**。
 私有 CMS 提供内容表格、Markdown 编辑/安全预览、串行 autosave、审核工作区、
 Revision History、Tags/Authors/Users/Audit 和 Monitor。Publish 仅表示 **已在 CMS 发布**；
 已实现 Assets/R2、原子 generation/outbox、Snapshot v1、Worker/Hook 和公开构建 marker。
-尚未执行真实 staging；完整 Public 内容界面留给 P0-5。
+Public 从 snapshot v1 构建完整阅读页面、静态 redirects、RSS/sitemap/SEO 与 Pagefind 搜索。
+人工 Production CMS 已部署并验证登录和 Asset 上传。
+真实 generation → snapshot → Hook → marker 尚未人工验收。
 详见 [阶段范围](docs/implementation-status.md)。
 
 ## 架构
@@ -23,7 +25,7 @@ Revision History、Tags/Authors/Users/Audit 和 Monitor。Publish 仅表示 **�
 
 | 目录                                 | 当前职责                                                                    |
 | ------------------------------------ | --------------------------------------------------------------------------- |
-| `apps/web`                           | Astro 静态首页/about/contribute、空 RSS、sitemap、Pagefind 索引             |
+| `apps/web`                           | snapshot v1 静态阅读站、四类详情/目录、搜索、RSS/SEO/redirects              |
 | `apps/admin`                         | 按 feature 拆分的 React/Vite 编辑工作台、Base UI、RHF、TanStack Table/Query |
 | `packages/markdown`                  | CommonMark/GFM 安全规则与共享 remark 插件                                   |
 | `packages/api-client`                | OpenAPI 生成类型、同源请求及 CSRF header                                    |
@@ -37,7 +39,7 @@ Revision History、Tags/Authors/Users/Audit 和 Monitor。Publish 仅表示 **�
 ## 分支模型
 
 初期集中开发按用户授权直接在 clean、已同步的 `dev` 提交和 push。
-`main` 仅保存未来发布快照，不直接开发，也不由本阶段同步。
+环境仅 Development / Production；`main` 保存生产发布快照，不直接开发，也不由本阶段同步。
 CI 检查 push 与 PR 的 `dev`、`main`；仓库默认分支和 Ruleset 由维护者管理。
 
 ## 本地开始
@@ -93,8 +95,8 @@ Admin Vite 将 `/api`、`/ops`、`/healthz`、`/readyz` 同源代理到 `CMS_LIS
 `http://127.0.0.1:5173`，回调应为该 origin 下的 `/api/auth/github/callback`，并匹配
 GitHub OAuth App 注册设置。`CMS_BASE_URL` 必须与浏览器 origin 一致。
 
-生产设置 `APP_ENV=production`、`CMS_BASE_URL=https://blog.go-furry.com`，回调为
-`https://blog.go-furry.com/api/auth/github/callback`。生产必须提供完整 OAuth 配置和
+生产设置 `APP_ENV=production`、`CMS_BASE_URL=https://<private-tailnet-host>.ts.net`，回调为
+`https://<private-tailnet-host>.ts.net/api/auth/github/callback`。生产必须提供完整 OAuth 配置和
 正整数 bootstrap ID，并通过 Tailscale HTTPS 访问。OAuth token 仅用于 `/user`
 身份解析，之后丢弃，不入库。测试只连接本地 fake provider。
 
@@ -135,7 +137,7 @@ Admin 能打开；一个 app-wide Monitor 包裹业务请求，Recover 在其后
 `./logs/cms.jsonl`，100 MB / 10 份 / 30 天 / 压缩；`LOG_*` 可配置。contrib Zap 只记
 `latency/status/method/path/request_id`，不记 query、body、IP、UA、cookie、Authorization
 或错误原文。health/readiness/Monitor 不写 access log。反向代理也必须避免记录
-OAuth query。生产部署和代理配置尚未执行。
+OAuth query。生产 CMS 已由 systemd 管理，通过 Tailscale Serve 暴露私有 HTTPS；详见运维文档。
 
 ## 验证与生成
 
@@ -211,7 +213,7 @@ Publish/Unpublish、原本已发布内容的 Archive、公开内容使用的 Aut
 
 development 的八个 P0-4 变量全部留空时，Worker disabled，公开 mutation 仍排队，
 上传返回稳定 unavailable。部分配置会启动失败，production 必须配全。参见
-[部署与恢复](docs/operations/deployment.md) 和 [首次 staging 清单](docs/operations/cloudflare.md)。
+[部署与恢复](docs/operations/deployment.md) 和 [Production 构建说明](docs/operations/cloudflare.md)。
 
 Web 显式使用 `CONTENT_SNAPSHOT_FILE` 或完整 `CONTENT_R2_*` 只读配置，缺少输入即失败。
 PowerShell 从根目录选择 fixture 后可运行构建或 `make dev-web`，不读取 `.env`：
@@ -224,7 +226,28 @@ pnpm --filter @gopheratlas/web build
 构建校验 latest、SHA-256、Schema v1、Markdown 和引用图，输出忽略的 `.generated`
 快照及 `/.well-known/gopheratlas-build.json`。`make check` 固定显式 fixture 并进行
 synthetic secret-output scan。生产不配置 fixture fallback；内容桶始终私有，CMS RW
-与 Web RO 凭据分离。本阶段未使用真实 R2/Hook 或修改 Cloudflare/DNS。
+与 Web RO 凭据分离。实现与验证未使用真实 R2/Hook 或修改 Cloudflare/DNS。
+
+## Public 阅读站与 P0-6 边界
+
+`apps/web/src/lib/publication` 在构建时验证/索引公开实体与引用，模板不读取 Draft 或
+私有 API。四类详情直接使用 snapshot 的 `canonicalPath`；另有首页、六类集合目录、
+Note 分组、Tag、Author、about/contribute/search 和 404 页面。集合以 24 条静态分页，
+不需要运行中的 CMS 或 Node。Curated 仅呈现推荐/来源元数据，不抓取原文。
+
+构建命令一次生成 HTML、`_redirects`、RSS/sitemap/robots、Pagefind 和 build marker。
+历史路径输出直接 301，超过 2,000 条或单行 1,000 字符即失败。Pagefind 仅索引详情与
+两页源码维护的介绍内容，统一中文分词索引兼顾英文词；搜索页才加载浏览器代码。
+正文复用共享 GFM/安全检查与 Shiki；SEO 使用覆盖值或 title/summary，语言保持真实。
+
+本地构建后用 `pnpm --filter @gopheratlas/web preview` 查看完整产物（含 Pagefind）。
+Astro preview 不模拟 Cloudflare `_redirects`；其内容由门禁检查，平台行为在发布验收
+时确认。`node scripts/check-public-build.mjs` 检查核心 fixture 的实际页面与引用、
+redirects/RSS/sitemap/search 索引、marker hash 和输出隐私，已接入 `make check`。
+
+详见 [ADR 0009](docs/decisions/0009-public-static-publication.md)。P0-6 单独负责旧站
+inventory/import、历史路由验证/超限方案、backup/restore drill、第一条真实导入后的
+generation 验收、gopheratlas.com DNS cutover 和旧站下线决策。本阶段不修改生产配置。
 
 ## License
 

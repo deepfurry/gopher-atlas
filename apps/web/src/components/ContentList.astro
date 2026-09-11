@@ -1,0 +1,49 @@
+---
+import {
+  dateLabel,
+  required,
+  typeInfo,
+  type Publication,
+} from '../lib/publication/indexes';
+import type { Content } from '../lib/publication/types';
+interface Props {
+  items: Content[];
+  publication: Publication;
+  heading?: 'h2' | 'h3';
+}
+const { items, publication: p, heading: Heading = 'h2' } = Astro.props;
+---
+
+{
+  items.length ? (
+    <ul class="content-list">
+      {items.map((item) => (
+        <li>
+          <article lang={item.language}>
+            <div class="content-list-meta">
+              <span>{typeInfo[item.type].title}</span>
+              {item.featured && <span class="label">推荐</span>}
+              <time datetime={new Date(item.lastPublishedAt).toISOString()}>
+                {dateLabel(item.lastPublishedAt)}
+              </time>
+            </div>
+            <Heading>
+              <a href={item.canonicalPath}>{item.title}</a>
+            </Heading>
+            {item.summary && <p>{item.summary}</p>}
+            <a
+              class="byline"
+              href={`/authors/${required(p.authorById, item.authorId).slug}/`}
+            >
+              {required(p.authorById, item.authorId).displayName}
+            </a>
+          </article>
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <p class="empty">
+      还没有公开内容。可以先看看<a href="/">其他阅读方向</a>。
+    </p>
+  )
+}

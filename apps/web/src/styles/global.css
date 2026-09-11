@@ -119,6 +119,7 @@ h3 {
   font-weight: 600;
 }
 h1 {
+  text-wrap: balance;
   font-size: clamp(2.1rem, 5vw, 3rem);
   margin-block: 0.7rem 1.5rem;
 }
@@ -132,11 +133,10 @@ h3 {
 .eyebrow,
 .meta {
   color: var(--muted);
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
+  font-size: 0.85rem;
 }
 .eyebrow {
-  text-transform: uppercase;
+  margin-bottom: 1rem;
 }
 .prose {
   max-width: var(--reading-width);
@@ -146,26 +146,6 @@ h3 {
   max-width: 39rem;
   color: var(--muted);
   font-size: 1.12rem;
-}
-.index {
-  margin-top: 3rem;
-  padding: 0;
-  list-style: none;
-}
-.index li {
-  display: grid;
-  grid-template-columns: 3rem 11rem 1fr;
-  gap: 1rem;
-  padding-block: 1.2rem;
-  border-top: 1px solid var(--line);
-}
-.index strong {
-  font-weight: 550;
-}
-.index p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.94rem;
 }
 code,
 pre {
@@ -192,12 +172,6 @@ footer {
   main {
     padding-block: 2.5rem;
   }
-  .index li {
-    grid-template-columns: 2rem 1fr;
-  }
-  .index p {
-    grid-column: 2;
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -206,5 +180,518 @@ footer {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Reader layouts: typography and a navigation spine, rather than card chrome. */
+main:focus {
+  outline: none;
+}
+nav {
+  flex-wrap: wrap;
+}
+.masthead nav a {
+  color: var(--muted);
+  text-decoration: none;
+  padding-block: 0.35rem;
+}
+.masthead nav a[aria-current],
+.masthead nav a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.home-intro {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 3rem;
+  align-items: start;
+  margin-bottom: 4rem;
+}
+.home-intro h1 {
+  margin-top: 0;
+}
+.atlas-nav {
+  display: grid;
+  gap: 0;
+  border-left: 2px solid var(--accent);
+  padding-left: 1.5rem;
+}
+.atlas-nav a {
+  display: grid;
+  padding-block: 0.5rem 0.9rem;
+  text-decoration: none;
+}
+.atlas-nav strong {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.atlas-nav span {
+  color: var(--muted);
+  line-height: 1.6;
+  margin-top: 0.2rem;
+}
+.home-section {
+  display: grid;
+  grid-template-columns: 15rem 1fr;
+  gap: 3rem;
+  padding-block: 2.5rem;
+  border-top: 1px solid var(--line);
+}
+.home-section > header h2 {
+  margin-top: 0;
+  font-size: 1.65rem;
+}
+.home-section > header h2 a {
+  color: var(--ink);
+  text-decoration: none;
+}
+.home-section > header p {
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+.home-section > header > a {
+  font-size: 0.87rem;
+}
+.content-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.content-list > li {
+  padding-block: 1.4rem;
+  border-bottom: 1px solid var(--line);
+}
+.content-list > li:first-child {
+  padding-top: 0;
+}
+.content-list > li:last-child {
+  border-bottom: 0;
+}
+.content-list h2,
+.content-list h3 {
+  font-size: 1.4rem;
+  line-height: 1.45;
+  margin-block: 0.45rem 0.5rem;
+  overflow-wrap: anywhere;
+}
+.content-list h2 a,
+.content-list h3 a {
+  color: var(--ink);
+  text-decoration: none;
+}
+.content-list h2 a:hover,
+.content-list h3 a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.content-list p {
+  font-size: 0.96rem;
+  color: var(--muted);
+  margin-block: 0.5rem;
+  overflow-wrap: anywhere;
+}
+.content-list-meta,
+.publication-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.byline {
+  font-size: 0.82rem;
+}
+.label {
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+.page-heading {
+  max-width: var(--reading-width);
+  margin-bottom: 3rem;
+}
+.collection-layout {
+  display: grid;
+  grid-template-columns: 17rem minmax(0, 1fr);
+  gap: 4rem;
+}
+.collection-heading h1 {
+  font-size: 2.2rem;
+  overflow-wrap: anywhere;
+}
+.collection-heading .lede,
+.collection-heading .markdown {
+  font-size: 1rem;
+}
+.collection-heading {
+  overflow-wrap: anywhere;
+}
+.directory {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 3rem;
+}
+.directory li {
+  padding-block: 1.7rem;
+  border-top: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.directory h2 {
+  margin: 0 0 0.7rem;
+  font-size: 1.4rem;
+}
+.directory p {
+  margin-block: 0.4rem;
+  color: var(--muted);
+}
+.avatar {
+  object-fit: cover;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+}
+.reading-layout {
+  display: grid;
+  grid-template-columns: minmax(0, var(--reading-width)) minmax(0, 1fr);
+  gap: 3rem;
+  align-items: start;
+}
+.content-detail header {
+  margin-bottom: 2.5rem;
+}
+.breadcrumb {
+  font-size: 0.85rem;
+  margin-bottom: 1.2rem;
+  gap: 1rem;
+}
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  padding: 0;
+  gap: 0.5rem 1rem;
+  margin-block: 1rem;
+  font-size: 0.85rem;
+}
+.cover-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 30rem;
+  object-fit: contain;
+  background: var(--surface);
+  margin-block: 2rem;
+}
+.markdown p {
+  margin-block: 1.2rem;
+}
+.markdown h2,
+.markdown h3,
+.markdown h4 {
+  scroll-margin-top: 1rem;
+}
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  font-weight: 650;
+}
+.markdown ul,
+.markdown ol {
+  padding-left: 1.7rem;
+  margin-block: 1.2rem;
+}
+.markdown ul {
+  list-style: disc;
+}
+.markdown ol {
+  list-style: decimal;
+}
+.markdown li {
+  padding-left: 0.3rem;
+  margin-block: 0.3rem;
+}
+.markdown .task-list-item {
+  list-style: none;
+}
+.markdown input[type='checkbox'] {
+  margin-right: 0.5rem;
+}
+.markdown blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 1.5rem 0;
+  padding: 0.1rem 1.2rem;
+  color: var(--muted);
+}
+.markdown :not(pre) > code {
+  background: var(--surface);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  overflow-wrap: anywhere;
+}
+.markdown pre {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  max-width: 100%;
+}
+.markdown pre code {
+  overflow-wrap: normal;
+}
+.markdown img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-block: 1.5rem;
+}
+.markdown table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin-block: 1.5rem;
+  font-size: 0.9rem;
+}
+.markdown th,
+.markdown td {
+  border: 1px solid var(--line);
+  padding: 0.55rem 0.8rem;
+  text-align: left;
+}
+.markdown th {
+  background: var(--surface);
+  font-weight: 600;
+}
+.markdown hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin-block: 2rem;
+}
+.toc {
+  position: sticky;
+  top: 2rem;
+  font-size: 0.85rem;
+}
+.toc nav {
+  display: block;
+}
+.toc p {
+  margin: 0 0 1rem;
+  color: var(--muted);
+}
+.toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.toc li {
+  margin-bottom: 0.65rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.toc .nested {
+  padding-left: 0.75rem;
+}
+.source-meta {
+  border: 1px solid var(--line);
+  padding: 1.4rem;
+  margin-block: 2rem;
+  border-radius: 6px;
+}
+.source-meta h2 {
+  margin-top: 0;
+  font-size: 1.25rem;
+}
+.source-meta p,
+.source-meta dl,
+.source-meta ul {
+  font-size: 0.9rem;
+}
+.source-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.source-meta dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.source-meta dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.source-meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.source-meta ul {
+  padding-left: 1.2rem;
+  list-style: disc;
+}
+.source-meta h3 {
+  font-size: 1rem;
+  margin-top: 1.5rem;
+}
+.topic-entries > ol {
+  padding-left: 1.6rem;
+  list-style: decimal;
+}
+.topic-entries > ol > li {
+  padding-left: 0.7rem;
+  margin-block: 1.5rem;
+}
+.topic-entries > ol > li::marker {
+  color: var(--accent);
+  font-weight: 600;
+}
+.author-note {
+  border-top: 1px solid var(--line);
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  font-size: 0.9rem;
+}
+.author-note h2 {
+  font-size: 1.1rem;
+  margin-top: 0;
+}
+.pagination {
+  margin-top: 2rem;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+.empty {
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+.search-form {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+.search-form input {
+  width: 100%;
+  min-width: 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+  font: inherit;
+}
+.search-form button,
+.search-more {
+  flex-shrink: 0;
+  white-space: nowrap;
+  color: var(--paper);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  font: inherit;
+  cursor: pointer;
+}
+.search-form button:disabled,
+.search-more:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+.search-status {
+  min-height: 2rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-block: 1rem 2rem;
+}
+.search-results {
+  list-style: none;
+  padding: 0;
+}
+.search-results li {
+  padding-block: 1.5rem;
+  border-bottom: 1px solid var(--line);
+}
+.search-results h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.35rem;
+}
+.search-results p {
+  color: var(--muted);
+  margin: 0;
+}
+.search-more {
+  margin-top: 1.5rem;
+}
+[hidden] {
+  display: none !important;
+}
+@media (prefers-color-scheme: dark) {
+  .astro-code,
+  .astro-code span {
+    color: var(--shiki-dark) !important;
+    background-color: var(--shiki-dark-bg) !important;
+  }
+}
+@media (max-width: 1000px) {
+  .reading-layout {
+    display: block;
+  }
+  .toc {
+    display: none;
+  }
+  .content-detail {
+    margin-inline: auto;
+  }
+  .collection-layout {
+    grid-template-columns: 14rem minmax(0, 1fr);
+    gap: 2rem;
+  }
+}
+@media (max-width: 760px) {
+  .home-intro,
+  .home-section,
+  .collection-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.8rem;
+  }
+  .home-intro {
+    margin-bottom: 2.5rem;
+  }
+  .atlas-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1rem;
+  }
+  .home-section {
+    padding-block: 2rem;
+  }
+  .home-section > header p {
+    margin-block: 0.5rem;
+  }
+  .directory {
+    column-gap: 1.5rem;
+  }
+  footer nav {
+    gap: 0.6rem 1rem;
+  }
+}
+@media (max-width: 440px) {
+  .masthead {
+    gap: 0.4rem;
+  }
+  .masthead nav {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.4rem;
+  }
+  .atlas-nav,
+  .directory {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .source-meta {
+    padding: 1rem;
+  }
+  .search-form {
+    gap: 0.5rem;
+  }
+  .search-form button {
+    padding-inline: 0.8rem;
   }
 }

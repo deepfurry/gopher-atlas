@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Complete P0-5 Public rendering from snapshot v1: four detail families, home and
+  statically paginated collections, Note groups, Tags/Authors, safe GFM/Shiki and TOC.
+- Add direct bounded Workers redirects, SEO/OG/canonical metadata, real RSS,
+  sitemap/robots and lazy Pagefind search with Chinese/English coverage.
+- Verify actual fixture build artifacts, reference/order/privacy boundaries and
+  search interaction; preserve snapshot v1, migrations, CMS semantics and pins.
+- Synchronize Development/Production operations with user-reported systemd,
+  Tailscale Serve and main-only Workers Builds. Keep private configuration redacted;
+  no real pipeline acceptance, legacy import or DNS cutover is claimed here.
+
 - Implement P0-4 immutable assets/upload/soft deletion, full-snapshot cover and
   image pickers; preserve published Revision covers and historical URLs.
 - Add migration 00003, Audit-preserving constraint rebuild, schema-3 readiness,
@@ -10,7 +20,7 @@
   Publication status UI, private Web build loader and safe public build marker.
 - Verify with fake external dependencies and explicit fixtures; keep migrations
   00001/00002 and existing pins. Direct dev work is authorized for early development.
-  Real staging/deployment and P0-5 public content remain outside this increment.
+  Real deployment and P0-5 public content were outside that increment.
 
 - Implement P0-3 feature-based Admin shell, lazy routes, dense content table/editor,
   typed metadata, safe Source/Preview/Split, serialized autosave and explicit conflict

@@ -70,3 +70,16 @@ no credentials and strict closed parsing; it never affects readiness. Go R2 call
 use a 30-second client; build reads use 30-second abort and bounded streaming.
 Only safe bounded classifications reach jobs/logs/API. Tests use in-memory storage
 and loopback HTTP. Curated URLs stay metadata; source articles are never fetched.
+
+## Public static delivery
+
+Workers Static Assets consumes build-generated `_redirects` directly. P0-5 uses
+only static 301 rules and fails above 2,000 rules or 1,000 characters per line,
+per the [platform contract](https://developers.cloudflare.com/workers/static-assets/redirects/).
+No runtime Worker/router or silent rule truncation. P0-6 decides overflow handling
+before legacy cutover. Workers Builds consumes main; non-production builds are
+disabled. Local development uses explicit fixtures, never Production credentials.
+
+Pagefind assets are generated locally and loaded only by the search UI. A unified
+zh index includes English content, with Chinese segmentation and no English
+stemming. No hosted search, CMS query or private R2 browser request is required.

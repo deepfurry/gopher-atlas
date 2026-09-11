@@ -3,22 +3,60 @@ import '../styles/global.css';
 interface Props {
   title: string;
   description?: string;
+  canonical?: string;
+  lang?: string;
+  image?: string;
+  imageAlt?: string;
+  ogType?: 'website' | 'article';
+  searchIndex?: boolean;
+  noindex?: boolean;
 }
 const {
   title,
   description = 'GopherAtlas：一份持续生长的 Go 技术刊物与知识地图。',
+  canonical: path = Astro.url.pathname,
+  lang = 'zh-CN',
+  image,
+  imageAlt = '',
+  ogType = 'website',
+  searchIndex = false,
+  noindex = false,
 } = Astro.props;
-const canonical = new URL(Astro.url.pathname, Astro.site);
+const canonical = new URL(path, Astro.site);
+const navigation = [
+  ['/articles/', '精选'],
+  ['/posts/', '文章'],
+  ['/notes/', '笔记'],
+  ['/topics/', '专题'],
+  ['/search/', '搜索'],
+];
 ---
 
 <!doctype html>
-<html lang="zh-CN">
+<html lang={lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
     <title>{title} · GopherAtlas</title>
     <link rel="canonical" href={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content="GopherAtlas" />
+    {
+      image && (
+        <>
+          <>
+            <meta property="og:image" content={image} />
+            <meta property="og:image:alt" content={imageAlt} />
+          </>
+        </>
+      )
+    }
+    {noindex && <meta name="robots" content="noindex, follow" />}
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link
       rel="alternate"
@@ -31,18 +69,35 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <a class="skip-link" href="#main">跳至正文</a>
     <div class="shell">
       <header class="masthead">
-        <a class="brand" href="/"
-          >GopherAtlas<span class="text-accent"> /</span></a
-        >
+        <a class="brand" href="/">GopherAtlas</a>
         <nav aria-label="主导航">
-          <a href="/about/">关于</a><a href="/contribute/">参与贡献</a>
+          {
+            navigation.map(([href, label]) => (
+              <a
+                href={href}
+                aria-current={path.startsWith(href) ? 'page' : undefined}
+              >
+                {label}
+              </a>
+            ))
+          }
         </nav>
       </header>
-      <main id="main" data-pagefind-body><slot /></main>
+      <main
+        id="main"
+        tabindex="-1"
+        data-pagefind-body={searchIndex ? '' : undefined}
+        data-pagefind-ignore={searchIndex ? undefined : 'all'}
+      >
+        <slot />
+      </main>
       <footer>
-        <span>Technical Journal × Knowledge Atlas</span><a href="/rss.xml"
-          >RSS 订阅</a
-        >
+        <span>Go 技术刊物与知识地图</span>
+        <nav aria-label="页脚导航">
+          <a href="/tags/">标签</a><a href="/authors/">作者</a><a href="/about/"
+            >关于</a
+          ><a href="/contribute/">参与贡献</a><a href="/rss.xml">RSS 订阅</a>
+        </nav>
       </footer>
     </div>
   </body>

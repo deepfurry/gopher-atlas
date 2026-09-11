@@ -8,7 +8,9 @@ The complete GopherAtlas P0-2 — Content Domain & Editorial Workflow document
 (2026-09-11) defines the adopted domain/API. The complete P0-3 — Admin Editorial
 UX document (2026-09-11) defines the current interface scope: narrow read/API
 enhancements, no migration, and no external publication. The complete P0-4 Assets
-& Publication Pipeline document (2026-09-11) now defines the current scope.
+& Publication Pipeline document (2026-09-11) defines the publication boundary.
+The complete P0-5 Full Public Astro Site document (2026-09-11) defines the current
+reader-site scope and Development/Production operations model.
 
 P0-0 began from main at `3aa6aaf` (LICENSE only), implemented the executable
 foundation in `40c2709`, then the pnpm 12.3.4 toolchain upgrade landed in `fd77dbe`.
@@ -22,15 +24,15 @@ P0-3 began from synchronized dev at `9784819` on
 were added; existing toolchain/application pins remain unchanged. Both migrations
 are preserved and SchemaVersion remains 2.
 
-| Phase                               | Actual scope                                                                                                                                                                                                                                                                              |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P0-0 (complete)                     | pnpm workspace, static Astro baseline, Admin/Base UI skeleton, Fiber shell, Markdown safety, OpenAPI/SQL tooling, design/contracts/ADRs, CI and make check                                                                                                                                |
-| P0-1 (complete)                     | Four real identity tables, sqlc, pooled SQLite PRAGMAs, GitHub OAuth and numeric identity, pending/active/disabled users, fixed roles/capabilities, author profiles, persistent hashed sessions/CSRF/state, Zap/Lumberjack/contrib logger and Monitor, readiness, embedded identity Admin |
-| P0-2 (complete)                     | Content/Draft/Revision, reviews, tags/topics, permanent routes, audit persistence, optimistic concurrency, editorial action APIs and state machine                                                                                                                                        |
-| P0-3 (complete)                     | Feature-based Admin, safe Markdown editor/preview, autosave/conflicts, immutable Review Workspace/History, typed forms/Tags/Topics, Authors/Users/Audit/Monitor, server projections                                                                                                       |
-| P0-4 (implemented; staging pending) | R2 assets, published projection v1, generation/jobs/snapshots, hook/recovery/coalescing                                                                                                                                                                                                   |
-| P0-5 (deferred)                     | Full Public route families, publication design, search/SEO/redirects and production cutover                                                                                                                                                                                               |
-| P0-6 (deferred)                     | Legacy import/verification, route preservation, backup/restore drill, deployment and cutover                                                                                                                                                                                              |
+| Phase           | Actual scope                                                                                                                                                                                                                                                                              |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0-0 (complete) | pnpm workspace, static Astro baseline, Admin/Base UI skeleton, Fiber shell, Markdown safety, OpenAPI/SQL tooling, design/contracts/ADRs, CI and make check                                                                                                                                |
+| P0-1 (complete) | Four real identity tables, sqlc, pooled SQLite PRAGMAs, GitHub OAuth and numeric identity, pending/active/disabled users, fixed roles/capabilities, author profiles, persistent hashed sessions/CSRF/state, Zap/Lumberjack/contrib logger and Monitor, readiness, embedded identity Admin |
+| P0-2 (complete) | Content/Draft/Revision, reviews, tags/topics, permanent routes, audit persistence, optimistic concurrency, editorial action APIs and state machine                                                                                                                                        |
+| P0-3 (complete) | Feature-based Admin, safe Markdown editor/preview, autosave/conflicts, immutable Review Workspace/History, typed forms/Tags/Topics, Authors/Users/Audit/Monitor, server projections                                                                                                       |
+| P0-4 (complete) | R2 assets, published projection v1, generation/jobs/snapshots, hook/recovery/coalescing                                                                                                                                                                                                   |
+| P0-5 (complete) | Full Public route families, publication design, search/SEO/redirects; cutover stays P0-6                                                                                                                                                                                                  |
+| P0-6 (deferred) | Legacy import/verification, route preservation, backup/restore drill, deployment and cutover                                                                                                                                                                                              |
 
 P0-1 validation covers migration up/down/rollback, pooled PRAGMAs/FKs, bootstrap,
 last-Admin concurrency, state replay/mismatch/expiry, hashed session rotation/
@@ -38,7 +40,8 @@ revocation/expiry/restart, Origin/CSRF, role policy, profile safety, API boundar
 Monitor guard/error/panic metrics, sensitive log omission, identity UI and embed.
 `make generate` and `make check` remain authoritative executable gates. Tests use
 fake providers and isolated databases; real GitHub OAuth and production deployment
-are not claimed verified. Public keeps its three bootstrap pages; P0-4 adds validated v1 input and a marker.
+were not verified by those tests. Subsequent user-reported Production evidence is
+recorded separately below. Public now renders snapshot v1 through P0-5.
 
 Early centralized work now commits directly to dev by explicit user request. Main contains release
 snapshots. Push/PR CI covers both branches on GitHub-hosted Linux, includes the
@@ -96,7 +99,7 @@ v1 exports only selected published Revisions and referenced public entities.
 One durable worker coalesces, uploads immutable snapshot, writes latest, triggers
 Hook and recovers/retries. A shared pre-transaction fence closes latest PUT races.
 
-Admin has Assets, cover/image pickers and Publication status/retry. Web has only
+Admin has Assets, cover/image pickers and Publication status/retry. At the P0-4 boundary Web had only
 private build loading/validation and a generation marker; full P0-5 content routes,
 final redirect output, search/SEO/RSS content and P0-6 importer remain deferred.
 Only required AWS SDK and pure Go WebP dependencies were added; existing pins
@@ -120,11 +123,77 @@ flush before direct publication, generation/job completion and matching fake
 marker. Desktop Light/Dark and 360px layouts were inspected. A local service
 worker supplied fixture image bytes, so thumbnails did not contact real R2.
 The real SQLite export also passed the Web schema/graph validator. Reduced-motion
-and privacy behavior remain covered by tests; no real staging claim is made.
+and privacy behavior remain covered by tests; no real deployment was performed by those tests.
 
 Preview processes/tabs were closed and their listening ports released. Automatic
 approval review rejected cleanup of the ignored `.cache/p0-4-preview` directory
 with “blocked by policy”; it remains local and is excluded from the commit.
 No real secrets, R2 writes, Deploy Hook calls, Cloudflare dashboard changes or
-production DNS changes were used. The next step is the separately authorized
-manual staging checklist in docs/operations/cloudflare.md; stop before P0-5.
+production DNS changes were used during P0-4 implementation. Subsequent manual
+Production installation is recorded below, separately from local test evidence.
+
+## Production facts and P0-5 preflight (2026-09-11)
+
+User-reported manual evidence: Production SQLite was migrated from empty through
+00001–00003; the embedded binary runs under gopheratlas-cms.service, listens only
+on 127.0.0.1:46217, and returns 200 for healthz/readyz. Tailscale Serve HTTPS,
+GitHub OAuth login and a real upload/read via assets.gopheratlas.com succeeded.
+Worker gopheratlas-web builds main only; non-production builds are disabled.
+Content R2 is private, Web Build has separate RO credentials, and CMS has RW
+credentials and the Production Hook. No first real end-to-end generation →
+snapshot → Hook → build marker acceptance is claimed.
+
+Development (dev, fixtures/fakes) and Production (main) are the only environments.
+See operations docs for /srv/gopheratlas and the redacted private HTTPS example.
+P0-5 starts from clean synchronized dev at
+`50fcfd04a3c3b21c9534a506e119e6182e232a11`; origin/main currently has the same code.
+The complete supplied P0-5 plan, live repository contracts/ADRs and Web scripts
+were audited. Snapshot v1 is sufficient; no DB or CMS semantic changes are needed.
+
+## P0-5 implementation and verification (2026-09-12)
+
+Full static Public publication is implemented: Post/Note/Curated/Topic detail
+routes, home, collections, Note groups, Tags/Authors, source-owned information
+pages and search/404. Canonical paths use the snapshot value; derived pages are
+strictly indexed, conflict checked and statically paginated. Markdown uses shared
+validation and the existing Astro/Shiki renderer; controlled images are rendered
+without build-time fetch. No public request depends on CMS/SQLite/private APIs.
+
+The single Web build generates direct 301 history rules with platform-limit
+guards, SEO/OG/canonical metadata, RSS (three non-Topic types), sitemap, robots,
+Pagefind and the unchanged exact-input generation marker. A single Chinese
+segmentation index also finds English terms; only search loads browser code.
+ADR 0009 records these choices and the P0-6 boundary.
+
+No dependency pin, migration 00001–00003, sqlc query/output, snapshot schema or CMS
+publication code changed. OpenAPI changes only replace an obsolete deployment
+example with same-origin and correct the previously stale publication description;
+the generated client description is synchronized, with no endpoint/DTO change.
+
+Verification: frozen pnpm install and make generate passed; make check passed,
+including Go analysis/tests/build, shared/Admin/Public tests, OpenAPI/generation
+drift, isolated goose/sqlc tooling, fresh Admin embed and synthetic secret scans.
+Linux go test -race -tags=adminembed ./... passed in the existing WSL environment
+with pinned Go 1.26.8. The explicit core fixture build and actual dist gate passed:
+six content details, 21 canonical HTML pages plus 404, two direct redirects,
+five RSS items, sitemap, eight indexed Pagefind pages and matching marker hash.
+A child-process test also proves the real Web build fails without explicit input
+even if an older generated snapshot is present. All validation is local/secret-free.
+
+Browser verification used the built dist behind a loopback fixture-only server.
+Checked desktop Light/Dark, 360px Light/Dark, four content subtypes, 736px reading
+width, TOC/code/table rendering, ordered Notes/Topics, Authors/Tags, Chinese and
+English search, no-result state, Enter submission and Tab → skip link → content.
+No page-level horizontal overflow was observed. The browser does not expose OS
+media emulation: the local preview enabled the existing dark/reduced-motion CSS
+rules and confirmed the expected colors/zero-duration transition in computed style.
+Synthetic local image responses replaced fixture asset URLs and CSP blocked
+external image/data requests. No Production endpoint was used. Local redirect
+verification returned 301 directly to the current canonical path; real Cloudflare
+redirect acceptance is not claimed.
+
+P0-6 is next/deferred: legacy content/route inventory and import, preservation and
+redirect-overflow verification, Production backup/restore drill, first imported
+generation acceptance, Worker verification with imported content, explicit DNS
+cutover, post-cutover checks and legacy-site retirement decision. No such action
+was executed by P0-5, and main remains unchanged.

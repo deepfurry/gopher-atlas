@@ -4,7 +4,7 @@
    scope in `docs/implementation-status.md`, then affected code, contracts and ADRs.
    For authorized early development, switch to dev, pull --ff-only, require a
    clean tree and record HEAD. Work/commit/push on dev as requested; main records
-   future release snapshots. Do not change repository administration settings implicitly.
+   Production release snapshots. Do not change repository administration settings implicitly.
 2. Use narrow existing checks to establish a baseline. `pnpm install --frozen-lockfile`
    and the pinned Go toolchain reproduce dependency inputs without secrets.
 3. Change authoritative inputs first: SQL, OpenAPI, schema or tokens. Run
@@ -29,6 +29,12 @@
    `.env`, database/log files and build outputs are excluded. Update the changelog
    for notable changes. Commit only coherent, authorized work.
 7. Report what actually ran, what passed, and what remains outside the phase.
+
+For Public work, run the explicit v1 fixture build and inspect actual dist with
+`node scripts/check-public-build.mjs`. Test canonical/derived routes, reference and
+group conflicts, redirect bounds, Markdown safety and query/result states. Check
+all four content types, search, keyboard focus, light/dark, 360px and reduced motion
+in a local browser. Do not connect to Production to validate implementation.
 
 Run commands from the repository root unless README says otherwise. Tests and
 builds must work without OAuth/R2/Cloudflare secrets and without a running CMS.

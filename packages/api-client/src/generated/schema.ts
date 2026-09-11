@@ -459,7 +459,7 @@ export interface paths {
         put?: never;
         /**
          * Select a published immutable Revision
-         * @description Reviewed mode: Reviewer/Admin, exact pending revisionId with owner/byline self-review prohibition except Admin. Direct mode: Admin from draft/changes_requested, expected Draft version, create new immutable revision without fake approval. Topic targets must be published/unarchived. Route, pointer, review if any and audit commit together. Direct audit action is content.published_direct. No R2, generation, jobs or deploy hook.
+         * @description Reviewed mode: Reviewer/Admin, exact pending revisionId with owner/byline self-review prohibition except Admin. Direct mode: Admin from draft/changes_requested, expected Draft version, create new immutable revision without fake approval. Topic targets must be published/unarchived. Route, pointer, review if any and audit commit together. Direct audit action is content.published_direct. Generation/job commits atomically; R2 and Hook run asynchronously outside the transaction.
          */
         post: operations["publishContent"];
         delete?: never;

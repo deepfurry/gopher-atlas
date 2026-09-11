@@ -1,6 +1,6 @@
 # 0008 — Publication generation, immutable R2 snapshots and assets
 
-Date: 2026-09-11. Status: Accepted; P0-4 implementation, real staging pending.
+Date: 2026-09-11. Status: Accepted; implemented P0-4. Production operations are recorded separately.
 
 P0-2's published pointer must produce a durable, private, reproducible build input
 without holding SQLite locks over network calls or exposing mutable Draft/private
@@ -50,10 +50,10 @@ editorial states, ownership and immutable review semantics do not change.
 Calling R2/Hook in business transactions was rejected because it couples SQLite
 locks and rollback to unreliable remote I/O. A background goroutine without a
 durable job would lose work on restart. Exactly-once Hook and multi-writer leases
-add complexity that the one-writer staging model does not need. A simple freshness
+add complexity that the one-writer deployment model does not need. A simple freshness
 check alone leaves a stale mutable-PUT race, hence the explicit shared fence.
 
 R2 snapshots are public projections, not backups. Restoring an old DB against a
 newer bucket/marker requires an operator decision; immutable-key hash conflict
 fails rather than overwriting remote content. Six failed attempts keep safe error
-classification only. Real staging is a separate user-operated verification step.
+classification only. Real pipeline acceptance is a separate user-operated verification step.

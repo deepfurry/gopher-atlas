@@ -1,0 +1,80 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ContentList from './ContentList.astro';
+import MarkdownBody from './MarkdownBody.astro';
+import type { Publication } from '../lib/publication/indexes';
+import type { CollectionPage } from '../lib/publication/routes';
+interface Props {
+  page: CollectionPage;
+  publication: Publication;
+}
+const { page, publication } = Astro.props;
+const { author } = page;
+---
+
+<Layout
+  title={page.title + (page.page > 1 ? ` / 第 ${page.page} 页` : '')}
+  description={page.description}
+  canonical={page.path}
+>
+  <div class="collection-layout">
+    <header class="collection-heading">
+      {
+        author?.avatarUrl && (
+          <img
+            class="avatar"
+            src={author.avatarUrl}
+            alt=""
+            width="72"
+            height="72"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+          />
+        )
+      }
+      <h1>{page.title}</h1><p class="lede">{page.description}</p>
+      {
+        author && (
+          <>
+            <MarkdownBody source={author.bioMarkdown} />
+            {author.websiteUrl && (
+              <a href={author.websiteUrl} rel="noopener noreferrer">
+                作者网站
+              </a>
+            )}
+          </>
+        )
+      }
+      {page.tag && <a href="/tags/">所有标签</a>}
+      {
+        author && (
+          <p>
+            <a href="/authors/">所有作者</a>
+          </p>
+        )
+      }
+    </header>
+    <div>
+      <ContentList items={page.content} publication={publication} />
+      {
+        page.total > 1 && (
+          <nav class="pagination" aria-label="分页">
+            {page.previous && (
+              <a href={page.previous} rel="prev">
+                上一页
+              </a>
+            )}
+            <span>
+              第 {page.page} / {page.total} 页
+            </span>
+            {page.next && (
+              <a href={page.next} rel="next">
+                下一页
+              </a>
+            )}
+          </nav>
+        )
+      }
+    </div>
+  </div>
+</Layout>

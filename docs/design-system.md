@@ -1,7 +1,7 @@
 # GopherAtlas design system baseline
 
 `contracts/design.md` is mandatory. This guide maps it to current implementation;
-P0-3 Admin is implemented; the full P0-5 public publication design remains deferred.
+Both Admin and the P0-5 Public publication are implemented.
 
 ## Public implementation
 
@@ -21,12 +21,14 @@ bundled locally. CJK uses the reader's installed system fonts.
 The outer shell is 72 rem; `.prose` is 46 rem (736 px at the default root size).
 Body is 17 px / 1.8. H1 caps at 48 px; H2 is 30.4 px; H3 is 22.4 px;
 code is 14.4 px / 1.65. `--toc-width` reserves 16 rem for later article layouts.
-Homepage sections use numbered rows and separators. Repository-managed pages use
-`<article class="prose">`; future CMS bodies must use the same measure.
+The homepage pairs a reading introduction with four navigation directions, then
+uses section labels beside compact content lists. Source pages and published
+Markdown share the same reading measure. Canonical detail pages have a desktop
+TOC; below 1000 px it is omitted to preserve the reading column.
 
 Dark mode follows `prefers-color-scheme`. Transitions use `--motion: 180ms` and
-are disabled for reduced-motion users. Existing pages intentionally need no
-hydrated React islands. Search will add an island when its interface is built.
+are disabled for reduced-motion users. Reading pages need no hydrated React islands. Search alone loads a small browser
+module and lazily imports the local Pagefind API on a query.
 
 ## Admin implementation
 
@@ -95,4 +97,4 @@ CMS desired generation, observed public marker/status, worker configuration and
 bounded job history with safe errors and explicit retry. It never renders config,
 Hook URL or arbitrary response properties. Published in CMS remains distinct from
 live build observation. Tables scroll inside named regions; tokens/themes and
-reduced-motion/focus rules are unchanged. No metrics iframe or P0-5 public design.
+reduced-motion/focus rules are unchanged. No metrics iframe or shared Public/Admin component system.

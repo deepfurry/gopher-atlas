@@ -1,31 +1,50 @@
 ---
 import Layout from '../layouts/Layout.astro';
-const sections = [
-  ['01', '精选阅读', '值得反复阅读的文章，以及推荐它们的理由。'],
-  ['02', '原创文章', '从具体问题出发，理解 Go 的设计与实践。'],
-  ['03', '工程笔记', '记录实验、排查与学习中逐渐清晰的认识。'],
-  ['04', '知识专题', '把零散的知识连接成有序的阅读路径。'],
-];
+import ContentList from '../components/ContentList.astro';
+import { publication } from '../lib/publication/snapshot';
+import { typeInfo } from '../lib/publication/indexes';
+const types = ['curated_article', 'post', 'note', 'topic'] as const;
 ---
 
 <Layout title="Go 知识地图">
-  <p class="eyebrow">GopherAtlas / Go knowledge atlas</p>
-  <h1>探索 Go，<br />连接知识与实践。</h1>
-  <p class="lede">
-    一份持续生长的技术刊物与知识地图。精选阅读、原创文章、工程笔记与知识专题，在这里相互连接。
-  </p>
-  <ol class="index" aria-label="内容方向">
-    {
-      sections.map(([number, title, description]) => (
-        <li>
+  <header class="home-intro">
+    <div>
+      <h1>探索 Go，<br />连接知识与实践。</h1>
+      <p class="lede">
+        从一篇好文章到一次亲手实践。精选阅读、原创写作、工程笔记与知识专题，在这里相互连接。
+      </p>
+    </div>
+    <nav class="atlas-nav" aria-label="内容方向">
+      {
+        types.map((type) => (
+          <a href={typeInfo[type].path}>
+            <>
+              <strong>{typeInfo[type].title}</strong>
+              <span>{typeInfo[type].description}</span>
+            </>
+          </a>
+        ))
+      }
+    </nav>
+  </header>
+  {
+    types.map((type) => (
+      <section class="home-section" aria-labelledby={type}>
+        <header>
           <>
-            <span class="meta">{number}</span>
-            <strong>{title}</strong>
-            <p>{description}</p>
+            <h2 id={type}>
+              <a href={typeInfo[type].path}>{typeInfo[type].title}</a>
+            </h2>
+            <p>{typeInfo[type].description}</p>
+            <a href={typeInfo[type].path}>浏览全部{typeInfo[type].title}</a>
           </>
-        </li>
-      ))
-    }
-  </ol>
-  <p class="meta">平台筹备中 · 公开内容界面仍在建设中</p>
+        </header>
+        <ContentList
+          items={publication.highlights(type)}
+          publication={publication}
+          heading="h3"
+        />
+      </section>
+    ))
+  }
 </Layout>

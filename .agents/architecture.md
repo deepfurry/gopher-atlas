@@ -6,9 +6,11 @@ The public and control planes have separate availability and trust boundaries:
 Private CMS → SQLite generation/job → private R2 snapshot/latest → Hook → Astro → marker
 ```
 
-P0-4 adds immutable assets, snapshot v1 and durable publication. Public builds
-validated input and a generation marker; full public content rendering, legacy
-import and real staging/deployment remain deferred.
+P0-4 provides immutable assets, snapshot v1 and durable publication. P0-5 adds
+static reader routes/search/SEO over that input, preserving the generation marker.
+Development uses dev and local fixtures; Production uses main and private R2.
+The manually installed CMS uses systemd and Tailscale Serve; see operations docs.
+Legacy migration and DNS cutover remain P0-6.
 
 Dependency direction:
 
@@ -73,3 +75,12 @@ in-process fence closes the stale latest PUT race: services acquire it before
 BEGIN; worker acquires it around latest/Hook without a DB transaction.
 Asset upload validates/uploads before a short reauthorized row/Audit transaction.
 The Web loader keeps RO credentials in Node; Astro env loading is disabled.
+
+P0-5 Public uses `src/lib/publication` for schema-validated maps, strict references,
+stable sorting, pages and direct redirects. A static catch-all dispatches exact
+canonical/derived paths to Public templates; collections use 24-item static pages.
+Source-owned home/about/contribute/directories/search remain ordinary Astro pages.
+The same shared Markdown/Shiki pipeline renders body and biography, without fetch.
+Only search has browser code; it lazily loads Pagefind and uses safe text results.
+RSS, sitemap, redirects and marker are build output. No Public request touches
+CMS/SQLite/private R2. See ADR 0009 and scripts/check-public-build.mjs.

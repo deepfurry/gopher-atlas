@@ -1,6 +1,6 @@
 # Compatibility contract
 
-P0-4 is unreleased. Internal Go/TS APIs are not stable public SDKs.
+Internal Go/TS APIs are not stable public SDKs.
 Future changes to URLs, persisted data, environment keys and published snapshot
 versions still require explicit migration reasoning; do not silently reinterpret
 existing fields. Exact currently executable HTTP shapes live in `openapi.yaml`.
@@ -50,4 +50,7 @@ SHA URLs remain stable after soft deletion. Generation is monotonic within a DB
 history; restoring an older DB may report marker>desired (behind), requiring an
 explicit recovery decision rather than silently rewriting the generation counter.
 Unknown snapshot fields/versions, missing build inputs and hash mismatch fail.
-P0-5 public URL rendering and final redirect output remain unimplemented.
+P0-5 renders snapshot canonicalPath and derived Author/Tag/Note-group pages.
+Historical redirects are direct static 301 rules, with platform-limit failures.
+Collections paginate statically at /page/N/ after the first page. No runtime
+CMS/API dependency or snapshot version change. P0-6 owns legacy URL verification.

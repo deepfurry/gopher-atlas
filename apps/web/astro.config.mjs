@@ -3,16 +3,19 @@ import { unified } from '@astrojs/markdown-remark';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
-import { remarkPlugins } from '@gopheratlas/markdown';
+import { markdownOptions } from './src/lib/publication/markdown.ts';
 
 export default defineConfig({
   site: 'https://gopheratlas.com',
   output: 'static',
   trailingSlash: 'always',
-  integrations: [react(), sitemap()],
+  integrations: [
+    react(),
+    sitemap({ filter: (page) => !page.endsWith('/404/') }),
+  ],
   markdown: {
-    processor: unified({ remarkPlugins, smartypants: false }),
-    shikiConfig: { themes: { light: 'github-light', dark: 'github-dark' } },
+    processor: unified(markdownOptions),
+    shikiConfig: markdownOptions.shikiConfig,
   },
   vite: { envDir: false, plugins: [tailwindcss()] },
 });

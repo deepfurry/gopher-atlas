@@ -19,7 +19,7 @@ it.each([
   vi.stubGlobal('fetch', fetch);
   const { container } = render(<MarkdownPreview source={source} />);
   expect(container.querySelector('img')).toBeNull();
-  expect(screen.getByText(/Image blocked/)).toBeTruthy();
+  expect(screen.getByText(/已拦截图片/)).toBeTruthy();
   expect(fetch).not.toHaveBeenCalled();
 });
 it('renders only controlled asset images and safe links, and drops raw HTML', () => {
@@ -48,12 +48,12 @@ it('reports H1, HTML, unsafe URL, image, alt and frontmatter without rewriting',
     />,
   );
   for (const text of [
-    /H1 forbidden/,
-    /Raw HTML/,
-    /Unsafe URL/,
-    /External image/,
-    /alt text/,
-    /Frontmatter/,
+    /不支持一级标题/,
+    /不支持原始 HTML/,
+    /URL 不安全/,
+    /不允许外部图片/,
+    /图片必须有替代文本/,
+    /不支持文档头部元数据/,
   ])
     expect(screen.getByText(text)).toBeTruthy();
 });
@@ -61,16 +61,18 @@ it('offers Source Preview Split with no H1 or image upload command', () => {
   const { container } = render(
     <MarkdownEditor value="## Safe" onChange={() => {}} />,
   );
-  expect(screen.getByLabelText('Markdown source')).toBeTruthy();
-  expect(screen.queryByLabelText('Markdown preview')).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
-  expect(screen.queryByLabelText('Markdown source')).toBeNull();
-  expect(screen.getByLabelText('Markdown preview')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Split' }));
-  expect(screen.getByLabelText('Markdown source')).toBeTruthy();
-  expect(screen.getByLabelText('Markdown preview')).toBeTruthy();
+  expect(screen.getByLabelText('Markdown 源码')).toBeTruthy();
+  expect(screen.queryByLabelText('Markdown 预览')).toBeNull();
+  fireEvent.click(screen.getByRole('tab', { name: '预览' }));
+  expect(screen.queryByLabelText('Markdown 源码')).toBeNull();
+  expect(screen.getByLabelText('Markdown 预览')).toBeTruthy();
+  fireEvent.click(screen.getByRole('tab', { name: '分栏' }));
+  expect(screen.getByLabelText('Markdown 源码')).toBeTruthy();
+  expect(screen.getByLabelText('Markdown 预览')).toBeTruthy();
   expect(container.querySelector('[data-name="title1"]')).toBeNull();
   expect(
-    screen.queryByRole('button', { name: /image|upload|heading 1|title 1/i }),
+    screen.queryByRole('button', {
+      name: /上传图片|一级标题|H1|image|upload|heading 1|title 1/i,
+    }),
   ).toBeNull();
 });

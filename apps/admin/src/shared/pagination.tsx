@@ -14,7 +14,7 @@ export function LoadMore({
       disabled={isFetchingNextPage}
       onClick={() => void fetchNextPage()}
     >
-      {isFetchingNextPage ? 'Loading…' : 'Load more'}
+      {isFetchingNextPage ? '正在加载…' : '加载更多'}
     </Button>
   ) : null;
 }

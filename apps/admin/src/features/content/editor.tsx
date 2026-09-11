@@ -1,6 +1,21 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useParams } from 'react-router';
+import { useParams, useSearchParams, Link } from 'react-router';
+import {
+  FloppyDisk,
+  PaperPlaneTilt,
+  ArrowUUpLeft,
+  DotsThree,
+  Archive,
+  UploadSimple,
+  Prohibit,
+  ClockCounterClockwise,
+  Article,
+} from '@phosphor-icons/react';
+import { DropdownMenu, MenuItem, MenuSeparator } from '@/components/ui/menu';
+import { Tabs, TabPanel } from '@/components/ui/tabs';
+import { LoadingState } from '@/components/ui/workspace';
+import { Textarea } from '@/components/ui/input';
 import { FormProvider, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
@@ -21,38 +36,46 @@ import {
   type Content,
 } from './api';
 import { AutosaveQueue } from './autosave';
-import { draftSchema, formValues, Metadata, type FormValues } from './form';
+import {
+  draftSchema,
+  formValues,
+  Metadata,
+  EditorTitle,
+  type FormValues,
+} from './form';
 import { InsertImage } from '@/features/assets/editor-assets';
 import { MarkdownEditor } from './markdown-editor';
 import { RevisionView } from './revision-view';
 import { RevisionHistory, RouteHistory } from './history';
 import { UnsavedGuard } from './unsaved';
 const confirmations: Partial<
-  Record<Action, { title: string; description: string; confirm: string }>
+  Record<
+    Action,
+    { title: string; description: string; confirm: string; danger?: boolean }
+  >
 > = {
   direct: {
-    title: 'Direct publish in CMS?',
+    title: '直接发布到 CMS？',
     description:
-      'Bypasses review. Creates and publishes a new immutable Revision in CMS. Queues a public snapshot build; check Publication for the observed public generation.',
-    confirm: 'Publish in CMS',
+      '此操作跳过审核，创建并发布一个新的固定版本，同时将公开站点构建加入队列。实际同步结果请查看发布状态。',
+    confirm: '确认直接发布',
   },
   unpublish: {
-    title: 'Unpublish in CMS?',
-    description:
-      'Clears the published pointer and pending review. Revision and route history are preserved.',
-    confirm: 'Unpublish',
+    danger: true,
+    title: '取消 CMS 发布？',
+    description: '清除当前发布版本和待审核记录，保留历史版本与永久路径。',
+    confirm: '取消发布',
   },
   archive: {
-    title: 'Archive content?',
-    description:
-      'Unpublishes in CMS, clears pending review, and preserves revisions and permanent routes.',
-    confirm: 'Archive',
+    danger: true,
+    title: '归档此内容？',
+    description: '取消 CMS 发布、清除待审核记录，并保留全部版本与永久路径。',
+    confirm: '确认归档',
   },
   'restore-archive': {
-    title: 'Restore archive?',
-    description:
-      'Returns the content to Draft. It does not republish any Revision.',
-    confirm: 'Restore archive',
+    title: '恢复已归档内容？',
+    description: '内容将恢复为草稿，不会自动重新发布历史版本。',
+    confirm: '恢复归档',
   },
 };
 export default function ContentEditor() {
@@ -67,7 +90,7 @@ export default function ContentEditor() {
   ) : (
     <>
       <ErrorNotice error={query.error} />
-      {query.isPending && <p role="status">Loading Draft…</p>}
+      {query.isPending && <LoadingState label="正在加载草稿…" />}
     </>
   );
 }
@@ -92,6 +115,10 @@ function DraftWorkspace({
   const confirm = useConfirm();
   const refresh = useEditorialRefresh();
   const [busy, setBusy] = useState(false);
+  const [params] = useSearchParams();
+  const [view, setView] = useState(
+    params.get('view') === 'history' ? 'history' : 'draft',
+  );
   const [error, setError] = useState<unknown>(null);
   const [inspecting, setInspecting] = useState(false);
   const initial = content.draft;
@@ -182,9 +209,7 @@ function DraftWorkspace({
       cache.setQueryData(contentKey(content.id), result);
       reload(result);
       await refresh();
-      toast.success(
-        kind === 'direct' ? 'Published in CMS.' : 'Workflow updated.',
-      );
+      toast.success(kind === 'direct' ? '已在 CMS 发布。' : '编辑流程已更新。');
     } catch (error) {
       if (
         error instanceof APIError &&
@@ -199,10 +224,10 @@ function DraftWorkspace({
   const reloadServer = async () => {
     if (
       !(await confirm({
-        title: 'Reload server version?',
+        title: '重新加载服务器版本？',
         description:
-          'Your local unsaved edits will be discarded. Copy them first if you need to keep them.',
-        confirm: 'Reload server version',
+          '此操作会替换当前页面未保存的修改。如需保留，请先复制本地内容。',
+        confirm: '重新加载服务器版本',
       }))
     )
       return;
@@ -217,7 +242,7 @@ function DraftWorkspace({
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(form.getValues('bodyMarkdown'));
-      toast.success('Local Markdown copied.');
+      toast.success('本地 Markdown 已复制。');
     } catch {
       setError(new Error('Clipboard unavailable'));
       setInspecting(true);
@@ -226,20 +251,25 @@ function DraftWorkspace({
   const locked = !content.actions.editDraft;
   return (
     <>
-      <div className="editor-header">
-        <div>
-          <p className="caption">{types[content.type]} · CONTENT</p>
-          <h1>{values.title || content.title || 'Untitled'}</h1>
+      <header className="editor-header">
+        <div className="editor-context">
+          <Link to="/content" className="caption">
+            内容
+          </Link>
+          <span className="caption">/ {types[content.type]}</span>
+          <h1>{values.title || content.title || '未命名内容'}</h1>
           <ContentStatus content={content} />
         </div>
-        <div className="workflow-actions toolbar">
+        <div className="workflow-actions">
           {content.actions.editDraft && (
             <Button
               variant="outline"
               disabled={busy || save.status === 'conflict'}
               onClick={() => void flush().catch(() => {})}
+              title="Ctrl / ⌘ + S"
             >
-              Save · ⌘/Ctrl S
+              <FloppyDisk />
+              保存
             </Button>
           )}
           {content.actions.submitReview && (
@@ -247,7 +277,8 @@ function DraftWorkspace({
               disabled={busy || save.status === 'conflict'}
               onClick={() => void perform('submit-review')}
             >
-              Submit for review
+              <PaperPlaneTilt />
+              提交审核
             </Button>
           )}
           {content.actions.withdrawReview && (
@@ -256,89 +287,109 @@ function DraftWorkspace({
               disabled={busy}
               onClick={() => void perform('withdraw-review')}
             >
-              Withdraw review
+              <ArrowUUpLeft />
+              撤回审核
             </Button>
           )}
-          {content.actions.directPublish && (
-            <Button
-              variant="outline"
-              disabled={busy || save.status === 'conflict'}
-              onClick={() => void perform('direct')}
+          {(content.actions.directPublish ||
+            content.actions.unpublish ||
+            content.actions.archive ||
+            content.actions.restoreArchive) && (
+            <DropdownMenu
+              label="内容更多操作"
+              trigger={
+                <Button variant="outline" aria-label="内容更多操作">
+                  <DotsThree />
+                </Button>
+              }
             >
-              Direct publish in CMS
-            </Button>
-          )}
-          {content.actions.unpublish && (
-            <Button
-              variant="outline"
-              disabled={busy}
-              onClick={() => void perform('unpublish')}
-            >
-              Unpublish
-            </Button>
-          )}
-          {content.actions.archive && (
-            <Button
-              variant="outline"
-              disabled={busy}
-              onClick={() => void perform('archive')}
-            >
-              Archive
-            </Button>
-          )}
-          {content.actions.restoreArchive && (
-            <Button
-              variant="outline"
-              disabled={busy}
-              onClick={() => void perform('restore-archive')}
-            >
-              Restore archive
-            </Button>
+              {content.actions.directPublish && (
+                <MenuItem
+                  disabled={busy || save.status === 'conflict'}
+                  onClick={() => void perform('direct')}
+                >
+                  <UploadSimple />
+                  直接发布到 CMS
+                </MenuItem>
+              )}
+              {content.actions.unpublish && (
+                <MenuItem
+                  danger
+                  disabled={busy}
+                  onClick={() => void perform('unpublish')}
+                >
+                  <Prohibit />
+                  取消发布
+                </MenuItem>
+              )}
+              {(content.actions.archive || content.actions.restoreArchive) && (
+                <MenuSeparator />
+              )}
+              {content.actions.archive && (
+                <MenuItem
+                  danger
+                  disabled={busy}
+                  onClick={() => void perform('archive')}
+                >
+                  <Archive />
+                  归档内容
+                </MenuItem>
+              )}
+              {content.actions.restoreArchive && (
+                <MenuItem
+                  disabled={busy}
+                  onClick={() => void perform('restore-archive')}
+                >
+                  <ArrowUUpLeft />
+                  恢复归档
+                </MenuItem>
+              )}
+            </DropdownMenu>
           )}
         </div>
-      </div>
-      <p className="autosave-status caption" aria-live="polite">
-        {locked
-          ? 'Read-only'
-          : save.status === 'saved'
-            ? 'All changes saved'
-            : save.status === 'pending'
-              ? 'Unsaved changes · waiting to save'
-              : save.status === 'saving'
-                ? 'Saving…'
-                : save.status === 'conflict'
-                  ? 'Conflict · autosave paused'
-                  : 'Save failed · autosave paused'}
-        {save.lastSaved
-          ? ` · Last saved ${date(save.lastSaved)} · version ${save.version}`
-          : ''}
-      </p>
+        <p
+          className={`autosave-status caption save-${save.status}`}
+          aria-live="polite"
+        >
+          <span className="save-indicator" />
+          {locked
+            ? '只读模式'
+            : save.status === 'saved'
+              ? '所有修改已保存'
+              : save.status === 'pending'
+                ? '有未保存修改，等待自动保存'
+                : save.status === 'saving'
+                  ? '正在保存…'
+                  : save.status === 'conflict'
+                    ? '版本冲突，自动保存已暂停'
+                    : '保存失败，自动保存已暂停'}
+          {save.lastSaved
+            ? ` · ${date(save.lastSaved)} · 草稿 v${save.version}`
+            : ''}
+        </p>
+      </header>
       <ErrorNotice error={error} />
       <ErrorNotice error={save.error} />
       {save.status === 'conflict' && (
-        <section className="conflict-panel" aria-label="Draft version conflict">
-          <h2>Another session changed this Draft.</h2>
+        <section className="conflict-panel" aria-label="草稿版本冲突">
+          <h2>另一会话已修改此草稿。</h2>
           <p>
-            Your local text is preserved in memory. Automatic retries are
-            paused.
+            本地内容仍保留在当前页面，自动重试已暂停。请先复制需要保留的修改，再重新加载。
           </p>
           <div className="toolbar">
             <Button variant="outline" onClick={() => void reloadServer()}>
-              Reload server version
+              重新加载服务器版本
             </Button>
             <Button variant="outline" onClick={() => void copy()}>
-              Copy my local Markdown
+              复制本地 Markdown
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => setInspecting(!inspecting)}
-            >
-              Cancel / inspect local content
+            <Button variant="ghost" onClick={() => setInspecting(!inspecting)}>
+              查看本地内容
             </Button>
           </div>
           {inspecting && (
-            <textarea
-              aria-label="Local Markdown to copy"
+            <Textarea
+              aria-label="可复制的本地 Markdown"
               readOnly
               value={form.getValues('bodyMarkdown')}
               rows={10}
@@ -349,62 +400,87 @@ function DraftWorkspace({
       {content.editorialState === 'changes_requested' &&
         content.latestReview?.decision === 'changes_requested' && (
           <section className="review-feedback">
-            <h2>
-              Changes requested · Revision {content.latestReview.revisionNo}
-            </h2>
+            <h2>需要修改 · 版本 {content.latestReview.revisionNo}</h2>
             <MarkdownPreview source={content.latestReview.commentMarkdown} />
           </section>
         )}
-      {locked && content.pendingRevision ? (
-        <RevisionView revision={content.pendingRevision} type={content.type} />
-      ) : (
-        <FormProvider {...form}>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              void flush().catch(() => {});
-            }}
-          >
-            <fieldset disabled={busy || locked} className="editor-fieldset">
-              <div className="editor-layout">
-                <div className="editor-source-column">
-                  {!locked && <InsertImage />}
-                  <MarkdownEditor
-                    value={values.bodyMarkdown ?? ''}
-                    onChange={(value) =>
-                      form.setValue('bodyMarkdown', value, {
-                        shouldDirty: true,
-                      })
-                    }
-                    readOnly={locked}
-                  />
-                </div>
-                <Metadata content={content} />
-              </div>
-            </fieldset>
-            {Object.keys(form.formState.errors).length > 0 && (
-              <p className="error-message" role="alert">
-                Check metadata fields before saving.
-              </p>
-            )}
-          </form>
-        </FormProvider>
-      )}
+      <Tabs
+        value={view}
+        onValueChange={setView}
+        label="内容工作区"
+        className="editor-workspace-tabs"
+        items={[
+          {
+            value: 'draft',
+            label: locked ? '查看内容' : '编辑草稿',
+            icon: <Article />,
+          },
+          {
+            value: 'history',
+            label: '版本与路径',
+            icon: <ClockCounterClockwise />,
+          },
+        ]}
+      >
+        <TabPanel value="draft" keepMounted>
+          {locked && content.pendingRevision ? (
+            <RevisionView
+              revision={content.pendingRevision}
+              type={content.type}
+            />
+          ) : (
+            <FormProvider {...form}>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void flush().catch(() => {});
+                }}
+              >
+                <fieldset disabled={busy || locked} className="editor-fieldset">
+                  <div className="editor-layout">
+                    <div className="editor-source-column">
+                      <EditorTitle />
+                      <MarkdownEditor
+                        value={values.bodyMarkdown ?? ''}
+                        onChange={(value) =>
+                          form.setValue('bodyMarkdown', value, {
+                            shouldDirty: true,
+                          })
+                        }
+                        readOnly={locked}
+                        tools={!locked && <InsertImage />}
+                      />
+                    </div>
+                    <Metadata content={content} />
+                  </div>
+                </fieldset>
+                {Object.keys(form.formState.errors).length > 0 && (
+                  <p className="error-message" role="alert">
+                    请检查属性字段后再保存。
+                  </p>
+                )}
+              </form>
+            </FormProvider>
+          )}
+        </TabPanel>
+        <TabPanel value="history" className="content-history-panel">
+          <RevisionHistory
+            content={content}
+            flush={flush}
+            busy={busy || save.status === 'conflict'}
+            onBusyChange={setBusy}
+            onConflict={(error) => queue.conflict(error)}
+            onRestored={reload}
+          />
+          <RouteHistory id={content.id} />
+        </TabPanel>
+      </Tabs>
       <UnsavedGuard
         dirty={save.dirty}
         saving={save.inFlight}
         save={flush}
         discard={() => queue.setEnabled(false)}
       />
-      <RevisionHistory
-        content={content}
-        flush={flush}
-        busy={busy || save.status === 'conflict'}
-        onBusyChange={setBusy}
-        onConflict={(error) => queue.conflict(error)}
-        onRestored={reload}
-      />
-      <RouteHistory id={content.id} />
     </>
   );
 }

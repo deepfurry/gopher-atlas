@@ -15,6 +15,7 @@ silently rewriting history. Routine implementation choices do not need an ADR.
 | [0007](0007-admin-editorial-ux.md)                      | Server projections, serialized saves and safe preview                       | Implemented P0-3                     |
 | [0008](0008-publication-generation-and-r2-snapshots.md) | Atomic publication outbox, immutable assets/snapshots and build observation | Implemented P0-4                     |
 | [0009](0009-public-static-publication.md)               | Snapshot-only static reader site, derived routes, redirects and Pagefind    | Implemented P0-5                     |
+| [0010](0010-admin-editorial-workspace.md)               | Chinese Admin shell, shared Base UI controls and Markdown-first workspace   | Accepted                             |
 
 New records include date, status, context, decision, alternatives, consequences
 and implementation scope. Earlier ADR phase boundaries describe their original

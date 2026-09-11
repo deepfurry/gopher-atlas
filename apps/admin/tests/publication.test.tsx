@@ -52,21 +52,17 @@ function fakeAssets(role: Schema<'User'>['role'] = 'editor') {
 it('selects cover and inserts required-alt Markdown through the one full-snapshot save', async () => {
   const { state } = fakeAssets();
   mount();
-  await screen.findByLabelText('Title', {}, { timeout: 4000 });
-  fireEvent.click(screen.getByRole('button', { name: 'Choose cover' }));
-  fireEvent.click(
-    await screen.findByRole('button', { name: 'Select asset 1' }),
-  );
+  await screen.findByLabelText('标题', {}, { timeout: 4000 });
+  fireEvent.click(screen.getByRole('button', { name: '选择封面' }));
+  fireEvent.click(await screen.findByRole('button', { name: '选择素材 1' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-  fireEvent.click(screen.getByRole('button', { name: 'Insert image' }));
-  fireEvent.click(
-    await screen.findByRole('button', { name: 'Select asset 1' }),
-  );
+  fireEvent.click(screen.getByRole('button', { name: '插入图片' }));
+  fireEvent.click(await screen.findByRole('button', { name: '选择素材 1' }));
   const insert = await screen.findByRole('button', {
-    name: 'Insert selected image',
+    name: '插入所选图片',
   });
   expect((insert as HTMLButtonElement).disabled).toBe(true);
-  fireEvent.change(screen.getByLabelText('Image alt text'), {
+  fireEvent.change(screen.getByLabelText('图片替代文本'), {
     target: { value: 'Go [diagram]' },
   });
   fireEvent.click(insert);
@@ -86,25 +82,23 @@ it('preserves selected local cover on version conflict and never retries silentl
   const { state } = fakeAssets();
   state.saveFailure = 'content_version_conflict';
   mount();
-  await screen.findByLabelText('Title', {}, { timeout: 4000 });
-  fireEvent.click(screen.getByRole('button', { name: 'Choose cover' }));
-  fireEvent.click(
-    await screen.findByRole('button', { name: 'Select asset 1' }),
-  );
+  await screen.findByLabelText('标题', {}, { timeout: 4000 });
+  fireEvent.click(screen.getByRole('button', { name: '选择封面' }));
+  fireEvent.click(await screen.findByRole('button', { name: '选择素材 1' }));
   fireEvent.keyDown(window, { key: 's', metaKey: true });
   await screen.findByRole('heading', {
-    name: 'Another session changed this Draft.',
+    name: '另一会话已修改此草稿。',
   });
-  expect(screen.getByText('Cover asset 1')).toBeTruthy();
+  expect(screen.getByText('素材 1 · 点击图片更换')).toBeTruthy();
   expect(state.content.draft?.coverAssetId).toBeNull();
   expect(state.requests.filter((r) => r.method === 'PUT')).toHaveLength(1);
 });
 it('uploads using multipart, lists dimensions and limits destructive controls to projected actions', async () => {
   const { requests } = fakeAssets();
   mount('/assets');
-  await screen.findByText('Asset 1');
-  expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
-  const input = screen.getByLabelText('Image file');
+  await screen.findByText('素材 1');
+  expect(screen.queryByRole('button', { name: /删除素材/ })).toBeNull();
+  const input = screen.getByLabelText('选择图片文件');
   fireEvent.change(input, {
     target: {
       files: [
@@ -112,7 +106,7 @@ it('uploads using multipart, lists dimensions and limits destructive controls to
       ],
     },
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Upload image' }));
+  fireEvent.click(screen.getByRole('button', { name: '上传图片' }));
   await waitFor(() =>
     expect(requests.some((r) => r.method === 'POST')).toBe(true),
   );
@@ -174,17 +168,17 @@ it.each(['editor', 'reviewer', 'admin'] as const)(
       }),
     );
     mount('/publication');
-    await screen.findByRole('navigation');
-    const nav = screen.getByRole('navigation');
-    expect(
-      within(nav).queryByRole('link', { name: 'Publication' }) !== null,
-    ).toBe(role !== 'editor');
+    await screen.findByRole('navigation', { name: '工作台导航' });
+    const nav = screen.getByRole('navigation', { name: '工作台导航' });
+    expect(within(nav).queryByRole('link', { name: '发布状态' }) !== null).toBe(
+      role !== 'editor',
+    );
     if (role === 'editor') {
       await screen.findByRole('alert');
       expect(requests).toHaveLength(0);
     } else {
       fireEvent.click(
-        await screen.findByRole('button', { name: 'Retry generation 3' }),
+        await screen.findByRole('button', { name: '重试发布版本 3' }),
       );
       await waitFor(() =>
         expect(requests.some((r) => r.method === 'POST')).toBe(true),

@@ -43,14 +43,13 @@ export function UnsavedGuard({
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="dialog-backdrop" />
         <AlertDialog.Popup className="dialog">
-          <AlertDialog.Title>Leave unsaved Draft?</AlertDialog.Title>
+          <AlertDialog.Title>草稿尚未保存，确定离开？</AlertDialog.Title>
           <AlertDialog.Description>
-            Local changes exist only in this tab. Save before leaving, or
-            explicitly discard them.
+            未保存的修改仅保留在当前页面。请先保存，或明确选择放弃修改。
           </AlertDialog.Description>
           <div className="toolbar">
             <Button variant="outline" onClick={() => blocker.reset?.()}>
-              Stay / inspect
+              留在此页
             </Button>
             <Button
               variant="outline"
@@ -60,7 +59,7 @@ export function UnsavedGuard({
                 blocker.proceed?.();
               }}
             >
-              Discard and leave
+              放弃修改并离开
             </Button>
             <Button
               disabled={saving}
@@ -70,7 +69,7 @@ export function UnsavedGuard({
                   .catch(() => blocker.reset?.());
               }}
             >
-              Save and leave
+              保存并离开
             </Button>
           </div>
         </AlertDialog.Popup>

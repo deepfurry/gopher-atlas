@@ -28,7 +28,7 @@ it('preserves migrations 1/2 and adds only the P0-4 schema-3 migration', () => {
     'const SchemaVersion = 3',
   );
 });
-it('reserves browser persistence for theme and retains reduced-motion/focus rules', () => {
+it('reserves browser persistence for theme/sidebar and retains reduced-motion/focus rules', () => {
   const files = (dir: string): string[] =>
     readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
       entry.isDirectory()
@@ -38,12 +38,26 @@ it('reserves browser persistence for theme and retains reduced-motion/focus rule
   for (const file of files('apps/admin/src').filter(
     (p) => /\.tsx?$/.test(p) && !p.includes('.test.'),
   )) {
-    if (!file.endsWith('/app/theme.tsx'))
-      expect(source(file)).not.toMatch(
-        /\b(?:localStorage|sessionStorage|indexedDB)\b/,
-      );
+    const key = file.endsWith('/app/theme.tsx')
+      ? 'gopheratlas-theme'
+      : file.endsWith('/app/sidebar-preference.ts')
+        ? 'gopheratlas-sidebar'
+        : null;
+    const code = source(file);
+    expect(code).not.toMatch(/\b(?:sessionStorage|indexedDB)\b/);
+    if (!key) expect(code).not.toMatch(/\blocalStorage\b/);
+    else {
+      const calls = [
+        ...code.matchAll(/localStorage\.(getItem|setItem)\(\s*'([^']+)'/g),
+      ];
+      expect(calls.map((call) => call[2])).toEqual([key, key]);
+      expect(code.match(/\blocalStorage\b/g)).toHaveLength(2);
+    }
   }
-  const css = source('apps/admin/src/styles.css');
+  expect(source('apps/admin/src/styles.css')).toContain(
+    "@import './styles/base.css'",
+  );
+  const css = source('apps/admin/src/styles/base.css');
   expect(css).toMatch(/@media\s*\(prefers-reduced-motion:\s*reduce\)/);
   expect(css).toContain('transition: none !important');
   expect(css).toContain('animation: none !important');

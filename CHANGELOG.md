@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Rebuild Admin as a Chinese editorial workspace with collapsible navigation,
+  scoped search, account/theme menus, shared Base UI controls and Phosphor icons.
+- Redesign content/editor/reviews/assets/tags/people/publication/audit surfaces;
+  preserve full-snapshot saves, conflicts, immutable review and backend contracts.
+- Stabilize content-table data during lazy navigation, retain cursor ownership,
+  and extend shell/control/language/navigation regression and browser checks.
+
 - Improve local startup: dev-web reads root .env, prefers explicit fixtures and
   CONTENT_R2_* with Development-only CMS R2_* fallback, and explains missing latest.
 - Add cross-platform make dev supervision for CMS/Admin/Public, including process

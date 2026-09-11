@@ -31,6 +31,9 @@ architecture and current scope are summarized in `docs/implementation-status.md`
 - Public uses Astro layouts and React islands only when interaction needs them.
   Never import Admin, its API client, or shadcn into Public.
 - Follow `contracts/design.md` and `docs/design-system.md` for both interfaces.
+- Admin is Chinese-only, with Phosphor icons and shared Base UI wrappers. Use
+  centralized presentation mappings and ADR 0010; preserve server permissions,
+  full-snapshot autosave and safe preview. Only theme/sidebar preferences persist.
 - Services call sqlc directly. Immediate SQLite transactions protect bootstrap,
   actor reauthorization, last-active-Admin and editorial invariants; no DAO wrapper.
 - Draft writes require expected version and replace fields/tags/topic entries

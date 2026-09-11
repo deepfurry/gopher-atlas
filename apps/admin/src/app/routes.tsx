@@ -3,7 +3,7 @@ import { App } from '@/App';
 export const routes: RouteObject[] = [
   {
     element: <App />,
-    hydrateFallbackElement: <p role="status">Loading workspace…</p>,
+    hydrateFallbackElement: <p role="status">正在加载工作台…</p>,
     children: [
       {
         index: true,

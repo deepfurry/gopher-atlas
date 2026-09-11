@@ -24,6 +24,15 @@ be checked in light/dark themes, narrow layouts and reduced-motion mode.
 
 ## Admin: dense, calm editorial workspace
 
+- Chinese is the only Admin UI language; no i18n framework or bilingual labels.
+  Central mappings own role/state/type/action names. Technical identifiers and
+  user-authored content retain their original values. See ADR 0010.
+- A 208 px sidebar collapses to 56 px, with tooltips and permission-aware groups.
+  A 48 px top bar contains breadcrumbs, scoped search, create, theme and account.
+  Below 768 px navigation becomes a modal drawer; the workspace stays full width.
+- Phosphor is the Admin icon family. Base UI wrappers in `components/ui` provide
+  consistent controls, keyboard/focus semantics, bounded overlays and scrollbars.
+  The Markdown-first editor has a grouped inspector and separate history view.
 - React + Vite, **shadcn/ui with Base UI primitives**, Tailwind CSS v4. Do not mix
   Radix or React Aria primitives without an ADR explaining a concrete need.
 - Medium/high information density; flat surfaces, small 6–8 px radii, restrained
@@ -33,14 +42,14 @@ be checked in light/dark themes, narrow layouts and reduced-motion mode.
 - Role-aware navigation/actions arrive with real server policy. Do not present
   fake role controls or make unfinished workflows look functional.
 - Monitor remains a protected ordinary link, without iframe or copied metrics.
-- Show editorial state separately from Published in CMS. Never imply a public
+- Show editorial state separately from “已在 CMS 发布”. Never imply a public
   build/deploy completed. Save status uses aria-live; conflicts require explicit
   recovery and preserve local text. High-impact actions use Base UI AlertDialog.
 
 ## Shared interaction and accessibility requirements
 
-- Public follows OS light/dark preference. Admin offers System / Light / Dark;
-  only the theme preference may use localStorage. Draft content may not.
+- Public follows OS light/dark preference. Admin offers 跟随系统 / 浅色 / 深色;
+  only theme and sidebar-collapse preferences may use localStorage. Draft content may not.
 - Honor `prefers-reduced-motion`. Normal transitions should be 150–250 ms.
 - Visible keyboard focus, semantic headings/landmarks, skip links, named controls,
   status announcements, and meaningful image alt text are required.

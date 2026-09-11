@@ -1,4 +1,5 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useMemo } from 'react';
+import { useDebounced } from '@/hooks/use-debounced';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -6,14 +7,6 @@ import {
   isSafeLink,
   validateMarkdown,
 } from '@gopheratlas/markdown';
-export function useDebounced<T>(value: T, delay = 200) {
-  const [stable, setStable] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setStable(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-  return stable;
-}
 export const MarkdownPreview = memo(function MarkdownPreview({
   source,
 }: {
@@ -44,8 +37,7 @@ export const MarkdownPreview = memo(function MarkdownPreview({
               />
             ) : (
               <span className="markdown-warning" role="note">
-                Image blocked — only assets.gopheratlas.com images with alt text
-                are allowed.
+                已拦截图片：仅允许附有替代文本的 assets.gopheratlas.com 图片。
               </span>
             ),
           a: ({ href, children }) =>
@@ -59,11 +51,11 @@ export const MarkdownPreview = memo(function MarkdownPreview({
               </a>
             ) : (
               <span className="markdown-warning">
-                {children} (unsafe link blocked)
+                {children} （已拦截不安全链接）
               </span>
             ),
           h1: ({ children }) => (
-            <p className="markdown-warning">H1 forbidden: {children}</p>
+            <p className="markdown-warning">不支持一级标题： {children}</p>
           ),
         }}
       >
@@ -73,12 +65,12 @@ export const MarkdownPreview = memo(function MarkdownPreview({
   );
 });
 const explanations: Record<string, string> = {
-  body_h1: 'H1 forbidden — use H2 or H3.',
-  raw_html: 'Raw HTML / MDX is forbidden.',
-  unsafe_url: 'Unsafe URL.',
-  external_image: 'External image is forbidden.',
-  missing_alt: 'Image alt text is required.',
-  frontmatter: 'Frontmatter is forbidden.',
+  body_h1: '不支持一级标题，请使用二级或三级标题。',
+  raw_html: '不支持原始 HTML 或 MDX。',
+  unsafe_url: 'URL 不安全。',
+  external_image: '不允许外部图片，请从素材库插入。',
+  missing_alt: '图片必须有替代文本。',
+  frontmatter: '不支持文档头部元数据，请在属性面板填写。',
 };
 export function MarkdownFeedback({ source }: { source: string }) {
   const stable = useDebounced(source);
@@ -87,14 +79,14 @@ export function MarkdownFeedback({ source }: { source: string }) {
   return (
     <div className="markdown-feedback" aria-live="polite">
       {bytes > 524288 && (
-        <p className="error-message">Markdown exceeds 512 KiB.</p>
+        <p className="error-message">Markdown 超过 512 KiB 限制。</p>
       )}
       {issues.length > 0 && (
         <ul>
           {issues.slice(0, 12).map((issue, index) => (
             <li key={index}>
               {explanations[issue.code] ?? issue.code}
-              {issue.line ? ` · line ${issue.line}` : ''}
+              {issue.line ? ` · 第 ${issue.line} 行` : ''}
             </li>
           ))}
         </ul>

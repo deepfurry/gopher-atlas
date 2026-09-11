@@ -212,3 +212,56 @@ listener cleanup passed in make check. The same synthetic process fixtures passe
 five Linux Node 24.15.0 cleanup scenarios, including real SIGTERM and bounded force
 termination. Linux Go race also passed. No real root .env, R2/Hook or Production
 service was used for these implementation checks; no dependency pins changed.
+
+## Admin workspace redesign (2026-09-12)
+
+Started on clean synchronized dev at
+`57282816a13c900873aaee86418fe9565dceb488`. The GoFurry Admin shell/control reference
+was audited at `9f47e2bb965e094beb50cd3419564536b13d36d7`; its business code was not
+copied. ADR 0010 records the Chinese-only design and presentation boundaries.
+
+The shell now has grouped permission-aware navigation, persistent collapse,
+mobile drawer, breadcrumbs, bounded content/page search, create, theme and account
+menus. Phosphor 2.1.10 replaces Admin Lucide; existing dependency pins are unchanged.
+Shared Base UI controls and layered CSS replace scattered native controls and
+the monolithic stylesheet. The Markdown-first editor has a grouped inspector and
+separate history; content, reviews, assets, tags, people, publication and audit
+pages have consistent layouts, states and Chinese terminology.
+
+No backend, API, migrations, sqlc, snapshot, publication semantics or Public code
+changed. Full-snapshot autosave and immutable history remain intact. Search and
+summaries use existing bounded endpoints with honest scope labels. Only theme and
+sidebar preferences persist; an executable boundary still forbids Draft storage.
+Stable table data/cursor ownership fixes a browser-observed lazy-navigation loop.
+Search debounce is independent of Markdown rendering so the shell does not load
+the preview solely to search.
+
+Browser acceptance uses real `make dev`, isolated schema-3 SQLite and synthetic
+local identities/assets. R2/Hook/marker are loopback fakes; controlled image URLs
+are intercepted locally. No production DB, credentials, GitHub login or external
+deployment is used. Checked create/save/cover/tags, source/preview/split and unsafe
+image blocking, request-changes/resubmit/exact reviewed publish, direct publish,
+history/restore and published isolation, Topic ordering, asset upload/dedupe/
+delete/restore, user approval, profiles, publication details, audit and Monitor.
+A real two-tab 409 retained local Markdown, paused retries, and required explicit
+reload; navigation confirmation and copy feedback were verified.
+
+Light/dark, expanded/collapsed navigation, 1920/1440 px desktop, 1024/768 px table
+layouts and 360 px editor/drawer/dialog layouts were inspected. No page-level
+horizontal overflow was observed; tables scroll within their own region.
+Calendar keyboard navigation and focus were checked. The browser surface does
+not provide OS reduced-motion emulation; the CSS override remains tested.
+P0-6 migration/cutover and Public language work remain separate.
+
+Verification passed: `pnpm install --frozen-lockfile`, `make generate`,
+`make check` (131 JavaScript tests passed, one existing platform-gated skip;
+66 Admin tests), `make build-cms`, and the full
+`go test -race -tags=adminembed ./...` gate on Linux through WSL. Generated
+artifacts have no drift. The synthetic secret-output scan passed. After stopping
+Vite/Astro, the browser also loaded the final Go-embedded Admin and its lazy
+editor chunk successfully. Login, account logout, empty/error states and failed
+publication retry were checked against the isolated local services. No backend,
+Public or existing dependency versions changed; only the Admin icon dependency
+was replaced. The build still reports a large main JavaScript chunk (about
+718 kB before compression); it is not a functional failure and remains a future
+performance refinement.

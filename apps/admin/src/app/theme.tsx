@@ -5,7 +5,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-type Theme = 'system' | 'light' | 'dark';
+import { Select } from '@/components/ui/select';
+export type Theme = 'system' | 'light' | 'dark';
 const ThemeContext = createContext({
   theme: 'system' as Theme,
   resolved: 'light',
@@ -54,12 +55,17 @@ export function ThemeSelect() {
   const { theme, setTheme } = useTheme();
   return (
     <label className="theme-select">
-      Theme
-      <select value={theme} onChange={(e) => setTheme(e.target.value as Theme)}>
-        <option value="system">System</option>
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
-      </select>
+      外观
+      <Select
+        label="外观"
+        value={theme}
+        onValueChange={(value) => setTheme(value as Theme)}
+        options={[
+          { value: 'system', label: '跟随系统' },
+          { value: 'light', label: '浅色' },
+          { value: 'dark', label: '深色' },
+        ]}
+      />
     </label>
   );
 }

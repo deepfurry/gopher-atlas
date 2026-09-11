@@ -20,6 +20,10 @@ Dependency direction:
   owns server caches; RHF plus one autosave queue owns the in-memory Draft.
   Immutable review endpoints never return a Draft, including for Admin.
   Author/owner/byline/actor labels are batched on the server.
+  ADR 0010 defines the Chinese-only workspace: `components/admin` owns navigation,
+  search and creation; `components/ui` wraps Base UI with Phosphor icons; feature
+  pages share presentation mappings and layered styles. Theme/sidebar preferences
+  alone persist in browser storage. Search/counts remain bounded existing reads.
 - `cmd` constructs config, one logger, SQLite pool, OAuth/auth, R2 adapter and a joined publication worker.
 - `internal/app` assembles HTTP middleware; `internal/http` translates transport;
   `internal/auth` owns identity/session transactions and calls sqlc directly.

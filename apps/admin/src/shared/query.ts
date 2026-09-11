@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import type { QueryKey } from '@tanstack/react-query';
 export function usePages<T>(
@@ -16,10 +17,11 @@ export function usePages<T>(
     enabled,
     retry: false,
   });
-  return {
-    ...query,
-    items: query.data?.pages.flatMap((page) => page.items) ?? [],
-  };
+  const items = useMemo(
+    () => query.data?.pages.flatMap((page) => page.items) ?? [],
+    [query.data],
+  );
+  return { ...query, items };
 }
 export function useEditorialRefresh() {
   const cache = useQueryClient();

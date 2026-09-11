@@ -32,47 +32,66 @@ module and lazily imports the local Pagefind API on a query.
 
 ## Admin implementation
 
-`apps/admin/src/styles.css` owns separate semantic tokens mapped through Tailwind
-v4's `@theme inline`. The 224 px sidebar, 14 px body, 32 px buttons and 6 px radius
-provide the working density. At 760 px and below, a named keyboard-accessible
-button expands navigation above the content. The editor uses a 320 px metadata
-rail; below 1150 px it stacks under source/preview, and at 360 px metadata becomes
-one column. Tables scroll inside named regions rather than widening the page.
+ADR 0010 defines the current Chinese-only editorial workspace. All interface copy
+uses shared Chinese terminology; content, enum values and technical identifiers
+are preserved. There is no Admin i18n framework.
 
-`components.json` selects shadcn's `base-nova` style and Lucide icons. The local
-Button is adapted from the [shadcn Base UI Button](https://ui.shadcn.com/docs/components/base/button)
-and its [registry source](https://ui.shadcn.com/r/styles/base-nova/button.json),
-retrieved 2026-09-10. It uses `@base-ui/react/button`, CVA and the local `cn` helper;
-only the variants currently needed are retained. shadcn code is MIT licensed;
-see `docs/third-party-notices.md`. Future components should be added from this
-Base UI family. Public must never import this directory.
+`styles.css` is the entry point; `styles/tokens.css` owns semantic colors and
+Tailwind mappings, with separate base/components/shell/editor/markdown/page layers.
+The 208 px sidebar collapses to 56 px; a fixed 48 px top bar provides breadcrumbs,
+scoped search (Ctrl/Cmd+K), create, theme and account menus. Sidebar and main work
+area scroll independently. Below 768 px the navigation is a Base UI modal drawer.
+Main content caps at 1660 px; forms and reading areas use narrower measures.
 
-TanStack Query owns server caches; React Router data routes split the major feature
-pages. React Hook Form/Zod own Draft metadata; TanStack Table renders the shared
-content table. Native labeled controls and the Base UI Button/AlertDialog preserve
-keyboard behavior. Sonner announces significant successes, never every autosave.
+| Token     | Light     | Dark      |
+| --------- | --------- | --------- |
+| Canvas    | `#f4f6f8` | `#161b22` |
+| Surface   | `#ffffff` | `#1c232d` |
+| Text      | `#252e3b` | `#e1e7ef` |
+| Secondary | `#667181` | `#a0adbd` |
+| Action    | `#315f96` | `#94bdea` |
+| Border    | `#dce2e9` | `#323e4c` |
 
-The header shows independent editorial and Published-in-CMS badges, workflow
-actions from the server, and aria-live save/version status. Conflicts remain
-visible with explicit reload, copy and inspect controls. Navigation and beforeunload
-protect unsaved/in-flight edits; no Draft is written to browser storage.
+Geist/system CJK, 14 px body, 32 px controls and 6–8 px radii provide working
+density. Phosphor is the only Admin icon family. Shadows are limited to overlays.
+Thin scrollbars cover the shell, overlays, lists and Markdown source.
 
-UIW supplies only source input and an H2/H3/formatting toolbar. Source, Preview and
-Split all use the same in-memory Draft. Preview uses react-markdown/GFM with safe
-URL and image renderers; raw HTML is omitted, external images become warnings,
-and Markdown feedback does not rewrite source. P0-4 adds a separate Asset picker/upload action with required alt; it does not
-enable UIW raw image URLs or HTML preview.
-Reviewer workspaces and history display immutable snapshots without Draft inputs.
+`components/ui` wraps Base UI Button, Select, Combobox, Checkbox, Switch, Menu,
+Dialog/Sheet, AlertDialog, Tabs, Tooltip and Popover. A Chinese calendar DatePicker
+serves the Curated source date, including arrow/Home/End/PageUp/PageDown navigation.
+Shared inputs, form fields, headers, toolbars, tables and loading/error/empty
+states keep feature pages consistent. Context menus and unused controls are not
+added. shadcn Base UI provenance remains in `docs/third-party-notices.md`.
 
-System / Light / Dark uses the existing light/dark token pairs and stores only
-`gopheratlas-theme`. Global reduced-motion rules disable transitions/animations.
-Error text uses #a12c32 / #ffabb0; focus rings remain visible in both themes.
-High-impact confirmation describes exact Revision selection or preserved history.
-Monitor remains a normal Admin-only link. Authors are separate from account RBAC.
+TanStack Query owns caches and cursor pagination; table data references are stable
+during lazy navigation. No page-index reset competes with the server cursor.
+Search, dashboard counts and local filters explicitly describe their loaded scope.
 
-The optional AJV resolver adapter reports a pnpm peer-range warning against the
-repository's existing ajv-formats 3. Admin imports only the Zod adapter; no AJV
-adapter or replacement validator version is added to the application.
+The editor prioritizes title and Markdown. Its 320 px inspector groups 基础 / 类型 /
+搜索展示; below 1100 px it stacks and at 360 px uses one column. 历史与路径 has a
+separate view. The sticky header exposes save/workflow actions; the more menu
+contains direct publish/unpublish/archive with explicit confirmations.
+
+The unchanged autosave queue serializes full snapshots and versions. Ctrl/Cmd+S,
+submit and direct publish flush that queue. Conflict stops retries, preserves
+local content, and offers copy/inspect/explicit reload. Navigation and beforeunload
+guards protect pending edits. Only `gopheratlas-theme` and `gopheratlas-sidebar`
+persist; Drafts never enter browser storage.
+
+UIW remains source-only with a Chinese Phosphor H2/H3/formatting toolbar. 源码 /
+预览 / 分栏 share the in-memory Draft. react-markdown/GFM renders controlled
+images and safe URLs without raw HTML. External images become warnings before
+any request. Asset insertion requires alt text and uses the same save queue.
+Review/history views show exact immutable Revisions and separate CMS publication
+from observed public synchronization.
+
+Sonner announces significant successes, never every autosave. Theme choices are
+跟随系统 / 浅色 / 深色, with a quick toggle in the top bar. Reduced-motion CSS
+disables transitions/animations; focus and status text remain visible in both
+themes. Monitor remains an Admin-only ordinary link, never an iframe.
+
+The optional AJV resolver peer warning is unchanged: Admin uses only the Zod
+adapter, without adding a second validator.
 
 ## Review procedure
 

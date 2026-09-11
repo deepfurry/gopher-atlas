@@ -1,9 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { render } from '@testing-library/react';
+import { render, configure } from '@testing-library/react';
 import { vi } from 'vitest';
 import { routes } from '@/app/routes';
 import type { Schema } from '@/shared/api';
+// Lazy feature modules can take longer on a cold Windows filesystem.
+configure({ asyncUtilTimeout: 4000 });
 export const author: Schema<'AuthorSummary'> = {
   userId: 1,
   slug: 'test-author',

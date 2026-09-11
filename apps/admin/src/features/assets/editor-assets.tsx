@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Dialog } from '@base-ui/react/dialog';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { isControlledImage } from '@gopheratlas/markdown';
+import { ImageSquare, X } from '@phosphor-icons/react';
 import type { Schema } from '@/shared/api';
 import type { FormValues } from '@/features/content/form';
-import { Button } from '@/components/ui/button';
+import { Button, IconButton } from '@/components/ui/button';
+import { Dialog } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { AssetBrowser, AssetImage } from './browser';
-
-function Picker({
+export function AssetPicker({
   open,
   close,
   select,
@@ -17,26 +18,15 @@ function Picker({
   select: (asset: Schema<'Asset'>) => void;
 }) {
   return (
-    <Dialog.Root
+    <Dialog
       open={open}
-      onOpenChange={(open) => {
-        if (!open) close();
-      }}
+      onOpenChange={(next) => !next && close()}
+      title="选择素材"
+      description="从素材库选择图片，或上传新图片。"
+      className="asset-dialog"
     >
-      <Dialog.Portal>
-        <Dialog.Backdrop className="dialog-backdrop" />
-        <Dialog.Popup className="dialog asset-dialog">
-          <Dialog.Title>Select immutable asset</Dialog.Title>
-          <Dialog.Description>
-            Choose an existing asset or upload a supported image.
-          </Dialog.Description>
-          <AssetBrowser select={select} />
-          <Button variant="outline" onClick={close}>
-            Cancel asset selection
-          </Button>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+      <AssetBrowser select={select} />
+    </Dialog>
   );
 }
 export function CoverField({
@@ -47,32 +37,41 @@ export function CoverField({
   const { control, setValue } = useFormContext<FormValues>();
   const id = useWatch({ control, name: 'coverAssetId' });
   const [selected, setSelected] = useState<Schema<'AssetSummary'> | null>(
-    initial,
-  );
-  const [open, setOpen] = useState(false);
+      initial,
+    ),
+    [open, setOpen] = useState(false);
   return (
-    <section aria-label="Cover asset" className="cover-field">
-      <h3>Cover</h3>
-      {id !== null && selected?.id === id && <AssetImage asset={selected} />}
-      <p className="caption">
-        {id === null ? 'No cover selected.' : `Cover asset ${id}`}
-      </p>
-      <div className="toolbar">
-        <Button variant="outline" onClick={() => setOpen(true)}>
-          Choose cover
-        </Button>
+    <section aria-label="封面素材" className="cover-field">
+      <div className="section-heading">
+        <h3>封面</h3>
         {id !== null && (
-          <Button
-            variant="outline"
+          <IconButton
+            label="移除封面"
             onClick={() =>
               setValue('coverAssetId', null, { shouldDirty: true })
             }
           >
-            Remove cover
-          </Button>
+            <X />
+          </IconButton>
         )}
       </div>
-      <Picker
+      <button
+        type="button"
+        className="cover-picker-trigger"
+        onClick={() => setOpen(true)}
+        aria-label="选择封面"
+      >
+        {id !== null && selected?.id === id ? (
+          <AssetImage asset={selected} />
+        ) : (
+          <>
+            <ImageSquare />
+            <span>选择封面图片</span>
+          </>
+        )}
+      </button>
+      {id !== null && <p className="caption">素材 {id} · 点击图片更换</p>}
+      <AssetPicker
         open={open}
         close={() => setOpen(false)}
         select={(asset) => {
@@ -100,11 +99,12 @@ export function InsertImage() {
     [asset, setAsset] = useState<Schema<'Asset'> | null>(null),
     [alt, setAlt] = useState('');
   return (
-    <section className="insert-image" aria-label="Insert image">
-      <Button variant="outline" onClick={() => setOpen(true)}>
-        Insert image
+    <div className="insert-image">
+      <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
+        <ImageSquare />
+        插入图片
       </Button>
-      <Picker
+      <AssetPicker
         open={open}
         close={() => setOpen(false)}
         select={(value) => {
@@ -113,22 +113,20 @@ export function InsertImage() {
           setOpen(false);
         }}
       />
-      {asset && (
-        <div className="compact-form">
-          <p>Asset {asset.id} · appended at the end of Markdown</p>
-          <label>
-            Image alt text
-            <input
-              value={alt}
-              maxLength={500}
-              onChange={(event) => setAlt(event.target.value)}
-              required
-            />
-          </label>
-          <div className="toolbar">
+      <Dialog
+        open={!!asset}
+        onOpenChange={(next) => !next && setAsset(null)}
+        title="插入图片"
+        description="图片将添加到正文末尾。替代文本有助于无障碍阅读。"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setAsset(null)}>
+              取消
+            </Button>
             <Button
               disabled={!alt.trim()}
               onClick={() => {
+                if (!asset) return;
                 setValue(
                   'bodyMarkdown',
                   `${getValues('bodyMarkdown')}\n\n${imageMarkdown(alt, asset.url)}\n`,
@@ -137,14 +135,28 @@ export function InsertImage() {
                 setAsset(null);
               }}
             >
-              Insert selected image
+              插入所选图片
             </Button>
-            <Button variant="outline" onClick={() => setAsset(null)}>
-              Cancel image insertion
-            </Button>
+          </>
+        }
+      >
+        {asset && (
+          <div className="image-insert-form">
+            <AssetImage asset={asset} />
+            <label>
+              图片替代文本
+              <Input
+                value={alt}
+                maxLength={500}
+                onChange={(e) => setAlt(e.target.value)}
+                placeholder="简要描述图片内容…"
+                required
+                autoFocus
+              />
+            </label>
           </div>
-        </div>
-      )}
-    </section>
+        )}
+      </Dialog>
+    </div>
   );
 }

@@ -193,6 +193,10 @@ P0-4 publication 网络步骤独立于 SQLite 事务；旧站导入和生产切�
 
 ## 编辑工作台
 
+- 后台只使用简体中文，不引入 i18n。208px 左侧导航可收起为图标栏，顶部提供面包屑、
+  搜索、新建、主题与账户菜单；窄屏使用抽屉导航。Phosphor 图标与 Base UI 控件统一交互。
+- 导航按工作台、内容、内容资源、编辑流程、成员、发布与运维分组，入口与动作仍由
+  server permissions/actions 控制。搜索和摘要使用现有有界 API，明确标注已加载范围。
 - Content 下四个类型入口复用同一张可筛选、cursor 分页的表格。创建后直接进入编辑器；
   Topic 仅 Admin 可创建，Tags 在独立管理页面创建/更新。
 - Source / Preview / Split 使用 UIW source 输入和 react-markdown/GFM 安全预览。
@@ -202,12 +206,18 @@ P0-4 publication 网络步骤独立于 SQLite 事务；旧站导入和生产切�
   Copy、Inspect 和显式 Reload；离开未保存页面会提示。Draft 从不写浏览器存储。
 - 审核始终显示 exact immutable Revision；反馈、resubmit、历史查看/恢复、归档和
   直接发布均沿用 P0-2 服务。编辑下一版不改变已发布 pointer。
-- System / Light / Dark 仅持久化主题偏好。360px 下侧栏折叠、metadata 堆叠。
+- 跟随系统 / 浅色 / 深色与侧栏收起偏好可持久化。360px 下抽屉导航、内容属性堆叠。
   Monitor 是普通 Admin 链接；Assets 对 active roles 开放，Publication 仅 Reviewer/Admin。
 
 生产构建包含所有 lazy chunks，仍由单个 Go 二进制提供。Vite 构建门禁拒绝 raw HTML
 preview 或禁止的 editor/primitives 模块进入产物。工程决定见
 [ADR 0007](docs/decisions/0007-admin-editorial-ux.md)。
+
+新布局将正文置于视觉中心，右侧按基础/类型/搜索展示组织属性；版本与路径单独查看。
+素材库复用图片选择器，标签用创建/编辑对话框，成员统一表格与资料表单；发布页先说明
+同步状态，技术字段放入详情抽屉。UI 架构与约束见
+[ADR 0010](docs/decisions/0010-admin-editorial-workspace.md)。本次未改变 Public、API、
+数据库或发布语义，P0-6 导入与切换仍独立进行。
 
 ## Assets 与 Publication
 

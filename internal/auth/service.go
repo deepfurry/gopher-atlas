@@ -159,15 +159,25 @@ func (s *Service) withActor(ctx context.Context, actor Principal, fn func(*dbsql
 	}
 	defer tx.Rollback()
 	q := s.queries.WithTx(tx)
-	current, err := resolve(ctx, q, actor.Session.TokenHash, s.now().UnixMilli())
+	current, err := Reauthorize(ctx, q, actor, s.now().UnixMilli())
 	if err != nil {
 		return err
-	}
-	if current.User.Status != "active" {
-		return fault.Pending
 	}
 	if err := fn(q, current); err != nil {
 		return err
 	}
 	return dbError(tx.Commit())
+}
+
+// Reauthorize resolves a session within a service-owned immediate transaction.
+// Editorial services must never authorize a write from cached middleware roles.
+func Reauthorize(ctx context.Context, q *dbsqlc.Queries, actor Principal, now int64) (Principal, error) {
+	current, err := resolve(ctx, q, actor.Session.TokenHash, now)
+	if err != nil {
+		return Principal{}, err
+	}
+	if current.User.Status != "active" {
+		return Principal{}, fault.Pending
+	}
+	return current, nil
 }

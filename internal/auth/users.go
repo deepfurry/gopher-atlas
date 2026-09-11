@@ -5,6 +5,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/deepfurry/gopher-atlas/internal/audit"
 	dbsqlc "github.com/deepfurry/gopher-atlas/internal/database/sqlc"
 	"github.com/deepfurry/gopher-atlas/internal/fault"
 	"github.com/deepfurry/gopher-atlas/internal/markdown"
@@ -76,9 +77,12 @@ func (s *Service) ChangeUser(ctx context.Context, actor Principal, id int64, act
 			return fault.Unavailable
 		}
 		if nextStatus == "disabled" {
-			return dbError(q.RevokeUserSessions(ctx, dbsqlc.RevokeUserSessionsParams{UserID: id, RevokedAt: stamp(s.now().UnixMilli())}))
+			if err := q.RevokeUserSessions(ctx, dbsqlc.RevokeUserSessionsParams{UserID: id, RevokedAt: stamp(s.now().UnixMilli())}); err != nil {
+				return fault.Unavailable
+			}
 		}
-		return nil
+		actions := map[string]string{"approve": "user.approved", "disable": "user.disabled", "enable": "user.enabled", "role": "user.role_changed"}
+		return audit.Append(ctx, q, audit.Event{ActorID: current.User.ID, Action: actions[action], EntityType: "user", EntityID: id, Metadata: audit.Metadata{Role: nextRole, Status: nextStatus}}, s.now().UnixMilli())
 	})
 	return result, err
 }
@@ -106,7 +110,10 @@ func (s *Service) UpdateProfile(ctx context.Context, actor Principal, input Prof
 		}
 		var err error
 		result, err = q.UpdateProfile(ctx, dbsqlc.UpdateProfileParams{UserID: current.User.ID, DisplayName: input.DisplayName, BioMarkdown: input.BioMarkdown, WebsiteUrl: input.WebsiteURL, UpdatedAt: s.now().UnixMilli()})
-		return dbError(err)
+		if err != nil {
+			return dbError(err)
+		}
+		return audit.Append(ctx, q, audit.Event{ActorID: current.User.ID, Action: "author.profile_updated", EntityType: "author", EntityID: current.User.ID}, s.now().UnixMilli())
 	})
 	return result, err
 }

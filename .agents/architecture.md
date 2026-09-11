@@ -6,9 +6,9 @@ The public and control planes have separate availability and trust boundaries:
 Private CMS → future published R2 snapshot → Astro build → static public site
 ```
 
-P0-1 ships the private identity runtime; Public still builds its version 0 empty
-fixture. No content model, editorial workflow, R2 adapter, jobs, audit persistence,
-legacy importer or deployment is implemented.
+P0-2 adds the editorial domain/API to the P0-1 identity runtime. Public still builds
+its version 0 empty fixture. Full Admin editorial UX, R2/jobs, public content
+rendering, legacy importer and deployment remain deferred.
 
 Dependency direction:
 
@@ -17,9 +17,12 @@ Dependency direction:
 - `cmd` constructs config, one logger, SQLite pool, OAuth provider and auth service.
 - `internal/app` assembles HTTP middleware; `internal/http` translates transport;
   `internal/auth` owns identity/session transactions and calls sqlc directly.
-- `internal/policy` is the fixed role/status capability mapping. Services recheck
+- `internal/content` owns Draft/Revision/Review/Tag/Route transactions and bounded
+  DTO reads. `internal/audit` appends typed safe events using the caller's sqlc
+  transaction, including successful identity mutations.
+- `internal/policy` maps roles/status and object ownership/byline. Services recheck
   actors inside write transactions; React never implements role authorization.
-- `internal/markdown` validates author bio safety with Goldmark/GFM and the existing
+- `internal/markdown` validates biography/body/review safety with Goldmark/GFM and the existing
   shared Markdown fixtures. Browser validation cannot replace the Go boundary.
 - Shared TS packages never import apps. Generated code contains no manual logic.
 
@@ -27,6 +30,15 @@ SQLite uses a four-connection pool with DSN initialization on every connection.
 Write services use immediate transactions to serialize bootstrap and last-Admin
 checks before reading state. External OAuth I/O completes before any DB identity
 transaction. Schema migration is an explicit operation, never startup/readiness.
+Editorial multi-query reads use short transactions to return consistent fields,
+relations and pointers. This also serializes those reads briefly with writers.
+
+Draft optimistic versions and immutable Revision snapshots isolate ongoing edits
+from the selected publication. Submit snapshots scalar fields and relations;
+reviewed publication uses that exact pending Revision. Routes retain identity
+ownership permanently and resolve redirects directly to the current canonical.
+Audit is append-only, transactional and excludes body/payload/comment/credentials.
+Only SQLite pointer/route/audit changes happen on Publish in P0-2; see ADR 0006.
 
 `internal/app` is the single middleware assembly point:
 

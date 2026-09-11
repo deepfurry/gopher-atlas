@@ -47,8 +47,23 @@ func TestMigrationsReadinessAndRollback(t *testing.T) {
 	if database.Ready(ctx, pool) == nil {
 		t.Fatal("removed schema was ready")
 	}
+	if err := pool.QueryRow("SELECT count(*) FROM users").Scan(&count); err != nil {
+		t.Fatal("down migration 2 removed identity schema")
+	}
 	if _, err := provider.Up(ctx); err != nil {
 		t.Fatal("reapply failed")
+	}
+	if err := database.Ready(ctx, pool); err != nil {
+		t.Fatal("reapplied editorial schema not ready")
+	}
+	if _, err := pool.Exec("ALTER TABLE audit_events RENAME COLUMN request_id TO missing_request_id"); err != nil {
+		t.Fatal(err)
+	}
+	if database.Ready(ctx, pool) == nil {
+		t.Fatal("broken editorial schema was ready")
+	}
+	if _, err := pool.Exec("ALTER TABLE audit_events RENAME COLUMN missing_request_id TO request_id"); err != nil {
+		t.Fatal(err)
 	}
 	if _, err := pool.Exec("ALTER TABLE sessions RENAME COLUMN csrf_token_hash TO missing_hash"); err != nil {
 		t.Fatal(err)
@@ -90,5 +105,48 @@ func TestPragmasAcrossPoolAndReplacementConnections(t *testing.T) {
 			_ = conn.Close()
 		}
 		pool.SetMaxIdleConns(database.PoolSize)
+	}
+}
+
+func TestEditorialMigrationPreservesIdentityAcrossUpgradeAndDown(t *testing.T) {
+	ctx := context.Background()
+	pool := testkit.Open(t)
+	provider := testkit.Migrate(t, pool)
+	if _, err := provider.Down(ctx); err != nil {
+		t.Fatal(err)
+	}
+	q := dbsqlc.New(pool)
+	user, err := q.CreateUser(ctx, dbsqlc.CreateUserParams{GithubUserID: 42, GithubLogin: "preserved", Role: "admin", Status: "active"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if database.Ready(ctx, pool) == nil {
+		t.Fatal("P0-1-only schema accepted")
+	}
+	for round := 0; round < 2; round++ {
+		if _, err := provider.Up(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if database.Ready(ctx, pool) != nil {
+			t.Fatal("schema 2 not ready")
+		}
+		got, err := q.GetUser(ctx, user.ID)
+		if err != nil || got.GithubUserID != 42 {
+			t.Fatal("upgrade lost identity")
+		}
+		if _, err := provider.Down(ctx); err != nil {
+			t.Fatal(err)
+		}
+		got, err = q.GetUser(ctx, user.ID)
+		if err != nil || got.GithubUserID != 42 {
+			t.Fatal("down 2 lost identity")
+		}
+		if database.Ready(ctx, pool) == nil {
+			t.Fatal("down 2 still ready")
+		}
+		var editorialTables int
+		if err := pool.QueryRow("SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('content_items','audit_events')").Scan(&editorialTables); err != nil || editorialTables != 0 {
+			t.Fatal("readiness migrated missing editorial tables")
+		}
 	}
 }

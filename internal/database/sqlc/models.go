@@ -8,6 +8,18 @@ import (
 	"database/sql"
 )
 
+type AuditEvent struct {
+	ID           int64
+	ActorUserID  int64
+	Action       string
+	EntityType   string
+	EntityID     int64
+	RevisionID   sql.NullInt64
+	MetadataJson string
+	RequestID    string
+	CreatedAt    int64
+}
+
 type AuthorProfile struct {
 	UserID      int64
 	Slug        string
@@ -19,11 +31,103 @@ type AuthorProfile struct {
 	UpdatedAt   int64
 }
 
+type ContentDraft struct {
+	ContentID            int64
+	Version              int64
+	Title                string
+	Slug                 string
+	Summary              string
+	BodyMarkdown         string
+	BylineUserID         int64
+	Language             string
+	Featured             int64
+	SeoTitle             string
+	SeoDescription       string
+	PayloadSchemaVersion int64
+	PayloadJson          string
+	UpdatedBy            int64
+	UpdatedAt            int64
+}
+
+type ContentItem struct {
+	ID                      int64
+	Type                    string
+	OwnerUserID             int64
+	EditorialState          string
+	PendingReviewRevisionID sql.NullInt64
+	PublishedRevisionID     sql.NullInt64
+	CreatedBy               int64
+	FirstPublishedAt        sql.NullInt64
+	LastPublishedAt         sql.NullInt64
+	CreatedAt               int64
+	UpdatedAt               int64
+	ArchivedAt              sql.NullInt64
+}
+
+type ContentReview struct {
+	ID              int64
+	ContentID       int64
+	RevisionID      int64
+	ReviewerUserID  int64
+	Decision        string
+	CommentMarkdown string
+	CreatedAt       int64
+}
+
+type ContentRevision struct {
+	ID                   int64
+	ContentID            int64
+	RevisionNo           int64
+	Title                string
+	Slug                 string
+	Summary              string
+	BodyMarkdown         string
+	BylineUserID         int64
+	Language             string
+	Featured             int64
+	SeoTitle             string
+	SeoDescription       string
+	PayloadSchemaVersion int64
+	PayloadJson          string
+	CreatedBy            int64
+	CreatedAt            int64
+}
+
+type ContentRoute struct {
+	ID        int64
+	ContentID int64
+	Path      string
+	Kind      string
+	CreatedAt int64
+}
+
+type DraftTag struct {
+	ContentID int64
+	TagID     int64
+}
+
+type DraftTopicEntry struct {
+	TopicContentID  int64
+	Position        int64
+	TargetContentID int64
+}
+
 type OauthState struct {
 	StateHash  []byte
 	CreatedAt  int64
 	ExpiresAt  int64
 	ConsumedAt sql.NullInt64
+}
+
+type RevisionTag struct {
+	RevisionID int64
+	TagID      int64
+}
+
+type RevisionTopicEntry struct {
+	TopicRevisionID int64
+	Position        int64
+	TargetContentID int64
 }
 
 type Session struct {
@@ -35,6 +139,17 @@ type Session struct {
 	ExpiresAt     int64
 	LastSeenAt    int64
 	RevokedAt     sql.NullInt64
+}
+
+type Tag struct {
+	ID             int64
+	Name           string
+	NormalizedName string
+	Slug           string
+	Description    string
+	CreatedBy      int64
+	CreatedAt      int64
+	UpdatedAt      int64
 }
 
 type User struct {

@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"github.com/deepfurry/gopher-atlas/internal/adminui"
+	"github.com/deepfurry/gopher-atlas/internal/audit"
 	"github.com/deepfurry/gopher-atlas/internal/auth"
 	"github.com/deepfurry/gopher-atlas/internal/config"
+	"github.com/deepfurry/gopher-atlas/internal/content"
 	httptransport "github.com/deepfurry/gopher-atlas/internal/http"
 	"github.com/gofiber/contrib/v3/monitor"
 	fiberzap "github.com/gofiber/contrib/v3/zap"
@@ -29,14 +31,14 @@ func New(deps Dependencies) *fiber.App {
 	server := fiber.New(fiber.Config{
 		AppName:       "GopherAtlas CMS",
 		ErrorHandler:  httptransport.ErrorHandler,
-		BodyLimit:     32 << 10,
+		BodyLimit:     content.JSONBodyLimit,
 		StrictRouting: true,
 		CaseSensitive: true,
 		ReadTimeout:   15 * time.Second,
 		WriteTimeout:  30 * time.Second,
 		IdleTimeout:   60 * time.Second,
 	})
-	handler := &httptransport.Handler{Config: deps.Config, DB: deps.DB, Auth: deps.Auth}
+	handler := &httptransport.Handler{Config: deps.Config, DB: deps.DB, Auth: deps.Auth, Content: content.New(deps.DB)}
 	// Supplied request IDs could carry sensitive data into logs.
 	server.Use(func(c fiber.Ctx) error { c.Request().Header.Del(fiber.HeaderXRequestID); return c.Next() })
 	server.Use(requestid.New(requestid.Config{Generator: utils.UUIDv4}))
@@ -47,6 +49,7 @@ func New(deps Dependencies) *fiber.App {
 		SkipURIs:   []string{"/healthz", "/readyz", "/ops/monitor"},
 	}))
 	server.Use(func(c fiber.Ctx) error {
+		c.SetContext(audit.WithRequestID(c.Context(), requestid.FromContext(c)))
 		c.Set("Cache-Control", "no-store")
 		c.Set("Referrer-Policy", "no-referrer")
 		c.Set("X-Content-Type-Options", "nosniff")

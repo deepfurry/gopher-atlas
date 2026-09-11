@@ -10,6 +10,9 @@
    `make generate` for generated files. Never fix drift by editing generated code.
 4. Test observable behavior and safety boundaries. Update the relevant contract
    when behavior changes; use an ADR for decisions expensive to reverse.
+   Editorial changes need real SQLite race scenarios, relation rollback,
+   immutable snapshot/published isolation and transactional Audit checks.
+   Never edit merged migration 00001; readiness remains read-only at schema 2.
 5. Run `make check`. This checks formatting, Go analysis/tests/build, TS checks,
    contracts, generation drift, disposable SQL tooling and static build artifacts.
    The final Go build uses freshly built Admin assets and `adminembed`; Linux CI

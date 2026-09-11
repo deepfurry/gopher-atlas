@@ -15,7 +15,7 @@ import (
 )
 
 const PoolSize = 4
-const SchemaVersion = 1
+const SchemaVersion = 2
 
 var ErrUnavailable = errors.New("persistence is unavailable or schema is incompatible")
 
@@ -71,6 +71,17 @@ func Ready(ctx context.Context, pool *sql.DB) error {
 		"SELECT user_id, slug, display_name, bio_markdown, avatar_url, website_url, created_at, updated_at FROM author_profiles LIMIT 0",
 		"SELECT id, user_id, token_hash, csrf_token_hash, created_at, expires_at, last_seen_at, revoked_at FROM sessions LIMIT 0",
 		"SELECT state_hash, created_at, expires_at, consumed_at FROM oauth_states LIMIT 0",
+		"SELECT id, type, owner_user_id, editorial_state, pending_review_revision_id, published_revision_id, created_by, first_published_at, last_published_at, created_at, updated_at, archived_at FROM content_items LIMIT 0",
+		"SELECT content_id, version, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, updated_by, updated_at FROM content_drafts LIMIT 0",
+		"SELECT id, content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at FROM content_revisions LIMIT 0",
+		"SELECT id, content_id, revision_id, reviewer_user_id, decision, comment_markdown, created_at FROM content_reviews LIMIT 0",
+		"SELECT id, name, normalized_name, slug, description, created_by, created_at, updated_at FROM tags LIMIT 0",
+		"SELECT content_id, tag_id FROM draft_tags LIMIT 0",
+		"SELECT revision_id, tag_id FROM revision_tags LIMIT 0",
+		"SELECT topic_content_id, position, target_content_id FROM draft_topic_entries LIMIT 0",
+		"SELECT topic_revision_id, position, target_content_id FROM revision_topic_entries LIMIT 0",
+		"SELECT id, content_id, path, kind, created_at FROM content_routes LIMIT 0",
+		"SELECT id, actor_user_id, action, entity_type, entity_id, revision_id, metadata_json, request_id, created_at FROM audit_events LIMIT 0",
 	} {
 		rows, err := pool.QueryContext(ctx, query)
 		if err != nil {

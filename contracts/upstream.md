@@ -55,4 +55,7 @@ CSRF, Markdown, R2 credentials or deploy-hook URL. Client request IDs are replac
 R2 CMS credentials will be bucket-scoped S3 RW assets/content; public builds use
 separate RO content credentials. Immutable assets use `assets.gopheratlas.com`.
 Private content stays private. Cloudflare hooks remain server-only and occur after
-snapshot upload and committed DB transactions. No R2/hooks/import/deploy in P0-1.
+snapshot upload and committed DB transactions. P0-2 editorial transactions perform
+no external I/O: publication only selects SQLite Revision/route/Audit state.
+No R2/hooks/import/deploy exists in this phase. Curated URLs are metadata; the CMS
+does not fetch or copy their source bodies. Public still consumes the v0 fixture.

@@ -20,5 +20,6 @@ the shared plugins and Shiki configuration. The actual Admin editor/preview,
 heading anchors, TOC and copy-code UI belong to P0-3/P0-5. When added, Admin preview
 must use the same plugin list and renderer parity fixtures. Go submit/publish
 validation must independently enforce this contract; browser validation is not a
-security boundary. P0-1 adds Go Goldmark/GFM validation for author biographies,
-checked against the same fixtures, without adding an editor or publication validator.
+security boundary. Go Goldmark/GFM validates author biographies and, in P0-2,
+every saved/submitted body and Review comment against the same safety rules.
+Bodies are at most 512 KiB UTF-8; comments at most 16 KiB. P0-2 adds no editor UI.

@@ -3,9 +3,10 @@
 **Technical Journal × Knowledge Atlas** — 面向 Go 开发者的知识地图与多作者
 Markdown 出版平台。
 
-当前完成 **P0-1：CMS Runtime, Identity, Auth, Logging & Persistence**。
-私有 CMS 已有身份、用户审批、持久会话、个人作者资料、日志和监控；内容编辑、
-审阅、发布与 R2 仍未实现。详见 [阶段范围](docs/implementation-status.md)。
+当前完成 **P0-2：Content Domain & Editorial Workflow**。
+私有 CMS 已有身份运行时和内容领域/API：版本化 Draft、不可变 Revision、审阅、
+发布指针、Tags/Topic、永久路由与 Audit。完整编辑 UI 和 R2 发布链路仍未实现。
+详见 [阶段范围](docs/implementation-status.md)。
 
 ## 架构
 
@@ -18,17 +19,18 @@ Markdown 出版平台。
 公共站不在请求时依赖 CMS；私有服务器离线不影响读者。源码留在 Git，未来内容
 通过 CMS 编辑与发布；about/contribute 页面继续随仓库维护。
 
-| 目录                               | 当前职责                                                               |
-| ---------------------------------- | ---------------------------------------------------------------------- |
-| `apps/web`                         | Astro 静态首页/about/contribute、空 RSS、sitemap、Pagefind 索引        |
-| `apps/admin`                       | React/Vite、shadcn/Base UI、登录/待审批/个人资料/用户管理/Monitor 入口 |
-| `packages/markdown`                | CommonMark/GFM 安全规则与共享 remark 插件                              |
-| `packages/api-client`              | OpenAPI 生成类型、同源请求及 CSRF header                               |
-| `cmd/gopheratlas-cms`              | 配置、共享 logger、SQLite、OAuth 服务的构造与关闭                      |
-| `internal/app`, `internal/http`    | Fiber 中间件顺序、API、错误与 cookie 边界                              |
-| `internal/auth`, `internal/policy` | 身份事务、会话和集中权限判断                                           |
-| `internal/database`, `db`          | SQLite 连接池、真实 goose migrations 和 sqlc queries                   |
-| `internal/adminui`                 | 编译进 Go 二进制的 Admin 生产静态文件                                  |
+| 目录                                 | 当前职责                                                               |
+| ------------------------------------ | ---------------------------------------------------------------------- |
+| `apps/web`                           | Astro 静态首页/about/contribute、空 RSS、sitemap、Pagefind 索引        |
+| `apps/admin`                         | React/Vite、shadcn/Base UI、登录/待审批/个人资料/用户管理/Monitor 入口 |
+| `packages/markdown`                  | CommonMark/GFM 安全规则与共享 remark 插件                              |
+| `packages/api-client`                | OpenAPI 生成类型、同源请求及 CSRF header                               |
+| `cmd/gopheratlas-cms`                | 配置、共享 logger、SQLite、OAuth 服务的构造与关闭                      |
+| `internal/app`, `internal/http`      | Fiber 中间件顺序、API、错误与 cookie 边界                              |
+| `internal/auth`, `internal/policy`   | 身份事务、会话和集中权限判断                                           |
+| `internal/content`, `internal/audit` | 内容工作流、路由、taxonomy 和同事务安全 Audit                          |
+| `internal/database`, `db`            | SQLite 连接池、真实 goose migrations 和 sqlc queries                   |
+| `internal/adminui`                   | 编译进 Go 二进制的 Admin 生产静态文件                                  |
 
 ## 分支模型
 
@@ -61,6 +63,8 @@ make db-up
 
 Bash 使用 `mkdir -p data` 和 `export DATABASE_PATH=./data/gopheratlas.db` 后运行相同
 make 命令。迁移脚本不隐式加载 `.env`；CMS 启动和 `/readyz` 也不会执行迁移。
+已有 P0-1 数据库也需显式运行 `make db-up` 应用 `00002_editorial.sql`；
+原 `00001_identity.sql` 保持不变。P0-2 readiness 要求 schema version 2。
 
 分三个终端启动：
 
@@ -92,7 +96,7 @@ GitHub OAuth App 注册设置。`CMS_BASE_URL` 必须与浏览器 origin 一致�
 身份解析，之后丢弃，不入库。测试只连接本地 fake provider。
 
 - GitHub numeric ID 是身份主键，login 可更新。作者 slug 为 `github-<numeric-id>`，
-  P0-1 不可改名；显示名称、Markdown 简介和网站可编辑。
+  当前不可改名；显示名称、Markdown 简介和网站可编辑。
 - 首次未知用户为 `editor/pending`。无 active Admin 时，只有匹配 bootstrap ID 的
   非 disabled 用户可成为第一个 Admin；存在 Admin 后由用户管理界面审批和授权。
 - Admin 管理用户及 Monitor；Reviewer 和 Editor 只能访问其服务器权限允许的界面。
@@ -120,7 +124,7 @@ make build-cms
 使用内嵌 Admin 本地验证时，将 `CMS_BASE_URL` 和 OAuth 回调改为实际 CMS 浏览器
 origin（例如 `http://127.0.0.1:46217`）。构建产物不包含 `.env` 或 OAuth Secret。
 
-`/healthz` 只表示进程存活；`/readyz` 检查 SQLite 和 P0-1 migration/列集合，缺失或
+`/healthz` 只表示进程存活；`/readyz` 检查 SQLite 和 P0-2 migration/列集合，缺失或
 不兼容返回 503。GitHub 是否在线不影响 readiness。`/ops/monitor` 只有 active
 Admin 能打开；一个 app-wide Monitor 包裹业务请求，Recover 在其后。
 
@@ -137,7 +141,7 @@ make generate        # OpenAPI → TS，真实 migrations/queries → sqlc
 make check           # 最终统一门禁
 ```
 
-门禁包括边界检查、gofmt/vet/staticcheck、Go 身份/数据库/HTTP 测试、前端 lint/
+门禁包括边界检查、gofmt/vet/staticcheck、Go 身份/内容/并发/数据库/HTTP 测试、前端 lint/
 类型/身份 UI 测试、OpenAPI 和生成漂移、goose/sqlc 隔离验证、Public 构建，以及
 Admin 生产构建后的 embed 测试和最终 Go 二进制编译。Linux CI 另外执行
 `go test -race -tags=adminembed ./...`。sqlc 输出与 TS schema 必须经生成，不手改。
@@ -149,8 +153,27 @@ Public 采用技术刊物的阅读层级、自托管 Geist/JetBrains Mono、暖�
 [设计系统](docs/design-system.md)、[AGENTS.md](AGENTS.md)、[架构](.agents/architecture.md)
 及 [ADR](docs/decisions/README.md)。
 
-P0-2 再实现 Content/Draft/Revision、Review/Publish、Tags/Topics、routes、audit 和
-乐观并发。R2 快照、Cloudflare hook、旧站导入和生产切换仍属于之后阶段。
+## P0-2 内容 API
+
+`/api/admin/v1/content` 创建/读取内容；Draft PUT 是包含 `version` 的完整快照，
+同事务更新字段、Tags 和 Topic 顺序。旧版本保存返回 `409 content_version_conflict`。
+正文上限 512 KiB UTF-8，普通 JSON 请求上限 1 MiB，Review comment 上限 16 KiB；
+服务端验证 Markdown 和强类型 payload，拒绝未知 subtype 字段。
+
+Owner/Admin 可提交、撤回及将历史 Revision 恢复到 Draft。Reviewer 只审核 exact
+pending Revision，不能审核自己 owned/byline 的内容；Admin 可以 bypass，也可
+direct publish。发布后继续编辑只改变 Draft，已发布 Revision 指针保持独立。
+Tag 写入、Topic 创建、featured 变更、unpublish/archive 仅 Admin 可操作。
+
+Publish **只表示 SQLite 选定 Revision**，并不表示公共网站已重建。路由历史永久
+保留，重命名将旧路径转为按 Content identity 解析的 redirect；unpublish/archive
+不释放路径。Audit 与重要 mutation 同事务，覆盖身份变更，但不记录 Draft autosave、
+正文、Review comment、payload 或凭据。各 list 使用最多 100 条的 keyset 分页。
+
+接口与请求/响应见 [OpenAPI](contracts/openapi.yaml)，领域约束见
+[Data contract](contracts/data.md) 和 [ADR 0006](docs/decisions/0006-content-revision-and-route-model.md)。
+现有 Admin 仍是身份 UI；P0-3 增加编辑器、Review Workspace、Tag/Audit UI。
+P0-4 才加入 assets/R2/generation/jobs/snapshot v1/Cloudflare hook；旧站导入和生产切换更晚。
 
 ## License
 

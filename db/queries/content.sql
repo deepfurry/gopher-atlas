@@ -1,0 +1,70 @@
+-- name: CreateContent :one
+INSERT INTO content_items(type, owner_user_id, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?) RETURNING *;
+
+-- name: GetContent :one
+SELECT * FROM content_items WHERE id = ?;
+
+-- name: GetDraft :one
+SELECT * FROM content_drafts WHERE content_id = ?;
+
+-- name: CreateDraft :exec
+INSERT INTO content_drafts(content_id, byline_user_id, payload_schema_version, payload_json, updated_by, updated_at)
+VALUES (?, ?, 1, ?, ?, ?);
+
+-- name: SaveDraft :execrows
+UPDATE content_drafts SET title = sqlc.arg(title), slug = sqlc.arg(slug), summary = sqlc.arg(summary), body_markdown = sqlc.arg(body_markdown), byline_user_id = sqlc.arg(byline_user_id), language = sqlc.arg(language), featured = sqlc.arg(featured), seo_title = sqlc.arg(seo_title), seo_description = sqlc.arg(seo_description), payload_schema_version = sqlc.arg(payload_schema_version), payload_json = sqlc.arg(payload_json),
+version = version + 1, updated_by = sqlc.arg(updated_by), updated_at = sqlc.arg(updated_at)
+WHERE content_id = sqlc.arg(content_id) AND version = sqlc.arg(expected_version);
+
+-- name: MarkDraftEdited :exec
+UPDATE content_items SET editorial_state = CASE WHEN editorial_state = 'synced' THEN 'draft' ELSE editorial_state END, updated_at = ? WHERE id = ?;
+
+-- name: SetPendingRevision :exec
+UPDATE content_items SET editorial_state = 'in_review', pending_review_revision_id = ?, updated_at = ? WHERE id = ?;
+
+-- name: ClearPendingRevision :exec
+UPDATE content_items SET editorial_state = ?, pending_review_revision_id = NULL, updated_at = ? WHERE id = ?;
+
+-- name: PublishRevision :exec
+UPDATE content_items SET published_revision_id = sqlc.arg(revision_id), pending_review_revision_id = NULL,
+editorial_state = 'synced', first_published_at = COALESCE(first_published_at, sqlc.arg(now)),
+last_published_at = sqlc.arg(now), updated_at = sqlc.arg(now) WHERE id = sqlc.arg(id);
+
+-- name: UnpublishContent :exec
+UPDATE content_items SET published_revision_id = NULL, pending_review_revision_id = NULL,
+editorial_state = 'draft', updated_at = ? WHERE id = ?;
+
+-- name: ArchiveContent :exec
+UPDATE content_items SET archived_at = sqlc.arg(now), published_revision_id = NULL,
+pending_review_revision_id = NULL, editorial_state = 'draft', updated_at = sqlc.arg(now) WHERE id = sqlc.arg(id);
+
+-- name: RestoreArchive :exec
+UPDATE content_items SET archived_at = NULL, editorial_state = 'draft', updated_at = ? WHERE id = ?;
+
+-- name: SnapshotDraft :one
+INSERT INTO content_revisions(content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at)
+SELECT d.content_id, (SELECT COALESCE(MAX(r.revision_no), 0) + 1 FROM content_revisions r WHERE r.content_id = d.content_id),
+d.title, d.slug, d.summary, d.body_markdown, d.byline_user_id, d.language, d.featured, d.seo_title, d.seo_description, d.payload_schema_version, d.payload_json, sqlc.arg(actor_id), sqlc.arg(now)
+FROM content_drafts d WHERE d.content_id = sqlc.arg(content_id) RETURNING *;
+
+-- name: GetRevision :one
+SELECT * FROM content_revisions WHERE content_id = ? AND revision_no = ?;
+
+-- name: GetRevisionByID :one
+SELECT * FROM content_revisions WHERE content_id = ? AND id = ?;
+
+-- name: ListRevisions :many
+SELECT id, content_id, revision_no, title, slug, byline_user_id, created_by, created_at
+FROM content_revisions WHERE content_id = sqlc.arg(content_id) AND revision_no > sqlc.arg(after_no)
+AND (sqlc.arg(only_revision_id) = 0 OR id = sqlc.arg(only_revision_id))
+ORDER BY revision_no LIMIT sqlc.arg(page_size);
+
+-- name: ListContent :many
+SELECT c.*, d.title AS draft_title, r.title AS revision_title
+FROM content_items c JOIN content_drafts d ON d.content_id = c.id
+LEFT JOIN content_revisions r ON r.id = c.pending_review_revision_id AND r.content_id = c.id
+WHERE c.id > sqlc.arg(after_id)
+AND (c.archived_at IS NULL OR sqlc.arg(include_archived))
+AND (sqlc.arg(is_admin) OR c.owner_user_id = sqlc.arg(actor_id)
+OR (sqlc.arg(is_reviewer) AND c.editorial_state = 'in_review'))
+ORDER BY c.id LIMIT sqlc.arg(page_size);

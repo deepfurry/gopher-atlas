@@ -1,13 +1,12 @@
 openapi: 3.1.0
 info:
-  title: GopherAtlas CMS identity API
-  version: 0.1.0
+  title: GopherAtlas CMS identity and editorial API
+  version: 0.2.0
   description:
-    P0-1 private, same-origin control plane. All errors use the stable envelope; codes
-    include authentication_required, account_pending, account_disabled, permission_denied,
-    csrf_invalid, oauth_state_invalid, oauth_exchange_failed, validation_failed, not_found,
-    last_admin_required, dependency_unavailable and internal_error. /ops/monitor is a separately
-    guarded active-Admin-only contrib HTML/JSON surface, not an application data API.
+    P0-2 private same-origin control plane. Publish selects an immutable SQLite revision,
+    claims permanent routes and appends audit in one transaction; it does not rebuild the public
+    site. Identity security and the separate Admin-only Monitor are unchanged. JSON requests are
+    capped at 1 MiB; Markdown bodies at 512 KiB UTF-8 bytes.
   license:
     name: MIT
     identifier: MIT
@@ -27,6 +26,14 @@ tags:
     description: Current identity and author profile
   - name: Users
     description: Active Admin user management
+  - name: Content
+    description: Mutable drafts and immutable revision workflow
+  - name: Reviews
+    description: Immutable pending material and review history
+  - name: Tags
+    description: Admin-managed persistent taxonomy
+  - name: Audit
+    description: Append-only safe operation history
 paths:
   /healthz:
     get:
@@ -50,8 +57,10 @@ paths:
       operationId: getReadiness
       tags:
         - Runtime
-      summary: Check SQLite reachability and expected identity schema
-      description: Read-only. Does not run migrations or depend on GitHub/R2/Cloudflare availability.
+      summary: Check SQLite and complete identity/editorial schema version 2
+      description:
+        Read-only version and column probes. A P0-1-only database is not ready until migration
+        2 is explicitly applied. Never migrates or contacts external services.
       responses:
         '200':
           description: Successful operation
@@ -483,6 +492,986 @@ paths:
       security:
         - Session: []
           CSRF: []
+  /api/admin/v1/content:
+    get:
+      operationId: listContent
+      tags:
+        - Content
+      summary: List visible content
+      description:
+        Visibility is applied inside the query, before pagination. Only Admin may include
+        archived. Reviewer sees others only while in review, with immutable pending titles.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentList'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: after
+          in: query
+          description:
+            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use
+            revisionNo; other lists use the returned row ID.
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            default: 0
+        - name: includeArchived
+          in: query
+          description: Admin only when true.
+          schema:
+            type: boolean
+            default: false
+    post:
+      operationId: createContent
+      tags:
+        - Content
+      summary: Create identity and initial Draft
+      description:
+        Active roles create own Curated/Post/Note. Topic requires Admin. Initial version 1 may
+        be incomplete; creator/owner/byline are the actor. Atomic creation audit.
+      responses:
+        '201':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - Session: []
+          CSRF: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContentInput'
+  /api/admin/v1/content/{id}:
+    get:
+      operationId: getContent
+      tags:
+        - Content
+      summary: Read visible content detail
+      description: Reviewer inspecting another owner sees pending immutable material and no mutable Draft.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Content or Tag identity.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+  /api/admin/v1/content/{id}/draft:
+    put:
+      operationId: saveDraft
+      tags:
+        - Content
+      summary: Replace Draft with expected version
+      description:
+        Owner/Admin only, not archived or in_review. Saving synced changes state to draft and
+        preserves published selection. No Audit event.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Draft'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Content or Tag identity.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      security:
+        - Session: []
+          CSRF: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DraftInput'
+  /api/admin/v1/content/{id}/revisions:
+    get:
+      operationId: listRevisions
+      tags:
+        - Content
+      summary: List immutable revision summaries
+      description:
+        Reviewer viewing another owner may list only the current pending revision. after is
+        exclusive revisionNo.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevisionList'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Content or Tag identity.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: after
+          in: query
+          description:
+            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use
+            revisionNo; other lists use the returned row ID.
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            default: 0
+  /api/admin/v1/content/{id}/revisions/{revisionNo}:
+    get:
+      operationId: getRevision
+      tags:
+        - Content
+      summary: Read immutable Revision with relations and review
+      description:
+        Visibility follows Content policy. Reviewer viewing another owner may fetch only the
+        current pending revision.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Revision'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Content or Tag identity.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: revisionNo
+          in: path
+          required: true
+          description: Immutable per-content revision number.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+  /api/admin/v1/content/{id}/revisions/{revisionNo}/actions/restore:
+    post:
+      operationId: restoreRevision
+      tags:
+        - Content
+      summary: Copy a historical Revision into Draft
+      description:
+        Owner/Admin, expected current Draft version, not archived/in_review. Copy
+        fields/tags/topic order and bump version; state draft. Preserve published pointer and
+        immutable history. Non-Admin cannot use restoration to change featured.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Content or Tag identity.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: revisionNo
+          in: path
+          required: true
+          description: Immutable per-content revision number.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      security:
+        - Session: []
+          CSRF: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VersionInput'
+  /api/admin/v1/content/{id}/actions/submit-review:
+    post:
+      operationId: submitReview
+      tags:
+        - Content
+      summary: Capture immutable Revision for review
+      description:
+        Owner/Admin from draft or changes_requested, expected Draft version. Complete
+        validation and early route conflict check, snapshot relations, set exact pending pointer and
+        audit.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Content or Tag identity.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      security:
+        - Session: []
+          CSRF: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VersionInput'
+  /api/admin/v1/content/{id}/actions/withdraw-review:
+    post:
+      operationId: withdrawReview
+      tags:
+        - Content
+      summary: Withdraw pending review
+      description: Owner/Admin, in_review only. Keep Revision, clear pending, state draft and audit.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Content or Tag identity.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      security:
+        - Session: []
+          CSRF: []
+  /api/admin/v1/content/{id}/actions/request-changes:
+    post:
+      operationId: requestChanges
+      tags:
+        - Content
+      summary: Request changes on exact pending Revision
+      description:
+        Reviewer/Admin. Reviewer cannot be owner or revision byline; Admin bypasses. Required
+        safe Markdown comment. Append terminal review, clear pending and state changes_requested
+        atomically.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Content or Tag identity.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      security:
+        - Session: []
+          CSRF: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestChangesInput'
+  /api/admin/v1/content/{id}/actions/publish:
+    post:
+      operationId: publishContent
+      tags:
+        - Content
+      summary: Select a published immutable Revision
+      description:
+        'Reviewed mode: Reviewer/Admin, exact pending revisionId with owner/byline self-review
+        prohibition except Admin. Direct mode: Admin from draft/changes_requested, expected Draft
+        version, create new immutable revision without fake approval. Topic targets must be
+        published/unarchived. Route, pointer, review if any and audit commit together. Direct audit
+        action is content.published_direct. No R2, generation, jobs or deploy hook.'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Content or Tag identity.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      security:
+        - Session: []
+          CSRF: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishInput'
+  /api/admin/v1/content/{id}/actions/unpublish:
+    post:
+      operationId: unpublishContent
+      tags:
+        - Content
+      summary: Clear published selection
+      description:
+        Admin only, requires currently selected publication. Clear published and pending, state
+        draft. Preserve revision/review/route history.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Content or Tag identity.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      security:
+        - Session: []
+          CSRF: []
+  /api/admin/v1/content/{id}/actions/archive:
+    post:
+      operationId: archiveContent
+      tags:
+        - Content
+      summary: Archive content
+      description:
+        Admin only. Set archive time, clear published/pending, state draft. Historical routes
+        remain permanently reserved.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Content or Tag identity.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      security:
+        - Session: []
+          CSRF: []
+  /api/admin/v1/content/{id}/actions/restore-archive:
+    post:
+      operationId: restoreArchivedContent
+      tags:
+        - Content
+      summary: Restore archived identity to draft
+      description: Admin only. Clear archive time; remain draft without republishing.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Content or Tag identity.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      security:
+        - Session: []
+          CSRF: []
+  /api/admin/v1/reviews:
+    get:
+      operationId: listReviews
+      tags:
+        - Reviews
+      summary: List review queue or history
+      description:
+        Reviewer/Admin. Pending queue is immutable revision data and excludes reviewer
+        owner/byline self-review. History contains immutable terminal reviews. Each view has its own
+        cursor IDs.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/PendingReviewList'
+                  - $ref: '#/components/schemas/ReviewHistoryList'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: after
+          in: query
+          description:
+            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use
+            revisionNo; other lists use the returned row ID.
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            default: 0
+        - name: view
+          in: query
+          description: Pending immutable submissions or terminal review history.
+          schema:
+            type: string
+            enum:
+              - pending
+              - history
+            default: pending
+  /api/admin/v1/tags:
+    get:
+      operationId: listTags
+      tags:
+        - Tags
+      summary: List selectable tags
+      description: All active roles. No hard delete in P0-2.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagList'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: after
+          in: query
+          description:
+            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use
+            revisionNo; other lists use the returned row ID.
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            default: 0
+    post:
+      operationId: createTag
+      tags:
+        - Tags
+      summary: Create tag
+      description: Admin only; normalized name and explicit slug must be unique. Atomic audit.
+      responses:
+        '201':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - Session: []
+          CSRF: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagInput'
+  /api/admin/v1/tags/{id}:
+    put:
+      operationId: updateTag
+      tags:
+        - Tags
+      summary: Update tag
+      description:
+        Admin only. Explicit slug is persisted; changing name never computes a new slug. Atomic
+        audit.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Content or Tag identity.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      security:
+        - Session: []
+          CSRF: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagInput'
+  /api/admin/v1/audit:
+    get:
+      operationId: listAudit
+      tags:
+        - Audit
+      summary: List safe audit history
+      description: Admin/Reviewer only; Editor denied. Draft saves and failed mutations are omitted.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditList'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: after
+          in: query
+          description:
+            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use
+            revisionNo; other lists use the returned row ID.
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            default: 0
+  /api/admin/v1/content/{id}/routes:
+    get:
+      operationId: listContentRoutes
+      tags:
+        - Content
+      summary: List permanent route history
+      description:
+        Content object visibility applies. Bounded keyset pages ordered by route row ID;
+        redirects retain content identity and resolve directly to the current canonical route.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RouteList'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Content or Tag identity.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: after
+          in: query
+          description:
+            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use
+            revisionNo; other lists use the returned row ID.
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            default: 0
 components:
   securitySchemes:
     Session:
@@ -714,6 +1703,32 @@ components:
           properties:
             code:
               type: string
+              enum:
+                - authentication_required
+                - account_pending
+                - account_disabled
+                - permission_denied
+                - csrf_invalid
+                - oauth_state_invalid
+                - oauth_exchange_failed
+                - validation_failed
+                - not_found
+                - last_admin_required
+                - dependency_unavailable
+                - internal_error
+                - method_not_allowed
+                - payload_too_large
+                - content_version_conflict
+                - invalid_editorial_state
+                - route_conflict
+                - review_revision_conflict
+                - self_review_forbidden
+                - content_archived
+                - content_not_published
+                - invalid_markdown
+                - invalid_payload
+                - tag_conflict
+                - topic_target_unpublished
             message:
               type: string
             requestId:
@@ -722,3 +1737,1071 @@ components:
               type: object
               additionalProperties:
                 type: string
+    ContentType:
+      type: string
+      enum:
+        - curated_article
+        - post
+        - note
+        - topic
+    EditorialState:
+      type: string
+      enum:
+        - draft
+        - in_review
+        - changes_requested
+        - synced
+    TopicEntry:
+      type: object
+      additionalProperties: false
+      required:
+        - targetContentId
+      properties:
+        targetContentId:
+          type: integer
+          format: int64
+          minimum: 1
+      description:
+        Content identity reference. Array order becomes one-based position. Self and duplicate
+        targets are invalid. Unpublished targets are allowed until Topic publication.
+    PostPayload:
+      type: object
+      additionalProperties: false
+      required: []
+      properties: {}
+    NotePayload:
+      type: object
+      additionalProperties: false
+      required: []
+      properties:
+        group:
+          type: string
+          maxLength: 100
+        groupSlug:
+          type: string
+          maxLength: 100
+          pattern: ^(?:[a-z0-9]+(?:-[a-z0-9]+)*)?$
+        order:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000
+    TopicPayload:
+      type: object
+      additionalProperties: false
+      required: []
+      properties:
+        order:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000
+    RelatedLink:
+      type: object
+      additionalProperties: false
+      required:
+        - label
+        - url
+      properties:
+        label:
+          type: string
+          maxLength: 200
+          minLength: 1
+        url:
+          type: string
+          maxLength: 2048
+          description: Absolute safe HTTP(S) URL.
+    CuratedPayload:
+      type: object
+      additionalProperties: false
+      required: []
+      properties:
+        sourceUrl:
+          type: string
+          maxLength: 2048
+          description: Required and absolute HTTP(S) before submission; empty allowed in incomplete drafts.
+        originalUrl:
+          type: string
+          maxLength: 2048
+          description: Empty or absolute safe HTTP(S) URL.
+        sourceAuthor:
+          type: string
+          maxLength: 200
+        sourceName:
+          type: string
+          maxLength: 200
+        sourcePublishedAt:
+          type: string
+          maxLength: 10
+          description: Empty or valid YYYY-MM-DD date.
+        sourceLanguage:
+          type: string
+          maxLength: 32
+        difficulty:
+          type: string
+          maxLength: 32
+        rating:
+          type: string
+          maxLength: 16
+        mustRead:
+          type: boolean
+        relatedLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/RelatedLink'
+          maxItems: 20
+    TypedPayload:
+      anyOf:
+        - $ref: '#/components/schemas/PostPayload'
+        - $ref: '#/components/schemas/NotePayload'
+        - $ref: '#/components/schemas/TopicPayload'
+        - $ref: '#/components/schemas/CuratedPayload'
+      description:
+        Subtype is determined by immutable Content.type. Unknown fields are rejected for that
+        type. Omitted known subtype fields receive their Go zero/default values, then validated
+        structs are marshaled canonically. Note group/groupSlug and Curated sourceUrl must be
+        complete before submission/publication. payloadSchemaVersion is always 1.
+    DraftInput:
+      type: object
+      additionalProperties: false
+      required:
+        - version
+        - title
+        - slug
+        - summary
+        - bodyMarkdown
+        - bylineUserId
+        - language
+        - featured
+        - seoTitle
+        - seoDescription
+        - payload
+        - tagIds
+        - topicEntries
+      properties:
+        version:
+          type: integer
+          format: int64
+          minimum: 1
+        title:
+          type: string
+          maxLength: 200
+          description: May be empty while authoring; required before submission/publication.
+        slug:
+          type: string
+          maxLength: 100
+          pattern: ^(?:[a-z0-9]+(?:-[a-z0-9]+)*)?$
+        summary:
+          type: string
+          maxLength: 4000
+        bodyMarkdown:
+          type: string
+          description:
+            At most 524288 UTF-8 bytes. Server CommonMark/GFM safety rules reject H1, frontmatter,
+            raw HTML/MDX, unsafe URLs and uncontrolled images.
+        bylineUserId:
+          type: integer
+          format: int64
+          minimum: 1
+        language:
+          type: string
+          maxLength: 32
+          description: Empty while authoring, otherwise bounded language tag; required before submission.
+        featured:
+          type: boolean
+        seoTitle:
+          type: string
+          maxLength: 120
+        seoDescription:
+          type: string
+          maxLength: 320
+        payload:
+          $ref: '#/components/schemas/TypedPayload'
+        tagIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+            minimum: 1
+          maxItems: 100
+          uniqueItems: true
+        topicEntries:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopicEntry'
+          maxItems: 100
+      description:
+        Complete replacement snapshot; every property is required. version is the expected
+        current Draft version. Fields, tags and topic entries commit atomically, incrementing
+        version once. A stale version returns 409 content_version_conflict without partial writes.
+        Only Admin may change featured or assign another byline. Topic cannot use tags; other types
+        cannot use topic entries.
+    Draft:
+      type: object
+      additionalProperties: false
+      required:
+        - version
+        - title
+        - slug
+        - summary
+        - bodyMarkdown
+        - bylineUserId
+        - language
+        - featured
+        - seoTitle
+        - seoDescription
+        - payload
+        - tagIds
+        - topicEntries
+        - payloadSchemaVersion
+        - updatedBy
+        - updatedAt
+      properties:
+        version:
+          type: integer
+          format: int64
+          minimum: 1
+        title:
+          type: string
+          maxLength: 200
+          description: May be empty while authoring; required before submission/publication.
+        slug:
+          type: string
+          maxLength: 100
+          pattern: ^(?:[a-z0-9]+(?:-[a-z0-9]+)*)?$
+        summary:
+          type: string
+          maxLength: 4000
+        bodyMarkdown:
+          type: string
+          description:
+            At most 524288 UTF-8 bytes. Server CommonMark/GFM safety rules reject H1, frontmatter,
+            raw HTML/MDX, unsafe URLs and uncontrolled images.
+        bylineUserId:
+          type: integer
+          format: int64
+          minimum: 1
+        language:
+          type: string
+          maxLength: 32
+          description: Empty while authoring, otherwise bounded language tag; required before submission.
+        featured:
+          type: boolean
+        seoTitle:
+          type: string
+          maxLength: 120
+        seoDescription:
+          type: string
+          maxLength: 320
+        payload:
+          $ref: '#/components/schemas/TypedPayload'
+        tagIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+            minimum: 1
+          maxItems: 100
+          uniqueItems: true
+        topicEntries:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopicEntry'
+          maxItems: 100
+        payloadSchemaVersion:
+          type: integer
+          const: 1
+        updatedBy:
+          type: integer
+          format: int64
+          minimum: 1
+        updatedAt:
+          type: integer
+          format: int64
+          minimum: 0
+    ContentSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - type
+        - ownerUserId
+        - editorialState
+        - pendingReviewRevisionId
+        - publishedRevisionId
+        - title
+        - createdBy
+        - createdAt
+        - updatedAt
+        - firstPublishedAt
+        - lastPublishedAt
+        - archivedAt
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        type:
+          $ref: '#/components/schemas/ContentType'
+        ownerUserId:
+          type: integer
+          format: int64
+          minimum: 1
+        editorialState:
+          $ref: '#/components/schemas/EditorialState'
+        pendingReviewRevisionId:
+          type:
+            - integer
+            - 'null'
+          format: int64
+        publishedRevisionId:
+          type:
+            - integer
+            - 'null'
+          format: int64
+        title:
+          type: string
+          maxLength: 200
+        createdBy:
+          type: integer
+          format: int64
+          minimum: 1
+        createdAt:
+          type: integer
+          format: int64
+          minimum: 0
+        updatedAt:
+          type: integer
+          format: int64
+          minimum: 0
+        firstPublishedAt:
+          type:
+            - integer
+            - 'null'
+          format: int64
+        lastPublishedAt:
+          type:
+            - integer
+            - 'null'
+          format: int64
+        archivedAt:
+          type:
+            - integer
+            - 'null'
+          format: int64
+      description:
+        Published selection is independent from editorialState. Editing a synced draft changes
+        state to draft without changing the published revision.
+    Route:
+      type: object
+      additionalProperties: false
+      required:
+        - path
+        - kind
+      properties:
+        path:
+          type: string
+        kind:
+          type: string
+          enum:
+            - canonical
+            - redirect
+      description:
+        Permanently owned path. At most one canonical per Content. Redirects resolve by content
+        identity to the current canonical, without chains. Unpublish/archive never release paths.
+    Content:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - type
+        - ownerUserId
+        - editorialState
+        - pendingReviewRevisionId
+        - publishedRevisionId
+        - title
+        - createdBy
+        - createdAt
+        - updatedAt
+        - firstPublishedAt
+        - lastPublishedAt
+        - archivedAt
+        - draft
+        - pendingRevision
+        - routes
+        - nextRouteCursor
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        type:
+          $ref: '#/components/schemas/ContentType'
+        ownerUserId:
+          type: integer
+          format: int64
+          minimum: 1
+        editorialState:
+          $ref: '#/components/schemas/EditorialState'
+        pendingReviewRevisionId:
+          type:
+            - integer
+            - 'null'
+          format: int64
+        publishedRevisionId:
+          type:
+            - integer
+            - 'null'
+          format: int64
+        title:
+          type: string
+          maxLength: 200
+        createdBy:
+          type: integer
+          format: int64
+          minimum: 1
+        createdAt:
+          type: integer
+          format: int64
+          minimum: 0
+        updatedAt:
+          type: integer
+          format: int64
+          minimum: 0
+        firstPublishedAt:
+          type:
+            - integer
+            - 'null'
+          format: int64
+        lastPublishedAt:
+          type:
+            - integer
+            - 'null'
+          format: int64
+        archivedAt:
+          type:
+            - integer
+            - 'null'
+          format: int64
+        draft:
+          anyOf:
+            - $ref: '#/components/schemas/Draft'
+            - type: 'null'
+        pendingRevision:
+          anyOf:
+            - $ref: '#/components/schemas/Revision'
+            - type: 'null'
+        routes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Route'
+          maxItems: 100
+        nextRouteCursor:
+          type:
+            - integer
+            - 'null'
+          format: int64
+          description: Exclusive cursor for GET /content/{id}/routes when more route history may exist.
+      description:
+        Editors see their own content. Reviewer access to another owner is limited to an
+        in-review immutable pending revision; draft is null. Admin sees all, including archived. A
+        completed action may return summary with null draft/pendingRevision when the actor no longer
+        has view access.
+    ReviewDecision:
+      type: string
+      enum:
+        - changes_requested
+        - approved
+    Review:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - contentId
+        - revisionId
+        - reviewerUserId
+        - decision
+        - commentMarkdown
+        - createdAt
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        contentId:
+          type: integer
+          format: int64
+          minimum: 1
+        revisionId:
+          type: integer
+          format: int64
+          minimum: 1
+        reviewerUserId:
+          type: integer
+          format: int64
+          minimum: 1
+        decision:
+          $ref: '#/components/schemas/ReviewDecision'
+        commentMarkdown:
+          type: string
+          description: Safe Markdown, at most 16384 UTF-8 bytes.
+        createdAt:
+          type: integer
+          format: int64
+          minimum: 0
+    RevisionSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - contentId
+        - revisionNo
+        - title
+        - slug
+        - bylineUserId
+        - createdBy
+        - createdAt
+        - pending
+        - published
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        contentId:
+          type: integer
+          format: int64
+          minimum: 1
+        revisionNo:
+          type: integer
+          format: int64
+          minimum: 1
+        title:
+          type: string
+          maxLength: 200
+        slug:
+          type: string
+          maxLength: 100
+          pattern: ^[a-z0-9]+(?:-[a-z0-9]+)*$
+        bylineUserId:
+          type: integer
+          format: int64
+          minimum: 1
+        createdBy:
+          type: integer
+          format: int64
+          minimum: 1
+        createdAt:
+          type: integer
+          format: int64
+          minimum: 0
+        pending:
+          type: boolean
+        published:
+          type: boolean
+    Revision:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - contentId
+        - revisionNo
+        - title
+        - slug
+        - summary
+        - bodyMarkdown
+        - bylineUserId
+        - language
+        - featured
+        - seoTitle
+        - seoDescription
+        - payload
+        - tagIds
+        - topicEntries
+        - payloadSchemaVersion
+        - createdBy
+        - createdAt
+        - pending
+        - published
+        - review
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        contentId:
+          type: integer
+          format: int64
+          minimum: 1
+        revisionNo:
+          type: integer
+          format: int64
+          minimum: 1
+        title:
+          type: string
+          maxLength: 200
+          description: May be empty while authoring; required before submission/publication.
+        slug:
+          type: string
+          maxLength: 100
+          pattern: ^(?:[a-z0-9]+(?:-[a-z0-9]+)*)?$
+        summary:
+          type: string
+          maxLength: 4000
+        bodyMarkdown:
+          type: string
+          description:
+            At most 524288 UTF-8 bytes. Server CommonMark/GFM safety rules reject H1, frontmatter,
+            raw HTML/MDX, unsafe URLs and uncontrolled images.
+        bylineUserId:
+          type: integer
+          format: int64
+          minimum: 1
+        language:
+          type: string
+          maxLength: 32
+          description: Empty while authoring, otherwise bounded language tag; required before submission.
+        featured:
+          type: boolean
+        seoTitle:
+          type: string
+          maxLength: 120
+        seoDescription:
+          type: string
+          maxLength: 320
+        payload:
+          $ref: '#/components/schemas/TypedPayload'
+        tagIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+            minimum: 1
+          maxItems: 100
+          uniqueItems: true
+        topicEntries:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopicEntry'
+          maxItems: 100
+        payloadSchemaVersion:
+          type: integer
+          const: 1
+        createdBy:
+          type: integer
+          format: int64
+          minimum: 1
+        createdAt:
+          type: integer
+          format: int64
+          minimum: 0
+        pending:
+          type: boolean
+        published:
+          type: boolean
+        review:
+          anyOf:
+            - $ref: '#/components/schemas/Review'
+            - type: 'null'
+      description:
+        Immutable persisted fields, typed payload and relation snapshot. Restore copies to
+        Draft and never updates this Revision or the published pointer.
+    PendingReview:
+      type: object
+      additionalProperties: false
+      required:
+        - revisionId
+        - contentId
+        - revisionNo
+        - title
+        - ownerUserId
+        - bylineUserId
+        - submittedAt
+      properties:
+        revisionId:
+          type: integer
+          format: int64
+          minimum: 1
+        contentId:
+          type: integer
+          format: int64
+          minimum: 1
+        revisionNo:
+          type: integer
+          format: int64
+          minimum: 1
+        title:
+          type: string
+          maxLength: 200
+        ownerUserId:
+          type: integer
+          format: int64
+          minimum: 1
+        bylineUserId:
+          type: integer
+          format: int64
+          minimum: 1
+        submittedAt:
+          type: integer
+          format: int64
+          minimum: 0
+    TagInput:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - slug
+        - description
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 1
+        slug:
+          type: string
+          maxLength: 100
+          pattern: ^[a-z0-9]+(?:-[a-z0-9]+)*$
+        description:
+          type: string
+          maxLength: 1000
+      description:
+        Admin only. Names are trimmed, whitespace collapsed and lowercased for deterministic
+        uniqueness. Slug is explicit and is never recomputed from name.
+    Tag:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - slug
+        - description
+        - createdBy
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        name:
+          type: string
+          maxLength: 100
+          minLength: 1
+        slug:
+          type: string
+          maxLength: 100
+          pattern: ^[a-z0-9]+(?:-[a-z0-9]+)*$
+        description:
+          type: string
+          maxLength: 1000
+        createdBy:
+          type: integer
+          format: int64
+          minimum: 1
+        createdAt:
+          type: integer
+          format: int64
+          minimum: 0
+        updatedAt:
+          type: integer
+          format: int64
+          minimum: 0
+    AuditEvent:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - actorUserId
+        - action
+        - entityType
+        - entityId
+        - revisionId
+        - metadata
+        - requestId
+        - createdAt
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        actorUserId:
+          type: integer
+          format: int64
+          minimum: 1
+        action:
+          type: string
+          enum:
+            - auth.login
+            - user.approved
+            - user.role_changed
+            - user.disabled
+            - user.enabled
+            - author.profile_updated
+            - content.created
+            - content.submitted
+            - content.review_withdrawn
+            - content.changes_requested
+            - content.published
+            - content.published_direct
+            - content.unpublished
+            - content.archived
+            - content.archive_restored
+            - content.revision_restored
+            - tag.created
+            - tag.updated
+        entityType:
+          type: string
+          enum:
+            - user
+            - author
+            - content
+            - tag
+        entityId:
+          type: integer
+          format: int64
+          minimum: 1
+        revisionId:
+          type:
+            - integer
+            - 'null'
+          format: int64
+        metadata:
+          type: object
+          additionalProperties: false
+          required: []
+          properties:
+            role:
+              type: string
+              enum:
+                - admin
+                - reviewer
+                - editor
+            status:
+              type: string
+              enum:
+                - pending
+                - active
+                - disabled
+        requestId:
+          type: string
+          maxLength: 36
+          description:
+            Server-generated UUID or empty for a non-HTTP operation. Never an incoming request
+            header.
+        createdAt:
+          type: integer
+          format: int64
+          minimum: 0
+      description:
+        Append-only and transactionally coupled to mutations. Contains no body, review comment,
+        typed payload, credential or browser token. Draft save/autosave is not audited.
+    ContentList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentSummary'
+          maxItems: 100
+        nextCursor:
+          type:
+            - integer
+            - 'null'
+          format: int64
+          description:
+            Use as after for the next page. Null ends pagination. A full final page may yield one
+            empty next page.
+    RevisionList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RevisionSummary'
+          maxItems: 100
+        nextCursor:
+          type:
+            - integer
+            - 'null'
+          format: int64
+          description:
+            Use as after for the next page. Null ends pagination. A full final page may yield one
+            empty next page.
+    PendingReviewList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PendingReview'
+          maxItems: 100
+        nextCursor:
+          type:
+            - integer
+            - 'null'
+          format: int64
+          description:
+            Use as after for the next page. Null ends pagination. A full final page may yield one
+            empty next page.
+    ReviewHistoryList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+          maxItems: 100
+        nextCursor:
+          type:
+            - integer
+            - 'null'
+          format: int64
+          description:
+            Use as after for the next page. Null ends pagination. A full final page may yield one
+            empty next page.
+    TagList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          maxItems: 100
+        nextCursor:
+          type:
+            - integer
+            - 'null'
+          format: int64
+          description:
+            Use as after for the next page. Null ends pagination. A full final page may yield one
+            empty next page.
+    AuditList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+          maxItems: 100
+        nextCursor:
+          type:
+            - integer
+            - 'null'
+          format: int64
+          description:
+            Use as after for the next page. Null ends pagination. A full final page may yield one
+            empty next page.
+    CreateContentInput:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+      properties:
+        type:
+          $ref: '#/components/schemas/ContentType'
+    VersionInput:
+      type: object
+      additionalProperties: false
+      required:
+        - version
+      properties:
+        version:
+          type: integer
+          format: int64
+          minimum: 1
+    RequestChangesInput:
+      type: object
+      additionalProperties: false
+      required:
+        - revisionId
+        - commentMarkdown
+      properties:
+        revisionId:
+          type: integer
+          format: int64
+          minimum: 1
+        commentMarkdown:
+          type: string
+          description: Required nonblank safe Markdown, at most 16384 UTF-8 bytes.
+          minLength: 1
+    PublishReviewedInput:
+      type: object
+      additionalProperties: false
+      required:
+        - mode
+        - revisionId
+      properties:
+        mode:
+          type: string
+          const: reviewed
+        revisionId:
+          type: integer
+          format: int64
+          minimum: 1
+        commentMarkdown:
+          type: string
+          description: Optional safe Markdown, at most 16384 UTF-8 bytes.
+    PublishDirectInput:
+      type: object
+      additionalProperties: false
+      required:
+        - mode
+        - version
+      properties:
+        mode:
+          type: string
+          const: direct
+        version:
+          type: integer
+          format: int64
+          minimum: 1
+    PublishInput:
+      oneOf:
+        - $ref: '#/components/schemas/PublishReviewedInput'
+        - $ref: '#/components/schemas/PublishDirectInput'
+      discriminator:
+        propertyName: mode
+        mapping:
+          reviewed: '#/components/schemas/PublishReviewedInput'
+          direct: '#/components/schemas/PublishDirectInput'
+    RouteList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/Route'
+        nextCursor:
+          type:
+            - integer
+            - 'null'
+          format: int64

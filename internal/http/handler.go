@@ -8,9 +8,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/deepfurry/gopher-atlas/internal/auth"
 	"github.com/deepfurry/gopher-atlas/internal/config"
+	"github.com/deepfurry/gopher-atlas/internal/content"
 	"github.com/deepfurry/gopher-atlas/internal/database"
 	dbsqlc "github.com/deepfurry/gopher-atlas/internal/database/sqlc"
 	"github.com/deepfurry/gopher-atlas/internal/fault"
@@ -19,9 +21,10 @@ import (
 )
 
 type Handler struct {
-	Auth   *auth.Service
-	DB     *sql.DB
-	Config config.Config
+	Auth    *auth.Service
+	DB      *sql.DB
+	Config  config.Config
+	Content *content.Service
 }
 type principalKey struct{}
 
@@ -216,6 +219,9 @@ func (h *Handler) updateProfile(c fiber.Ctx) error {
 	return c.JSON(profileJSON(profile))
 }
 func decode(c fiber.Ctx, target any) error {
+	if !utf8.Valid(c.Body()) {
+		return fault.Validation
+	}
 	if strings.Split(c.Get("Content-Type"), ";")[0] != "application/json" {
 		return fault.Validation
 	}

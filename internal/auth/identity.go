@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/deepfurry/gopher-atlas/internal/audit"
 	dbsqlc "github.com/deepfurry/gopher-atlas/internal/database/sqlc"
 	"github.com/deepfurry/gopher-atlas/internal/fault"
 	"github.com/deepfurry/gopher-atlas/internal/oauth"
@@ -90,6 +91,9 @@ func (s *Service) login(ctx context.Context, identity oauth.Identity, oldSession
 	_, err = q.CreateSession(ctx, dbsqlc.CreateSessionParams{UserID: user.ID, TokenHash: Hash(sessionToken), CsrfTokenHash: Hash(csrfToken), CreatedAt: now.UnixMilli(), ExpiresAt: expires.UnixMilli(), LastSeenAt: now.UnixMilli()})
 	if err != nil {
 		return Credentials{}, fault.Unavailable
+	}
+	if err := audit.Append(ctx, q, audit.Event{ActorID: user.ID, Action: "auth.login", EntityType: "user", EntityID: user.ID}, now.UnixMilli()); err != nil {
+		return Credentials{}, err
 	}
 	if err := tx.Commit(); err != nil {
 		return Credentials{}, fault.Unavailable

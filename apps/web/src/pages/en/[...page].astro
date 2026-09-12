@@ -1,7 +1,11 @@
 ---
 import SitePage from '../../components/SitePage.astro';
+import PublicationPage from '../../components/PublicationPage.astro';
+import { publication } from '../../lib/publication/snapshot';
+import { publicPages, type PublicPage } from '../../lib/publication/routes';
+import { chromePaths } from '../../lib/i18n';
 export function getStaticPaths() {
-  return [
+  const chrome = [
     'home',
     'articles',
     'topics',
@@ -9,21 +13,41 @@ export function getStaticPaths() {
     'about',
     'contribute',
     'search',
+    'authors',
+    'tags',
   ].map((page) => ({
     params: { page: page === 'home' ? undefined : page },
     props: { page },
   }));
+  return [
+    ...chrome,
+    ...publicPages(publication)
+      .filter((page) => !chromePaths.includes(page.path))
+      .map((contentPage) => ({
+        params: { page: contentPage.path.slice(1, -1) },
+        props: { contentPage },
+      })),
+  ];
 }
 interface Props {
-  page:
+  contentPage?: PublicPage;
+  page?:
     | 'home'
     | 'articles'
     | 'topics'
     | 'notes'
     | 'about'
     | 'contribute'
-    | 'search';
+    | 'search'
+    | 'authors'
+    | 'tags';
 }
 ---
 
-<SitePage page={Astro.props.page} locale="en" />
+{
+  Astro.props.contentPage ? (
+    <PublicationPage page={Astro.props.contentPage} locale="en" />
+  ) : (
+    <SitePage page={Astro.props.page!} locale="en" />
+  )
+}

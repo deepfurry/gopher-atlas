@@ -1,4 +1,4 @@
-import { words, type Locale } from './i18n';
+import { words, localized, type Locale } from './i18n';
 interface SearchData {
   url: string;
   meta: { title?: string };
@@ -58,7 +58,8 @@ export function mountSearch(
   root: HTMLElement,
   load: () => Promise<SearchAPI> = loadPagefind,
 ) {
-  const t = words[(document.documentElement.dataset.locale as Locale) || 'zh'];
+  const locale = (document.documentElement.dataset.locale as Locale) || 'zh',
+    t = words[locale];
   const form = root.querySelector<HTMLFormElement>('form')!;
   const input = root.querySelector<HTMLInputElement>('input')!;
   const status = root.querySelector<HTMLElement>('[role=status]')!;
@@ -83,7 +84,7 @@ export function mountSearch(
           h2 = document.createElement('h2'),
           link = document.createElement('a'),
           excerpt = document.createElement('p');
-        link.href = data.url;
+        link.href = localized(data.url, locale);
         link.textContent = data.meta.title || t.readContent;
         excerpt.textContent = excerptText(data.plain_excerpt);
         h2.append(link);

@@ -6,7 +6,7 @@ The P0-5.5 product rebuild preserves the current Admin Shell.
 ## Public implementation
 
 ADR 0012 and the original GopherAtlas define the product baseline. Public CSS is
-split into tokens, chrome, legacy hero, products and reading; global.css contains
+split into tokens, chrome, legacy hero, products, reading and motion; global.css contains
 base rules in a lower CSS layer so component/keyboard/mobile rules win correctly.
 
 | Token      | Light   | Dark    |
@@ -28,13 +28,26 @@ occupy the leading recommendedCount entries with two-entry pagination. Notes sho
 group metadata and four-entry pagination. Post routes remain compatible but hidden
 from primary UX, RSS and Pagefind.
 
-Note reading uses 752 px + 256 px TOC, 17 px / 1.9 body, restrained H2/H3, Shiki
+Note reading restores the full-width legacy heading and 8 px panel, with a 240 px
+TOC beside the body, 17 px / 1.9 body, restrained H2/H3, Shiki
 light/dark code with language/copy controls, scrollable code/tables, safe images,
 footnotes and same-group previous/next links. Below 1100 px the TOC is inline.
 Curated rationale and Topic guides use the same parser without forced TOCs.
 
-Seven site-owned /en/ pages translate chrome and static guidance. Authored content
-and canonical detail routes remain unchanged. Giscus uses public configuration,
+Seven site-owned /en/ pages translate static guidance. All content and auxiliary
+collection pages also have /en/ chrome aliases, including pagination. The language
+control preserves the current path/query/fragment; canonical detail routes and
+Markdown remain unchanged, aliases stay outside sitemap/Pagefind.
+
+The legacy transition is 500 ms. PublicSelect uses the old SVG chevron, 48 px
+trigger, 288 px scrollable menu and opacity/8 px translate transition. Closed lists
+are inert/aria-hidden immediately while the visual transition completes.
+Header subtitle remains visible at 768 px; Topic grid is 1/2/3 columns at
+1024/1280 px. Article Hero splits at 768 px and filter fields at 1280 px.
+Home hero-rise enters at 80/180/300/380 ms (780 ms duration), the visual at 440 ms.
+Page/card/stats entries use 820 ms; reduced motion disables them. The footer uses
+Copyright 2026[-current year] DeepFurry with contribution/about/search/RSS links.
+Giscus uses public configuration,
 lazy Note-only loading, stable note terms and theme messages; the disabled/error
 states never obstruct reading. It is disabled in transient Draft Preview.
 

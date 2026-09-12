@@ -1,15 +1,22 @@
 ---
 import MarkdownBody from './MarkdownBody.astro';
-import { words, type Locale } from '../lib/i18n';
-import { dateLabel, type Publication } from '../lib/publication/indexes';
+import { displayDate, words, localized, type Locale } from '../lib/i18n';
+import { type Publication } from '../lib/publication/indexes';
 import type { Content } from '../lib/publication/types';
 interface Props {
   item: Extract<Content, { type: 'curated_article' }>;
   publication: Publication;
   locale?: Locale;
   searchable?: boolean;
+  order?: number;
 }
-const { item, publication: p, locale = 'zh', searchable = false } = Astro.props;
+const {
+  item,
+  publication: p,
+  locale = 'zh',
+  searchable = false,
+  order = 0,
+} = Astro.props;
 const t = words[locale],
   source = item.payload;
 const topics = (p.contentByType.get('topic') ?? []).filter((topic) =>
@@ -20,6 +27,7 @@ const tags = item.tagIds.map((id) => p.tagById.get(id)!);
 
 <article
   class="article-card"
+  style={`--card-order:${order % 12}`}
   lang={item.language}
   data-article={searchable ? '' : undefined}
   data-id={item.id}
@@ -38,7 +46,7 @@ const tags = item.tagIds.map((id) => p.tagById.get(id)!);
     <div class="tag-list">
       {
         topics.map((topic) => (
-          <a class="chip" href={topic.canonicalPath}>
+          <a class="chip" href={localized(topic.canonicalPath, locale)}>
             {topic.title}
           </a>
         ))
@@ -46,12 +54,14 @@ const tags = item.tagIds.map((id) => p.tagById.get(id)!);
     </div><span class="rating" data-rating={source.rating}>{source.rating}</span
     >
   </div>
-  <h2>
-    <a href={source.sourceUrl} target="_blank" rel="noopener noreferrer"
-      >{item.title}</a
-    >
-  </h2>
-  <p class="summary">{item.summary}</p>
+  <div class="article-heading">
+    <h2>
+      <a href={source.sourceUrl} target="_blank" rel="noopener noreferrer"
+        >{item.title}</a
+      >
+    </h2>
+    <p class="summary">{item.summary}</p>
+  </div>
   <div class="small-meta">
     <span
       >{
@@ -60,7 +70,7 @@ const tags = item.tagIds.map((id) => p.tagById.get(id)!);
     >{
       source.sourcePublishedAt && (
         <span>
-          {t.sourceDate} {source.sourcePublishedAt.slice(0, 10)}
+          {t.sourceDate} {displayDate(source.sourcePublishedAt, locale)}
         </span>
       )
     }<span
@@ -80,7 +90,7 @@ const tags = item.tagIds.map((id) => p.tagById.get(id)!);
     {
       tags.map((tag) => (
         <li>
-          <a class="chip" href={`/tags/${tag.slug}/`}>
+          <a class="chip" href={localized(`/tags/${tag.slug}/`, locale)}>
             {tag.name}
           </a>
         </li>
@@ -106,7 +116,7 @@ const tags = item.tagIds.map((id) => p.tagById.get(id)!);
       )
     }<button type="button" data-copy-text={source.sourceUrl}
       >{t.copySource}</button
-    ><a class="btn" href={item.canonicalPath}>{t.archive}</a>
+    >
   </div>
   {
     source.relatedLinks.length > 0 && (
@@ -130,6 +140,6 @@ const tags = item.tagIds.map((id) => p.tagById.get(id)!);
     )
   }
   <time class="sr-only" datetime={new Date(item.firstPublishedAt).toISOString()}
-    >{dateLabel(item.firstPublishedAt)}</time
+    >{displayDate(item.firstPublishedAt, locale)}</time
   >
 </article>

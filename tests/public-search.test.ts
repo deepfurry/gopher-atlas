@@ -10,6 +10,19 @@ import {
 afterEach(() => {
   vi.useRealTimers();
   document.body.replaceChildren();
+  delete document.documentElement.dataset.locale;
+});
+it('English search opens the matching chrome alias without duplicating the indexed content', async () => {
+  document.documentElement.dataset.locale = 'en';
+  const { input, form } = setup(async () => ({
+    search: async () => ({
+      results: [hit('Source note', '/notes/go/example/')],
+    }),
+  }));
+  fireEvent.input(input, { target: { value: 'Go' } });
+  fireEvent.submit(form);
+  const link = await screen.findByRole('link', { name: 'Source note' });
+  expect(link.getAttribute('href')).toBe('/en/notes/go/example/');
 });
 function setup(load: () => Promise<SearchAPI>) {
   document.body.innerHTML =

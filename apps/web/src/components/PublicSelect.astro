@@ -12,6 +12,7 @@ const { name, label, options, value = '' } = Astro.props;
   <label class="select-label" id={`label-${name}`}>{label}</label><div
     class="public-select"
     data-select
+    data-open="false"
   >
     <input type="hidden" name={name} value={value} />
     <button
@@ -25,13 +26,23 @@ const { name, label, options, value = '' } = Astro.props;
           options.find((option) => option.value === value)?.label ??
             options[0].label
         }</span
+      ><span class="select-arrow" aria-hidden="true"
+        ><svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+          ><path
+            d="M3.25 5.75 8 10.5l4.75-4.75"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path></svg
+        ></span
       ></button
     >
     <div
       role="listbox"
       id={`options-${name}`}
       aria-labelledby={`label-${name}`}
-      hidden
+      inert
+      aria-hidden="true"
     >
       {
         options.map((option) => (
@@ -42,7 +53,12 @@ const { name, label, options, value = '' } = Astro.props;
             aria-selected={option.value === value}
             tabindex="-1"
           >
-            {option.label}
+            <>
+              <span data-option-label>{option.label}</span>
+              <span data-option-check aria-hidden="true">
+                ✓
+              </span>
+            </>
           </button>
         ))
       }

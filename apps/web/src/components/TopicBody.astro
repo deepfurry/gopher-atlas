@@ -4,23 +4,34 @@ import CuratedCard from './CuratedCard.astro';
 import PageHero from './PageHero.astro';
 import type { Content } from '../lib/publication/types';
 import type { Publication } from '../lib/publication/indexes';
+import { words, localized, type Locale } from '../lib/i18n';
 interface Props {
   item: Extract<Content, { type: 'topic' }>;
   publication: Publication;
   entries?: { position: number; title: string; content?: Content }[];
+  locale?: Locale;
 }
-const { item, publication: p, entries: previewEntries } = Astro.props;
+const {
+  item,
+  publication: p,
+  entries: previewEntries,
+  locale = 'zh',
+} = Astro.props;
+const t = words[locale];
 const entries = previewEntries ?? p.topicTargets.get(item.id) ?? [];
 const recommended = entries.slice(0, item.payload.recommendedCount);
 ---
 
 <PageHero label="Topic" title={item.title} description={item.summary}
-  ><a class="btn primary" href={`/articles/?topic=${item.slug}`}>在文章页查看</a
-  ><button data-copy-link>复制专区链接</button></PageHero
+  ><a
+    class="btn primary"
+    href={localized(`/articles/?topic=${item.slug}`, locale)}
+    >{t.viewArticles}</a
+  ><button data-copy-link>{t.copyTopic}</button></PageHero
 >
 <div class="topic-layout">
   <article class="panel content-detail" lang={item.language}>
-    <h2 class="panel-heading">专区导读</h2><MarkdownBody
+    <h2 class="panel-heading">{t.topicGuide}</h2><MarkdownBody
       source={item.bodyMarkdown}
     />
   </article>
@@ -29,12 +40,14 @@ const recommended = entries.slice(0, item.payload.recommendedCount);
       <aside class="panel" data-paged="2">
         <>
           <div class="panel-heading">
-            <h2>推荐阅读 · {recommended.length}</h2>
+            <h2>
+              {t.readingOrder} - {recommended.length}
+            </h2>
             {recommended.length > 2 && (
               <div class="paged-controls">
-                <button data-prev>上一页</button>
+                <button data-prev>{t.previous}</button>
                 <span data-page-label />
-                <button data-next>下一页</button>
+                <button data-next>{t.next}</button>
               </div>
             )}
           </div>
@@ -59,7 +72,7 @@ const recommended = entries.slice(0, item.payload.recommendedCount);
                 ) : (
                   <p class="notice">
                     {'title' in entry ? entry.title : '未发布条目'} ·
-                    本地快照中尚未发布
+                    {t.unpublishedEntry}
                   </p>
                 )}
               </div>
@@ -72,14 +85,22 @@ const recommended = entries.slice(0, item.payload.recommendedCount);
 </div>
 <section class="topic-entries">
   <div class="section-intro">
-    <span class="eyebrow">专题文章</span><h2>{entries.length} 篇精选文章</h2>
+    <span class="eyebrow">{t.topicArticles}</span><h2>
+      {entries.length}
+      {t.articleCount}
+    </h2>
   </div>{
-    entries.map((entry) =>
+    entries.map((entry, order) =>
       entry.content?.type === 'curated_article' ? (
-        <CuratedCard item={entry.content} publication={p} />
+        <CuratedCard
+          item={entry.content}
+          publication={p}
+          locale={locale}
+          order={order}
+        />
       ) : (
         <p class="notice">
-          {'title' in entry ? entry.title : '未发布条目'} · 本地快照中尚未发布
+          {'title' in entry ? entry.title : ''} · {t.unpublishedEntry}
         </p>
       ),
     )

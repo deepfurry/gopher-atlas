@@ -113,6 +113,17 @@ export function publicPages(p: Publication): PublicPage[] {
     if (reserved.has(page.path)) throw new Error('public_page_conflict');
     reserved.add(page.path);
   }
+  // Locale aliases are build-time chrome views, never new canonical identities.
+  for (const path of [
+    ...pages.map((page) => page.path),
+    '/tags/',
+    '/authors/',
+  ]) {
+    if (chromePaths.includes(path)) continue;
+    const alias = `/en${path}`;
+    if (reserved.has(alias)) throw new Error('public_page_conflict');
+    reserved.add(alias);
+  }
   for (const route of p.snapshot.routes)
     if (route.kind === 'redirect' && reserved.has(route.path))
       throw new Error('public_page_conflict');

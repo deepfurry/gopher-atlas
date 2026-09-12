@@ -76,8 +76,12 @@ closed and need regeneration from a compatible CMS; immutable object keys are ne
 overwritten. Stored omitted payload fields deserialize to defaults; existing
 incompatible content must be corrected and republished, not silently rewritten.
 
-Public has seven /en/ chrome routes with canonical/hreflang only for those static
-counterparts. Content canonical paths are not locale aliases. Curated browser
+Public has seven translated /en/ static counterparts with self-canonical/hreflang.
+Content, tag/author/group collections and pagination have build-only /en/ aliases;
+they reuse the exact authored snapshot, point canonical to the original path and
+are excluded from sitemap/Pagefind to prevent duplicate indexing. Language switches
+preserve query/fragment and never fall back to home. Alias collisions with existing
+canonical/redirect reservations fail the build. SQLite routes remain unchanged. Curated browser
 filtering/pagination is 12 per page; Note group cards use 4. Auxiliary collections
 retain 24-item static pagination. Posts retain compatible detail/collection paths
 but are removed from primary discovery and RSS/Pagefind. Legacy category exception

@@ -5,6 +5,7 @@ import { JSDOM } from 'jsdom';
 import { validateSnapshot, sha256 } from './snapshot.mjs';
 import { createPublication } from '../apps/web/src/lib/publication/indexes.ts';
 import { publicPages } from '../apps/web/src/lib/publication/routes.ts';
+import { localized, localeOf, chromePaths } from '../apps/web/src/lib/i18n.ts';
 
 // Explicit local files only. No dotenv, CMS or network, and no content logged.
 const [planFile, snapshotFile] = process.argv.slice(2);
@@ -33,13 +34,28 @@ for (const page of publicPages(publication)) {
     doc.querySelector('link[rel=canonical]')?.getAttribute('href'),
     'https://gopheratlas.com' + page.path,
   );
+  const alias = document('/en' + page.path);
+  assert.equal(alias.querySelectorAll('h1').length, 1);
+  assert.equal(
+    alias.querySelector('link[rel=canonical]')?.getAttribute('href'),
+    'https://gopheratlas.com' +
+      (chromePaths.includes(page.path) ? '/en' : '') +
+      page.path,
+  );
+  assert(!alias.querySelector('main[data-pagefind-body]'));
+  const body = doc.querySelector('.reading-body > .markdown');
+  if (body)
+    assert.equal(
+      alias.querySelector('.reading-body > .markdown').innerHTML,
+      body.innerHTML,
+    );
 }
 for (const route of plan.routes) document(route.path);
 for (const path of ['/notes/', '/en/notes/']) {
   const doc = document(path);
   for (const group of publication.groups) {
     const heading = doc.querySelector(
-      `.note-group h2 a[href="/notes/${group.slug}/"]`,
+      `.note-group h2 a[href="${localized(`/notes/${group.slug}/`, localeOf(path))}"]`,
     );
     assert.equal(heading?.textContent, group.name);
     assert(heading.closest('article').textContent.includes(group.description));
@@ -59,6 +75,11 @@ for (const item of plan.items) {
   }
   const doc = document(path);
   if (item.type === 'curated_article') {
+    assert.equal(
+      content.bodyMarkdown,
+      item.bodyMarkdown,
+      'Legacy reason must be preserved verbatim',
+    );
     assert.equal(
       doc.querySelector('h1 a')?.getAttribute('href'),
       item.payload.sourceUrl,

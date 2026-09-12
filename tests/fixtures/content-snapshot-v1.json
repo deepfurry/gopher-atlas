@@ -101,7 +101,7 @@
       "title": "读懂 Go 的内存模型",
       "slug": "fixture-curated",
       "summary": "为什么“看起来先执行”不等于“保证能看到”？带着 happens-before 的问题阅读官方说明。",
-      "bodyMarkdown": "## 为什么推荐\n\n这份资料给并发程序中的可见性和顺序提供了共同语言。建议先理解同步边界，再回到具体代码。\n\n## 带着问题阅读\n\n- 哪些操作建立同步关系？\n- 哪些直觉并没有得到语言保证？\n\n这里仅提供推荐与评论，不复制外部原文。",
+      "bodyMarkdown": "这份资料解释了并发程序中的可见性与执行顺序，适合用来理解 Go 的同步边界。",
       "authorId": 1,
       "language": "zh-CN",
       "featured": false,

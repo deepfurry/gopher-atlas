@@ -1,33 +1,47 @@
 ---
 import type { CuratedPayload } from '../lib/publication/types';
-import { words } from '../lib/i18n';
+import { words, type Locale } from '../lib/i18n';
 interface Props {
   payload: CuratedPayload;
+  locale?: Locale;
 }
-const { payload: p } = Astro.props;
+const { payload: p, locale = 'zh' } = Astro.props,
+  t = words[locale];
+const labels =
+  locale === 'zh'
+    ? ['外部作者', '来源', '发布日期', '原文语言', '阅读难度', '评级']
+    : [
+        'Source author',
+        'Source',
+        'Published',
+        'Source language',
+        'Difficulty',
+        'Rating',
+      ];
 const fields = [
-  ['外部作者', p.sourceAuthor],
-  ['来源', p.sourceName],
-  ['发布日期', p.sourcePublishedAt],
-  ['原文语言', p.sourceLanguage],
-  ['阅读难度', p.difficulty ? words.zh[p.difficulty] : ''],
-  ['评级', p.rating],
+  [labels[0], p.sourceAuthor],
+  [labels[1], p.sourceName],
+  [labels[2], p.sourcePublishedAt],
+  [labels[3], p.sourceLanguage],
+  [labels[4], p.difficulty ? t[p.difficulty] : ''],
+  [labels[5], p.rating],
 ];
 ---
 
-<aside class="source-meta" aria-label="外部来源">
-  <h2>阅读原文</h2>
-  <p>下文是 GopherAtlas 的推荐与评论。完整文章请前往外部来源阅读。</p>
+<aside
+  class="source-meta"
+  aria-label={locale === 'zh' ? '外部来源' : 'External source'}
+>
+  <h2>{t.read}</h2>
   <p class="source-links">
-    <a href={p.sourceUrl} rel="noopener noreferrer"
-      >{p.sourceName || '来源文章'}</a
+    <a href={p.sourceUrl} rel="noopener noreferrer">{p.sourceName || t.read}</a
     >{
       p.originalUrl && (
         <a href={p.originalUrl} rel="noopener noreferrer">
-          原始链接
+          {t.original}
         </a>
       )
-    }{p.mustRead && <span class="label">必读</span>}
+    }{p.mustRead && <span class="label">{t.mustRead}</span>}
   </p>
   <dl>
     {
@@ -47,7 +61,7 @@ const fields = [
     p.relatedLinks.length > 0 && (
       <>
         <>
-          <h3>延伸阅读</h3>
+          <h3>{t.related}</h3>
           <ul>
             {p.relatedLinks.map((link) => (
               <li>

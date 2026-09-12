@@ -1,5 +1,17 @@
 # Changelog
 
+## P0-5.5 — Public visual fidelity follow-up
+
+- Restore legacy header subtitle/underline/glow, homepage stagger, page/card rise,
+  500 ms button/select transitions and the original responsive layout boundaries.
+- Restore compact Article rows, Topic/Note group cards and Note detail shell; retain
+  safe Markdown, Shiki/copy, TOC and shared Draft Preview rendering.
+- Remove the extra archive action from Article rows and template prose from the
+  synthetic Curated fixture; real imported reasons remain verbatim.
+- Add semantic English chrome aliases for details/collections and preserve query/
+  fragment on switching, without changing canonical routes or duplicate SEO/search.
+- Use the requested single-line DeepFurry copyright/contribution/about/search/RSS footer.
+
 ## P0-5.5 — Product realignment
 
 - Three product workflows: curated articles, curated-only Topics and grouped Notes;

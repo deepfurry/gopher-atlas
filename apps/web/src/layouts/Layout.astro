@@ -5,6 +5,7 @@ import {
   localeOf,
   alternateChrome,
   chromePaths,
+  withoutLocale,
   type Locale,
 } from '../lib/i18n';
 interface Props {
@@ -23,7 +24,9 @@ interface Props {
 const {
   title,
   description = '高质量 Go 技术文章精选导航',
-  canonical: path = Astro.url.pathname,
+  canonical: path = chromePaths.includes(withoutLocale(Astro.url.pathname))
+    ? Astro.url.pathname
+    : withoutLocale(Astro.url.pathname),
   locale = localeOf(Astro.url.pathname),
   lang = locale === 'zh' ? 'zh-CN' : 'en',
   image,
@@ -35,7 +38,7 @@ const {
 } = Astro.props;
 const t = words[locale],
   canonical = new URL(path, Astro.site);
-const base = path.replace(/^\/en(?=\/)/, '');
+const base = withoutLocale(Astro.url.pathname);
 const links = [
   ['/', t.home],
   ['/articles/', t.articles],
@@ -44,6 +47,8 @@ const links = [
 ];
 const localized = (href: string) => (locale === 'en' ? `/en${href}` : href);
 const github = 'https://github.com/deepfurry/gopher-atlas';
+const year = new Date().getFullYear();
+const copyrightYears = year > 2026 ? `2026-${year}` : '2026';
 ---
 
 <!doctype html>
@@ -189,12 +194,21 @@ const github = 'https://github.com/deepfurry/gopher-atlas';
               alt=""
             /></button
           >
-          <a
-            class="language-link"
-            href={alternateChrome(path, locale === 'zh' ? 'en' : 'zh')}
-            lang={locale === 'zh' ? 'en' : 'zh-CN'}
-            >{locale === 'zh' ? 'EN' : '中文'}</a
-          >
+          {
+            !noindex && (
+              <a
+                class="language-link"
+                data-language-link
+                href={alternateChrome(
+                  Astro.url.pathname,
+                  locale === 'zh' ? 'en' : 'zh',
+                )}
+                lang={locale === 'zh' ? 'en' : 'zh-CN'}
+              >
+                {locale === 'zh' ? 'EN' : '中'}
+              </a>
+            )
+          }
         </nav>
       </div>
     </header>
@@ -209,16 +223,14 @@ const github = 'https://github.com/deepfurry/gopher-atlas';
     </main>
     <footer class="site-footer">
       <div class="page-shell footer-inner">
-        <div>
-          <p>Copyright {new Date().getFullYear()} gofurry</p><p class="muted">
-            {t.license}
-          </p>
-        </div><nav aria-label={locale === 'zh' ? '页脚导航' : 'Footer'}>
+        <p>Copyright {copyrightYears} DeepFurry</p><nav
+          aria-label={locale === 'zh' ? '页脚导航' : 'Footer'}
+        >
           <a href={localized('/contribute/')}>{t.contribute}</a><a
             href={localized('/about/')}>{t.about}</a
           ><a href={localized('/search/')}>{t.search}</a><a href="/rss.xml"
             >RSS</a
-          ><a href={github} target="_blank" rel="noopener noreferrer">GitHub</a>
+          >
         </nav>
       </div>
     </footer>

@@ -1,10 +1,126 @@
-/* Note reading surface is intentionally independent of the legacy navigation panels. */
-.reading-layout {
+/* The Note shell follows the legacy full-width heading and floating group toolbar.
+   The safe Markdown/Shiki renderer and in-page TOC remain shared with Draft Preview. */
+.note-detail .note-heading {
+  padding-bottom: 32px;
+  margin-bottom: 56px;
+}
+.note-heading h1 {
+  font-size: clamp(2rem, 4.2vw, 3.45rem);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  overflow-wrap: anywhere;
+}
+.note-heading .lede {
+  margin: 16px 0;
+  font-size: 16px;
+  line-height: 2;
+}
+.note-heading .publication-meta {
+  margin-bottom: 0;
+  gap: 8px 20px;
+  font-size: 14px;
+}
+.note-heading .tag-list {
+  margin-top: 16px;
+}
+.note-surface {
+  border-radius: 8px;
   display: grid;
-  grid-template-columns: minmax(0, 752px) 256px;
-  gap: 64px;
-  justify-content: center;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 40px;
   align-items: start;
+}
+.reading-body {
+  min-width: 0;
+}
+.note-navigation {
+  position: fixed;
+  top: 96px;
+  right: 24px;
+  z-index: 25;
+  width: 288px;
+}
+.note-navigation-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  backdrop-filter: blur(24px);
+  box-shadow: var(--shadow-soft);
+}
+.note-group-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.note-navigation .btn {
+  min-height: 40px;
+  padding-inline: 14px;
+}
+.note-toolbar summary {
+  cursor: pointer;
+  list-style: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+}
+.note-toolbar summary::-webkit-details-marker {
+  display: none;
+}
+.note-toolbar .select-arrow {
+  width: 36px;
+  height: 36px;
+}
+.note-toolbar[open] .select-arrow {
+  transform: rotate(180deg);
+}
+.note-toolbar nav {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(288px, calc(100vw - 32px));
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  backdrop-filter: blur(24px);
+  box-shadow: var(--shadow-soft);
+  animation: hero-rise 300ms ease backwards;
+}
+.note-navigation-steps {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 8px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.note-navigation-steps > :last-child {
+  text-align: right;
+}
+.note-navigation-steps [aria-disabled] {
+  opacity: 0.6;
+  color: var(--text-muted);
+}
+.note-toolbar .reading-link {
+  padding: 10px 14px;
+}
+.note-toolbar .reading-link[aria-current='page'] {
+  border-color: var(--line-strong);
+  background: var(--surface-strong);
+}
+.note-toolbar .reading-link strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .prose {
   max-width: 752px;
@@ -359,8 +475,8 @@
   border-radius: 50%;
 }
 @media (max-width: 1100px) {
-  .reading-layout {
-    grid-template-columns: minmax(0, 752px);
+  .note-surface {
+    grid-template-columns: minmax(0, 1fr);
   }
   .toc {
     display: none;
@@ -396,8 +512,12 @@
     font-size: 13px;
     padding: 16px;
   }
-  .reading-layout {
-    gap: 0;
+  .note-detail .note-heading {
+    margin-bottom: 40px;
+    padding-bottom: 28px;
+  }
+  .note-heading h1 {
+    font-size: 32px;
   }
   .prose h1 {
     font-size: 32px;
@@ -407,5 +527,24 @@
   }
   .source-meta dl {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1023px) {
+  .note-navigation {
+    width: auto;
+    right: 16px;
+  }
+  .note-group-name {
+    display: none;
+  }
+}
+@media (max-width: 767px) {
+  .note-navigation {
+    position: sticky;
+    top: 12px;
+    margin: -16px 0 24px auto;
+    width: max-content;
+    max-width: 100%;
   }
 }

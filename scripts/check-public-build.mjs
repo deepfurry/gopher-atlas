@@ -11,7 +11,12 @@ import {
   publicPages,
   redirects,
 } from '../apps/web/src/lib/publication/routes.ts';
-import { chromePaths, words } from '../apps/web/src/lib/i18n.ts';
+import {
+  chromePaths,
+  words,
+  localized,
+  localeOf,
+} from '../apps/web/src/lib/i18n.ts';
 
 // Deliberately fixture-only: this gate never loads .env, contacts R2 or starts CMS.
 const input = readFileSync('tests/fixtures/content-snapshot-v1.json');
@@ -34,15 +39,29 @@ const allPaths = [
   ...chromePaths.map((path) => `/en${path}`),
   ...pages.map((page) => page.path),
 ];
+const canonicalPaths = [...allPaths];
+const aliases = [
+  ...pages.map((page) => page.path),
+  '/authors/',
+  '/tags/',
+].filter((path) => !chromePaths.includes(path));
+allPaths.push(...aliases.map((path) => '/en' + path));
 for (const path of allPaths) {
   const doc = pageDocument(path);
   assert.equal(
     doc.querySelector('link[rel=canonical]')?.getAttribute('href'),
-    `https://gopheratlas.com${path}`,
+    `https://gopheratlas.com${canonicalPaths.includes(path) ? path : path.slice(3)}`,
   );
   assert.equal(doc.querySelectorAll('h1').length, 1, `One H1: ${path}`);
   assert(doc.querySelector('a.skip-link[href="#main"]'));
   assert(!doc.querySelector('script[src*="api-client"], iframe, astro-island'));
+  assert.equal(
+    doc.querySelector('[data-language-link]')?.getAttribute('href'),
+    localized(path, localeOf(path) === 'zh' ? 'en' : 'zh'),
+  );
+  assert(!doc.querySelector('footer').textContent.includes('CC-BY-NC'));
+  assert(doc.querySelector('footer').textContent.includes('DeepFurry'));
+  assert(!doc.querySelector('footer a[href*="github.com"]'));
   for (const link of doc.querySelectorAll('a[href^="/"]')) {
     const target = link.getAttribute('href').split(/[?#]/)[0];
     assert(
@@ -55,7 +74,7 @@ for (const path of ['/notes/', '/en/notes/']) {
   const doc = pageDocument(path);
   for (const group of p.groups) {
     const heading = doc.querySelector(
-      `.note-group h2 a[href="/notes/${group.slug}/"]`,
+      `.note-group h2 a[href="${localized(`/notes/${group.slug}/`, localeOf(path))}"]`,
     );
     assert.equal(heading?.textContent, group.name, `Note group label: ${path}`);
     assert(heading.closest('article').textContent.includes(group.description));
@@ -83,7 +102,7 @@ for (const item of snapshot.content) {
     !!doc.querySelector('main[data-pagefind-body]'),
     item.type !== 'post',
   );
-  assert(doc.querySelector('.content-detail .markdown h2'));
+  assert(doc.querySelector('.content-detail .markdown')?.textContent.trim());
   if (item.type !== 'topic')
     assert(
       doc
@@ -104,11 +123,7 @@ for (const item of snapshot.content) {
     );
   }
   if (item.type === 'note')
-    assert(
-      doc.querySelector(
-        `.breadcrumb a[href="/notes/${item.payload.groupSlug}/"]`,
-      ),
-    );
+    assert(doc.querySelector('.note-navigation a[href="/notes/"]'));
   if (item.type === 'curated_article') {
     assert(
       doc.querySelector(`.source-meta a[href="${item.payload.sourceUrl}"]`),
@@ -148,11 +163,36 @@ assert(!sitemap.querySelector('parsererror'));
 const locations = [...sitemap.querySelectorAll('url > loc')].map(
   (n) => n.textContent,
 );
-for (const path of allPaths)
+for (const path of canonicalPaths)
   assert(
     locations.includes(`https://gopheratlas.com${path}`),
     `Missing sitemap URL: ${path}`,
   );
+for (const path of aliases) {
+  assert(
+    !locations.includes(`https://gopheratlas.com/en${path}`),
+    `Duplicate alias in sitemap: ${path}`,
+  );
+  const base = pageDocument(path),
+    alias = pageDocument('/en' + path);
+  assert.equal(alias.documentElement.dataset.locale, 'en');
+  assert(
+    !alias.querySelector('main[data-pagefind-body]'),
+    `Alias duplicated in Pagefind: ${path}`,
+  );
+  if (path !== '/authors/' && path !== '/tags/')
+    assert.equal(
+      alias.querySelector('h1').textContent.trim(),
+      base.querySelector('h1').textContent.trim(),
+    );
+  const body = base.querySelector('.reading-body > .markdown');
+  if (body)
+    assert.equal(
+      alias.querySelector('.reading-body > .markdown').innerHTML,
+      body.innerHTML,
+      `Alias changed authored Markdown: ${path}`,
+    );
+}
 for (const route of snapshot.routes.filter(
   (route) => route.kind === 'redirect',
 )) {
@@ -224,5 +264,5 @@ for (const path of walk(out)) {
     );
 }
 console.log(
-  `Public fixture artifacts passed: ${snapshot.content.length} details, ${allPaths.length} canonical pages, redirects/RSS/sitemap/Pagefind/marker and privacy.`,
+  `Public fixture artifacts passed: ${snapshot.content.length} details, ${canonicalPaths.length} canonical pages + ${aliases.length} chrome aliases, redirects/RSS/sitemap/Pagefind/marker and privacy.`,
 );

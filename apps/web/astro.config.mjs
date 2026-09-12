@@ -5,6 +5,7 @@ import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 import { markdownOptions } from './src/lib/publication/markdown.ts';
 import developmentPreview from './dev/integration.mjs';
+import { chromePaths, withoutLocale } from './src/lib/i18n.ts';
 
 export default defineConfig({
   site: 'https://gopheratlas.com',
@@ -13,7 +14,16 @@ export default defineConfig({
   integrations: [
     developmentPreview(),
     react(),
-    sitemap({ filter: (page) => !page.endsWith('/404/') }),
+    sitemap({
+      filter: (page) => {
+        const path = new URL(page).pathname;
+        return (
+          !path.endsWith('/404/') &&
+          (!path.startsWith('/en/') ||
+            chromePaths.includes(withoutLocale(path)))
+        );
+      },
+    }),
   ],
   markdown: {
     processor: unified(markdownOptions),

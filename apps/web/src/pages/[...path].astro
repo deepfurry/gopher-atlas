@@ -1,11 +1,7 @@
 ---
 import { publication } from '../lib/publication/snapshot';
 import { publicPages, type PublicPage } from '../lib/publication/routes';
-import ContentDetail from '../components/ContentDetail.astro';
-import Collection from '../components/Collection.astro';
-import Layout from '../layouts/Layout.astro';
-import Articles from '../components/Articles.astro';
-import ProductDirectory from '../components/ProductDirectory.astro';
+import PublicationPage from '../components/PublicationPage.astro';
 export function getStaticPaths() {
   return publicPages(publication).map((page) => ({
     params: { path: page.path.slice(1, -1) },
@@ -18,18 +14,4 @@ interface Props {
 const { page } = Astro.props;
 ---
 
-{
-  page.path === '/articles/' ? (
-    <Layout title="精选文章">
-      <Articles publication={publication} />
-    </Layout>
-  ) : page.path === '/topics/' ? (
-    <Layout title="话题专区">
-      <ProductDirectory kind="topics" publication={publication} />
-    </Layout>
-  ) : page.kind === 'detail' ? (
-    <ContentDetail content={page.content} publication={publication} />
-  ) : (
-    <Collection page={page} publication={publication} />
-  )
-}
+<PublicationPage page={page} />

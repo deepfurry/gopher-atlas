@@ -2,7 +2,17 @@ export type Locale = 'zh' | 'en';
 export const localeOf = (path: string): Locale =>
   path.startsWith('/en/') ? 'en' : 'zh';
 export const localized = (path: string, locale: Locale) =>
-  locale === 'en' ? `/en${path}` : path;
+  locale === 'en' ? `/en${withoutLocale(path)}` : withoutLocale(path);
+export const withoutLocale = (path: string) =>
+  path.replace(/^\/en(?=\/|$)/, '') || '/';
+export function displayDate(value: number | string, locale: Locale = 'zh') {
+  return new Intl.DateTimeFormat(locale === 'zh' ? 'zh-CN' : 'en', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(value));
+}
 export const chromePaths = [
   '/',
   '/articles/',
@@ -13,13 +23,12 @@ export const chromePaths = [
   '/search/',
 ];
 export function alternateChrome(path: string, locale: Locale) {
-  const base = path.replace(/^\/en(?=\/)/, '');
-  return localized(chromePaths.includes(base) ? base : '/', locale);
+  return localized(path, locale);
 }
 export const words = {
   zh: {
     home: '首页',
-    articles: '精选文章',
+    articles: '全部文章',
     topics: '话题专区',
     notes: '学习随笔',
     subtitle: '高质量 Go 技术文章精选导航',
@@ -32,7 +41,38 @@ export const words = {
     theme: '切换主题',
     menu: '菜单',
     skip: '跳至正文',
-    license: '本网站内容采用 CC-BY-NC 4.0 授权协议',
+    collectedArticles: '已收录文章',
+    topicTotal: '话题数量',
+    tagTotal: '标签数量',
+    lastUpdated: '最后更新',
+    topic: '专题',
+    enterTopic: '进入专题',
+    filterArticles: '在文章页筛选',
+    viewArticles: '在文章页查看',
+    copyTopic: '复制专题链接',
+    authors: '作者',
+    authorsTitle: '共同绘制知识地图',
+    authorsIntro: '认识在这里分享理解、经验与阅读发现的作者。',
+    tagsTitle: '按标签发现',
+    tagsIntro: '从熟悉的概念出发，找到相邻的知识。',
+    contentCount: '篇内容',
+    allAuthors: '所有作者',
+    allTags: '所有标签',
+    authorWebsite: '作者网站',
+    page: '页',
+    featured: '推荐',
+    post: '文章（兼容）',
+    location: '内容位置',
+    aboutAuthor: '关于作者',
+    aboutCurator: '关于策展者',
+    curator: '策展',
+    draftSaved: '草稿保存于',
+    saved: '收录于',
+    noteNavigation: '组内连续阅读',
+    groupContents: '展开组内目录',
+    unpublishedEntry: '本地快照中尚未发布',
+    noPublicContent: '还没有公开内容。',
+    otherReading: '浏览其他阅读方向',
     copy: '复制链接',
     copied: '已复制',
     copyFailed: '复制失败，请手动复制',
@@ -109,7 +149,7 @@ export const words = {
   },
   en: {
     home: 'Home',
-    articles: 'Curated Articles',
+    articles: 'All Articles',
     topics: 'Topics',
     notes: 'Learning Notes',
     subtitle: 'A curated atlas of quality Go writing',
@@ -122,7 +162,39 @@ export const words = {
     theme: 'Toggle theme',
     menu: 'Menu',
     skip: 'Skip to content',
-    license: 'Content is licensed under CC-BY-NC 4.0',
+    collectedArticles: 'Articles collected',
+    topicTotal: 'Topics',
+    tagTotal: 'Tags',
+    lastUpdated: 'Last updated',
+    topic: 'Topic',
+    enterTopic: 'Explore topic',
+    filterArticles: 'Filter articles',
+    viewArticles: 'View articles',
+    copyTopic: 'Copy topic link',
+    authors: 'Authors',
+    authorsTitle: 'Mapping knowledge together',
+    authorsIntro:
+      'Meet the people sharing their understanding, experience, and reading discoveries.',
+    tagsTitle: 'Explore by tag',
+    tagsIntro: 'Start with a familiar idea and discover related knowledge.',
+    contentCount: 'items',
+    allAuthors: 'All authors',
+    allTags: 'All tags',
+    authorWebsite: 'Author website',
+    page: 'page',
+    featured: 'Featured',
+    post: 'Post (compatibility)',
+    location: 'Content location',
+    aboutAuthor: 'About the author',
+    aboutCurator: 'About the curator',
+    curator: 'Curated by',
+    draftSaved: 'Draft saved',
+    saved: 'Collected',
+    noteNavigation: 'Read within this group',
+    groupContents: 'Open group contents',
+    unpublishedEntry: 'Not published in this local snapshot',
+    noPublicContent: 'No public content yet.',
+    otherReading: 'Explore other reading paths',
     copy: 'Copy link',
     copied: 'Copied',
     copyFailed: 'Copy failed. Please copy manually.',

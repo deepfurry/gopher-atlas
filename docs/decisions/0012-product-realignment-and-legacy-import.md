@@ -75,3 +75,19 @@ filter/select/pagination, Markdown/giscus/i18n, and static artifacts. P0-6 retai
 the production backup/restore drill, controlled production apply, public route
 comparison, main release snapshot and DNS/cutover. No Production operation is
 part of this implementation.
+
+## Public fidelity follow-up (2026-09-12)
+
+The user's side-by-side review rejected the initial visual acceptance. This Public-only
+correction follows the actual legacy CSS/generator/render/app implementation and live
+site, superseding the reading-shell sizes in decision 8 and alias deferral in decision 9.
+The full-width Note heading, floating group navigation, legacy responsive grids, hover
+and entrance timings are restored while keeping the safe Markdown/Shiki/TOC renderer.
+Mobile group navigation stays clear of the title and main navigation.
+
+Astro generates English chrome aliases for every content and auxiliary collection page,
+including static pagination. These views keep the original snapshot/SQLite canonical;
+only the seven translated static pages have independent canonical/hreflang. Aliases
+are omitted from sitemap/Pagefind, language switches retain path/query/fragment, and
+build checks reject alias collisions and altered authored Markdown. No CMS, snapshot,
+Importer, Admin, dependency pin or publication semantics change is involved.

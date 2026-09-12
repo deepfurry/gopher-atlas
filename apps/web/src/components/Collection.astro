@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { words, localized, type Locale } from '../lib/i18n';
 import ContentList from './ContentList.astro';
 import MarkdownBody from './MarkdownBody.astro';
 import type { Publication } from '../lib/publication/indexes';
@@ -7,15 +8,18 @@ import type { CollectionPage } from '../lib/publication/routes';
 interface Props {
   page: CollectionPage;
   publication: Publication;
+  locale?: Locale;
 }
-const { page, publication } = Astro.props;
+const { page, publication, locale = 'zh' } = Astro.props;
+const t = words[locale];
 const { author } = page;
 ---
 
 <Layout
-  title={page.title + (page.page > 1 ? ` / 第 ${page.page} 页` : '')}
+  title={page.title + (page.page > 1 ? ` / ${page.page} ${t.page}` : '')}
   description={page.description}
   canonical={page.path}
+  locale={locale}
 >
   <div class="collection-layout">
     <header class="collection-heading">
@@ -39,37 +43,44 @@ const { author } = page;
             <MarkdownBody source={author.bioMarkdown} />
             {author.websiteUrl && (
               <a href={author.websiteUrl} rel="noopener noreferrer">
-                作者网站
+                {t.authorWebsite}
               </a>
             )}
           </>
         )
       }
-      {page.tag && <a href="/tags/">所有标签</a>}
+      {page.tag && <a href={localized('/tags/', locale)}>{t.allTags}</a>}
       {
         author && (
           <p>
-            <a href="/authors/">所有作者</a>
+            <a href={localized('/authors/', locale)}>{t.allAuthors}</a>
           </p>
         )
       }
     </header>
     <div>
-      <ContentList items={page.content} publication={publication} />
+      <ContentList
+        items={page.content}
+        publication={publication}
+        locale={locale}
+      />
       {
         page.total > 1 && (
-          <nav class="pagination" aria-label="分页">
+          <nav
+            class="pagination"
+            aria-label={locale === 'zh' ? '分页' : 'Pagination'}
+          >
             {page.previous && (
-              <a href={page.previous} rel="prev">
-                上一页
+              <a href={localized(page.previous, locale)} rel="prev">
+                {t.previous}
               </a>
             )}
             <span>
-              第 {page.page} / {page.total} 页
+              {page.page} / {page.total} {t.page}
             </span>
             {page.next && (
-              <a href={page.next} rel="next">
-                下一页
+              <a href={localized(page.next, locale)} rel="next">
+                {t.next}
               </a>
             )}
           </nav>

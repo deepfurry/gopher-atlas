@@ -1,18 +1,25 @@
 ---
-import { words, type Locale } from '../lib/i18n';
-import { dateLabel, type Publication } from '../lib/publication/indexes';
+import { displayDate, words, localized, type Locale } from '../lib/i18n';
+import { type Publication } from '../lib/publication/indexes';
 interface Props {
   group: Publication['groups'][number];
   publication: Publication;
   locale: Locale;
+  order?: number;
 }
-const { group, publication: p, locale } = Astro.props,
+const { group, publication: p, locale, order = 0 } = Astro.props,
   t = words[locale];
 ---
 
-<article class="subtle-panel note-group" data-paged="4">
+<article
+  class="subtle-panel note-group"
+  data-paged="4"
+  style={`--card-order:${order}`}
+>
   <header class="note-group-heading">
-    <h2><a href={`/notes/${group.slug}/`}>{group.name}</a></h2>
+    <h2>
+      <a href={localized(`/notes/${group.slug}/`, locale)}>{group.name}</a>
+    </h2>
     <span class="small-meta"
       >{group.content.length}
       {
@@ -37,13 +44,13 @@ const { group, publication: p, locale } = Astro.props,
       group.content.map((note) => (
         <a
           class="reading-link"
-          href={note.canonicalPath}
+          href={localized(note.canonicalPath, locale)}
           data-page-item
           lang={note.language}
         >
           <strong>{note.title}</strong>
           <small>
-            {dateLabel(note.firstPublishedAt)} ·{' '}
+            {displayDate(note.firstPublishedAt, locale)} ·{' '}
             {p.authorById.get(note.authorId)!.displayName}
           </small>
         </a>

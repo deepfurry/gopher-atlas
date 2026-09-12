@@ -4,8 +4,9 @@ import MarkdownBody from './MarkdownBody.astro';
 import SourceMeta from './SourceMeta.astro';
 import TopicBody from './TopicBody.astro';
 import Discussion from './Discussion.astro';
+import NoteNavigation from './NoteNavigation.astro';
+import { displayDate, words, localized, type Locale } from '../lib/i18n';
 import {
-  dateLabel,
   required,
   seo,
   typeInfo,
@@ -16,12 +17,14 @@ import type { Content } from '../lib/publication/types';
 interface Props {
   content: Content;
   publication: Publication;
+  locale?: Locale;
   preview?: {
     updatedAt: number;
     entries: { position: number; title: string; content?: Content }[];
   };
 }
-const { content: item, publication: p, preview } = Astro.props;
+const { content: item, publication: p, preview, locale = 'zh' } = Astro.props;
+const t = words[locale];
 const author = required(p.authorById, item.authorId),
   cover =
     item.coverAssetId === null
@@ -35,24 +38,28 @@ const headings = rendered.metadata.headings.filter(
   info = typeInfo[item.type];
 const group =
   item.type === 'note' ? p.notesByGroup.get(item.payload.groupSlug) : undefined;
-const index = group?.content.findIndex((note) => note.id === item.id) ?? -1;
-const previous = index > 0 ? group?.content[index - 1] : undefined,
-  next = index >= 0 ? group?.content[index + 1] : undefined;
 const authorHeading =
-  item.type === 'curated_article' ? '关于策展者' : '关于作者';
+  item.type === 'curated_article' ? t.aboutCurator : t.aboutAuthor;
 const bylineLabel =
   item.type === 'curated_article'
-    ? `策展：${author.displayName}`
+    ? `${t.curator}：${author.displayName}`
     : author.displayName;
+const contentFamily =
+  item.type === 'note'
+    ? t.notes
+    : item.type === 'curated_article'
+      ? t.articles
+      : t.post;
 ---
 
 <Layout
   {...seo(item)}
   canonical={item.canonicalPath}
-  lang={item.language}
+  locale={locale}
+  lang={locale === 'en' ? 'en' : item.language}
   image={cover?.url}
   ogType={item.type === 'topic' ? 'website' : 'article'}
-  searchIndex={!preview && item.type !== 'post'}
+  searchIndex={!preview && item.type !== 'post' && locale === 'zh'}
   noindex={Boolean(preview)}
 >
   {
@@ -64,20 +71,28 @@ const bylineLabel =
   }
   {
     item.type === 'topic' ? (
-      <TopicBody item={item} publication={p} entries={preview?.entries} />
+      <TopicBody
+        item={item}
+        publication={p}
+        entries={preview?.entries}
+        locale={locale}
+      />
     ) : (
-      <div class:list={{ 'reading-layout': item.type === 'note' }}>
-        <article class="prose content-detail">
-          <header>
-            <nav class="breadcrumb" aria-label="内容位置" data-pagefind-ignore>
-              <a href={info.path}>{info.title}</a>
-              {item.type === 'note' && (
-                <a href={`/notes/${item.payload.groupSlug}/`}>
-                  {item.payload.group}
-                </a>
-              )}
-            </nav>
-            <h1 data-pagefind-meta="title">
+      <div class:list={{ 'note-detail': item.type === 'note' }}>
+        <article
+          class:list={{ prose: item.type !== 'note', 'content-detail': true }}
+        >
+          <header class:list={{ 'note-heading': item.type === 'note' }}>
+            {item.type !== 'note' && (
+              <nav
+                class="breadcrumb"
+                aria-label={t.location}
+                data-pagefind-ignore
+              >
+                <a href={localized(info.path, locale)}>{contentFamily}</a>
+              </nav>
+            )}
+            <h1 data-pagefind-meta="title" lang={item.language}>
               {item.type === 'curated_article' ? (
                 <a
                   href={item.payload.sourceUrl}
@@ -90,10 +105,14 @@ const bylineLabel =
                 item.title
               )}
             </h1>
-            {item.summary && <p class="lede">{item.summary}</p>}
+            {item.summary && (
+              <p class="lede" lang={item.language}>
+                {item.summary}
+              </p>
+            )}
             <div class="publication-meta">
               <a
-                href={`/authors/${author.slug}/`}
+                href={localized(`/authors/${author.slug}/`, locale)}
                 rel="author"
                 data-pagefind-meta="author"
               >
@@ -101,32 +120,42 @@ const bylineLabel =
               </a>
               <span>
                 {preview
-                  ? '草稿保存于'
+                  ? t.draftSaved
                   : item.type === 'curated_article'
-                    ? '收录于'
-                    : '创建于'}{' '}
+                    ? t.saved
+                    : t.published}{' '}
                 <time
                   datetime={new Date(
                     preview?.updatedAt ?? item.firstPublishedAt,
                   ).toISOString()}
                 >
-                  {dateLabel(preview?.updatedAt ?? item.firstPublishedAt)}
+                  {displayDate(
+                    preview?.updatedAt ?? item.firstPublishedAt,
+                    locale,
+                  )}
                 </time>
               </span>
-              {!preview && item.lastPublishedAt !== item.firstPublishedAt && (
-                <span>
-                  更新于{' '}
-                  <time datetime={new Date(item.lastPublishedAt).toISOString()}>
-                    {dateLabel(item.lastPublishedAt)}
-                  </time>
-                </span>
-              )}
+              {!preview &&
+                (item.type === 'note' ||
+                  item.lastPublishedAt !== item.firstPublishedAt) && (
+                  <span>
+                    {t.updated}{' '}
+                    <time
+                      datetime={new Date(item.lastPublishedAt).toISOString()}
+                    >
+                      {displayDate(item.lastPublishedAt, locale)}
+                    </time>
+                  </span>
+                )}
             </div>
             {tags.length > 0 && (
-              <ul class="tag-list" aria-label="标签">
+              <ul class="tag-list" aria-label={t.tags} data-pagefind-ignore>
                 {tags.map((tag) => (
                   <li>
-                    <a class="chip" href={`/tags/${tag.slug}/`}>
+                    <a
+                      class="chip"
+                      href={localized(`/tags/${tag.slug}/`, locale)}
+                    >
                       {tag.name}
                     </a>
                   </li>
@@ -134,91 +163,80 @@ const bylineLabel =
               </ul>
             )}
           </header>
-          {cover && (
-            <img
-              class="cover-image"
-              src={cover.url}
-              alt=""
-              width={cover.width}
-              height={cover.height}
-              decoding="async"
-              referrerpolicy="no-referrer"
-            />
+          {item.type === 'note' && (
+            <NoteNavigation item={item} group={group} locale={locale} />
           )}
-          {item.type === 'curated_article' && (
-            <>
-              <SourceMeta payload={item.payload} />
-              <h2>收录理由 / 编辑点评</h2>
-            </>
-          )}
-          {item.type === 'note' && headings.length > 0 && (
-            <details class="mobile-toc" data-pagefind-ignore>
-              <summary>本页目录</summary>
-              <ul>
-                {headings.map((h) => (
-                  <li>
-                    <a href={`#${h.slug}`}>{h.text}</a>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
-          <div class="markdown" set:html={rendered.code} />
+          <div class:list={{ 'note-surface panel': item.type === 'note' }}>
+            <div class="reading-body">
+              {cover && (
+                <img
+                  class="cover-image"
+                  src={cover.url}
+                  alt=""
+                  width={cover.width}
+                  height={cover.height}
+                  decoding="async"
+                  referrerpolicy="no-referrer"
+                />
+              )}
+              {item.type === 'curated_article' && (
+                <>
+                  <SourceMeta payload={item.payload} locale={locale} />
+                  <h2>{t.rationale}</h2>
+                </>
+              )}
+              {item.type === 'note' && headings.length > 0 && (
+                <details class="mobile-toc" data-pagefind-ignore>
+                  <summary>{t.toc}</summary>
+                  <ul>
+                    {headings.map((h) => (
+                      <li>
+                        <a href={`#${h.slug}`}>{h.text}</a>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+              <div
+                class="markdown"
+                lang={item.language}
+                set:html={rendered.code}
+              />
+            </div>
+            {item.type === 'note' && headings.length > 0 && (
+              <aside class="toc" data-pagefind-ignore>
+                <nav aria-label={t.toc}>
+                  <p>{t.toc}</p>
+                  <ul>
+                    {headings.map((h) => (
+                      <li class:list={{ nested: h.depth === 3 }}>
+                        <a href={`#${h.slug}`}>{h.text}</a>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+              </aside>
+            )}
+          </div>
           {item.type === 'note' && (
             <>
-              <nav
-                class="note-neighbors"
-                aria-label="组内连续阅读"
-                data-pagefind-ignore
-              >
-                <div>
-                  {previous && (
-                    <a href={previous.canonicalPath}>
-                      <small>上一篇</small>
-                      {previous.title}
-                    </a>
-                  )}
-                </div>
-                <div>
-                  {next && (
-                    <a href={next.canonicalPath}>
-                      <small>下一篇</small>
-                      {next.title}
-                    </a>
-                  )}
-                </div>
-              </nav>
-              <a class="btn" href="/notes/">
-                返回学习随笔
-              </a>
               {!preview && (
                 <Discussion
                   groupSlug={item.payload.groupSlug}
                   slug={item.slug}
+                  locale={locale}
                 />
               )}
             </>
           )}
           <aside class="author-note" data-pagefind-ignore>
             <h2>{authorHeading}</h2>
-            <a href={`/authors/${author.slug}/`}>{author.displayName}</a>
+            <a href={localized(`/authors/${author.slug}/`, locale)}>
+              {author.displayName}
+            </a>
             {author.bioMarkdown && <MarkdownBody source={author.bioMarkdown} />}
           </aside>
         </article>
-        {item.type === 'note' && headings.length > 0 && (
-          <aside class="toc" data-pagefind-ignore>
-            <nav aria-label="本页目录">
-              <p>本页目录</p>
-              <ul>
-                {headings.map((h) => (
-                  <li class:list={{ nested: h.depth === 3 }}>
-                    <a href={`#${h.slug}`}>{h.text}</a>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          </aside>
-        )}
       </div>
     )
   }

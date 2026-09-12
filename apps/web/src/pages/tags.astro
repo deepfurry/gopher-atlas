@@ -1,34 +1,5 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import { publication as p } from '../lib/publication/snapshot';
+import SitePage from '../components/SitePage.astro';
 ---
 
-<Layout title="标签" description="通过标签发现相关的 Go 文章与工程笔记。">
-  <header class="page-heading">
-    <h1>按标签发现</h1><p class="lede">从熟悉的概念出发，找到相邻的知识。</p>
-  </header>
-  <ul class="directory">
-    {
-      p.tags.map((tag) => (
-        <li>
-          <>
-            <h2>
-              <a href={`/tags/${tag.slug}/`}>{tag.name}</a>
-            </h2>
-            <p>{tag.description}</p>
-            <span class="meta">
-              {p.contentByTag.get(tag.id)!.length} 篇内容
-            </span>
-          </>
-        </li>
-      ))
-    }
-  </ul>
-  {
-    !p.tags.length && (
-      <p class="empty">
-        还没有公开标签。<a href="/">浏览内容方向</a>。
-      </p>
-    )
-  }
-</Layout>
+<SitePage page="tags" />

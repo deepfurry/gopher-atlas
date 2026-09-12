@@ -1,7 +1,7 @@
 .site-header {
   border-bottom: 1px solid var(--line);
   position: relative;
-  z-index: 20;
+  z-index: 40;
 }
 .header-inner {
   height: 72px;
@@ -14,20 +14,20 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-shrink: 0;
+  min-width: 0;
 }
 .brand strong {
   display: block;
-  font-size: 16px;
-  font-weight: 650;
+  font-size: 0.98rem;
+  font-weight: 600;
   letter-spacing: 0.02em;
 }
 .brand small {
   display: block;
-  font-size: 12px;
+  font-size: 0.74rem;
   letter-spacing: 0.08em;
   color: var(--text-muted);
-  margin-top: 2px;
+  white-space: nowrap;
 }
 .brand img {
   width: 36px;
@@ -42,31 +42,71 @@
   white-space: nowrap;
   font-size: 14px;
   color: var(--text-soft);
+  flex-shrink: 0;
+  transition:
+    color 500ms,
+    filter 500ms;
 }
 #primary-navigation > a:not(.github-link):not(.language-link) {
+  position: relative;
   display: flex;
   align-items: center;
   min-height: 72px;
-  border-bottom: 1px solid transparent;
+  padding-inline: 4px;
+}
+#primary-navigation > a:not(.github-link):not(.language-link)::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 1px;
+  background: transparent;
+  transition: background-color 500ms;
+}
+#primary-navigation > a:hover {
+  color: var(--text);
+}
+#primary-navigation > a:hover::after {
+  background-color: var(--line-strong);
 }
 #primary-navigation > a[aria-current='page'] {
   color: var(--text);
-  border-bottom-color: var(--accent-strong) !important;
+}
+#primary-navigation > a[aria-current='page']::after {
+  background-color: var(--accent-strong);
 }
 .github-link {
   display: grid;
   place-items: center;
-  width: 40px;
+  width: 44px;
   height: 44px;
+  margin-left: 8px;
+}
+.github-link img {
+  width: 40px;
+  height: 40px;
+}
+.github-link:hover {
+  filter: drop-shadow(
+    0 0 16px color-mix(in srgb, var(--accent-glow) 42%, transparent)
+  );
 }
 .theme-toggle {
   border: 0;
   background: none;
   color: var(--text);
-  width: 32px;
+  width: 44px;
   height: 44px;
   display: grid;
   place-items: center;
+  transition:
+    color 500ms,
+    filter 500ms;
+}
+.theme-toggle:hover {
+  background: transparent;
+  filter: drop-shadow(
+    0 0 14px color-mix(in srgb, var(--accent-glow) 34%, transparent)
+  );
 }
 .light-icon {
   display: none;
@@ -77,8 +117,25 @@
 [data-theme='light'] .dark-icon {
   display: none;
 }
-.language-link {
-  font: 12px var(--font-mono) !important;
+#primary-navigation > .language-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 44px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.brand {
+  transition:
+    color 500ms,
+    filter 500ms;
+}
+.brand:hover {
+  filter: drop-shadow(
+    0 0 12px color-mix(in srgb, var(--accent-glow) 22%, transparent)
+  );
 }
 button.menu-toggle {
   display: none;
@@ -90,18 +147,18 @@ button.menu-toggle {
 .footer-inner {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   gap: 24px;
-  padding-block: 24px;
-}
-.footer-inner p + p {
-  margin-top: 6px;
+  padding-block: 32px;
+  white-space: nowrap;
 }
 .footer-inner nav {
   display: flex;
   gap: 20px;
-  flex-wrap: wrap;
   color: var(--text-soft);
+}
+.footer-inner a {
+  transition: color 300ms;
 }
 .home-page main {
   display: flex;
@@ -115,7 +172,7 @@ button.menu-toggle {
   width: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 0.68fr);
-  gap: 64px;
+  gap: 80px;
   align-items: center;
 }
 .home-copy {
@@ -163,22 +220,26 @@ button.menu-toggle {
   opacity: 0;
   pointer-events: none;
   z-index: 100;
+  transition: opacity 300ms;
 }
 .public-toast.visible {
   opacity: 1;
 }
-@media (max-width: 1100px) {
-  #primary-navigation {
-    gap: 16px;
-  }
-  .brand small {
-    display: none;
-  }
-  .home-art {
-    padding-right: 0;
-  }
+@media (max-width: 1279px) {
   .home-hero {
-    gap: 32px;
+    gap: 64px;
+  }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* The extra locale tool must fit without hiding the legacy subtitle. */
+  #primary-navigation {
+    gap: 12px;
+  }
+  .header-inner {
+    gap: 12px;
+  }
+  .github-link {
+    margin-left: 0;
   }
 }
 @media (max-width: 1023px) {
@@ -196,6 +257,9 @@ button.menu-toggle {
   }
 }
 @media (max-width: 767px) {
+  .brand small {
+    display: none;
+  }
   button.menu-toggle {
     display: inline-flex;
   }
@@ -210,6 +274,7 @@ button.menu-toggle {
     border-radius: 16px;
     padding: 16px;
     box-shadow: var(--shadow);
+    backdrop-filter: blur(24px);
     flex-wrap: wrap;
     justify-content: center;
   }
@@ -220,9 +285,15 @@ button.menu-toggle {
     min-height: 40px;
   }
   .footer-inner {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
+    gap: 8px;
+    font-size: 11px;
+    padding-block: 24px;
+  }
+  .footer-inner nav {
+    gap: 8px;
+  }
+  .github-link {
+    margin-left: 0;
   }
   .home-copy {
     gap: 28px;
@@ -230,8 +301,8 @@ button.menu-toggle {
   .home-copy p {
     font-size: 16px;
   }
-  .home-wordmark {
-    font-size: clamp(44px, 10vw, 80px);
+  .home-copy > span {
+    font-size: 0.9rem;
   }
   .back-top {
     right: 12px;

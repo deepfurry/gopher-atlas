@@ -1,43 +1,60 @@
 ---
-import {
-  dateLabel,
-  required,
-  typeInfo,
-  type Publication,
-} from '../lib/publication/indexes';
+import { required, type Publication } from '../lib/publication/indexes';
 import type { Content } from '../lib/publication/types';
 import CuratedCard from './CuratedCard.astro';
+import { displayDate, words, localized, type Locale } from '../lib/i18n';
 interface Props {
   items: Content[];
   publication: Publication;
   heading?: 'h2' | 'h3';
+  locale?: Locale;
 }
-const { items, publication: p, heading: Heading = 'h2' } = Astro.props;
+const {
+  items,
+  publication: p,
+  heading: Heading = 'h2',
+  locale = 'zh',
+} = Astro.props;
+const t = words[locale];
 ---
 
 {
   items.length ? (
     <ul class="content-list">
-      {items.map((item) => (
+      {items.map((item, order) => (
         <li>
           {item.type === 'curated_article' ? (
-            <CuratedCard item={item} publication={p} />
+            <CuratedCard
+              item={item}
+              publication={p}
+              locale={locale}
+              order={order}
+            />
           ) : (
             <article lang={item.language}>
               <div class="content-list-meta">
-                <span>{typeInfo[item.type].title}</span>
-                {item.featured && <span class="label">推荐</span>}
+                <span>
+                  {item.type === 'note'
+                    ? t.notes
+                    : item.type === 'topic'
+                      ? t.topics
+                      : t.post}
+                </span>
+                {item.featured && <span class="label">{t.featured}</span>}
                 <time datetime={new Date(item.lastPublishedAt).toISOString()}>
-                  {dateLabel(item.lastPublishedAt)}
+                  {displayDate(item.lastPublishedAt, locale)}
                 </time>
               </div>
               <Heading>
-                <a href={item.canonicalPath}>{item.title}</a>
+                <a href={localized(item.canonicalPath, locale)}>{item.title}</a>
               </Heading>
               {item.summary && <p>{item.summary}</p>}
               <a
                 class="byline"
-                href={`/authors/${required(p.authorById, item.authorId).slug}/`}
+                href={localized(
+                  `/authors/${required(p.authorById, item.authorId).slug}/`,
+                  locale,
+                )}
               >
                 {required(p.authorById, item.authorId).displayName}
               </a>
@@ -48,7 +65,7 @@ const { items, publication: p, heading: Heading = 'h2' } = Astro.props;
     </ul>
   ) : (
     <p class="empty">
-      还没有公开内容。可以先看看<a href="/">其他阅读方向</a>。
+      {t.noPublicContent} <a href={localized('/', locale)}>{t.otherReading}</a>
     </p>
   )
 }

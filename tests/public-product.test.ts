@@ -87,11 +87,12 @@ it('filters AND tags and inverse Topics, sorts source dates and recommendation, 
 });
 it('custom Select supports arrow navigation, selection and Escape without a native-only control', () => {
   document.body.innerHTML =
-    '<div data-select><input value=""><button aria-expanded="false"><span data-value>All</span></button><div role="listbox" hidden><button role="option" data-value="">All</button><button role="option" data-value="go">Go</button></div></div>';
+    '<div data-select><input value=""><button aria-expanded="false"><span data-value>All</span></button><div role="listbox" inert aria-hidden="true"><button role="option" data-value="">All</button><button role="option" data-value="go">Go</button></div></div>';
   const root = document.querySelector<HTMLElement>('[data-select]')!;
   mountSelect(root);
   root.querySelector('button')!.click();
-  expect(root.querySelector<HTMLElement>('[role=listbox]')!.hidden).toBe(false);
+  expect(root.dataset.open).toBe('true');
+  expect(root.querySelector<HTMLElement>('[role=listbox]')!.inert).toBe(false);
   root.dispatchEvent(
     new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }),
   );
@@ -103,7 +104,11 @@ it('custom Select supports arrow navigation, selection and Escape without a nati
   root.dispatchEvent(
     new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
   );
-  expect(root.querySelector<HTMLElement>('[role=listbox]')!.hidden).toBe(true);
+  expect(root.dataset.open).toBe('false');
+  expect(root.querySelector<HTMLElement>('[role=listbox]')!.inert).toBe(true);
+  expect(
+    root.querySelector('[role=listbox]')!.getAttribute('aria-hidden'),
+  ).toBe('true');
 });
 it('Public explorer paginates twelve, synchronizes URL and leaves all original source nodes intact', () => {
   document.body.innerHTML =
@@ -140,13 +145,28 @@ it('Public explorer paginates twelve, synchronizes URL and leaves all original s
   expect(location.search).toContain('Title+27');
   expect(results.children).toHaveLength(27);
 });
-it('locale chrome has matching keys and never rewrites a canonical legacy detail path', () => {
+it('locale chrome preserves every detail, tag, author, group and pagination path', () => {
   expect(Object.keys(words.zh).sort()).toEqual(Object.keys(words.en).sort());
   for (const path of chromePaths)
     expect(alternateChrome(path, 'en')).toBe('/en' + path);
   expect(
     alternateChrome('/notes/cybersecurity/crs-for-fiber-service/', 'en'),
-  ).toBe('/en/');
+  ).toBe('/en/notes/cybersecurity/crs-for-fiber-service/');
+  for (const path of [
+    '/articles/foo/',
+    '/topics/foo/',
+    '/notes/go/a/',
+    '/tags/go/',
+    '/authors/foo/',
+    '/notes/go/page/2/',
+  ]) {
+    expect(alternateChrome(path, 'en')).toBe('/en' + path);
+    expect(alternateChrome('/en' + path, 'zh')).toBe(path);
+    expect(alternateChrome('/en' + path, 'en')).toBe('/en' + path);
+  }
+  expect(alternateChrome('/en/articles/?q=Go#results', 'zh')).toBe(
+    '/articles/?q=Go#results',
+  );
 });
 it('one safe Markdown renderer produces GFM, footnotes, bounded code/table surfaces and controlled images', async () => {
   const source =

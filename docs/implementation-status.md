@@ -366,3 +366,33 @@ enabling Discussions and choosing a category remain manual setup. Empty category
 identifiers keep the integration disabled without affecting reading.
 Production legacy import, deployment, backup/restore drill, route comparison and DNS
 cutover remain P0-6. No main merge or Production operation is included.
+
+## P0-5.5 Public fidelity correction
+
+Started on clean, synchronized dev at `922d262b9a27f454bbe630b9c0ff4a5e08a794af`.
+This correction responds to the user's rejected visual comparison: it only changes
+Public rendering, CSS/interactions, locale routes, related tests and documentation.
+Admin, Importer, CMS/domain, migrations, snapshot v1 and dependency pins are unchanged.
+
+The live old site and its actual CSS/generate-site.ts/render.ts/app.ts were compared
+against the local Astro site using the existing full Legacy snapshot. Restored the
+768 px subtitle/Article Hero, 640/1280 px stats, 1280 px filter columns, 1024/1280 px
+Topic grid, Note-group cards and the full-width Note detail shell. The shared safe
+Markdown/Shiki/copy/TOC renderer remains in published views and Draft Preview.
+Hero-rise entry, staggered cards/stats, 500 ms underline/button/select interactions,
+GitHub hit area/glow, readable language control and the requested footer are present.
+The synthetic Curated fixture's template prose was replaced with a concise reason;
+Legacy output checks now assert original reason equality rather than rewriting it.
+
+All canonical content/collection/tag/author/group/pagination pages get /en/ chrome
+aliases, with unchanged body and original canonical, no duplicate sitemap/Pagefind
+entry. Language switching keeps path/query/fragment. Seven translated static chrome
+pages keep independent self-canonical/hreflang. No SQLite route is changed.
+
+Validation includes Web Vitest/typecheck/build, full `make check`, both fixture and
+35-item real Legacy artifact checks, and Windows browser comparison at 850 px plus
+1440/390 px checks. Actual interactions covered theme, menu, Select open/close and
+keyboard focus, source actions, Note group navigation, language aliases and page
+entry. Topic grid was also measured at 800/900/1024/1280 px. Automated validation
+does not substitute for the user's final A-grade visual signoff. No Production
+credentials, R2 writes, deployment, DNS change or main merge is part of this work.

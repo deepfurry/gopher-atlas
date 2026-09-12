@@ -328,7 +328,9 @@ Legacy 导入先 plan 再 apply。必须显式指定当前 CMS 的 Admin owner �
 自动测试与浏览器演练使用可丢弃数据库；真实 Development apply 的目标与署名需明确。
 
 Public 的 Logo、首页、配色、文章筛选和 Topic/Notes 结构延续旧 GopherAtlas。
-`/en/` 下的七个站点自有页面提供英文 chrome；内容不自动翻译，旧中文 URL 不变。
+`/en/` 覆盖站点自有页面与全部内容、话题、随笔、标签、作者及分页的 chrome 别名。
+语言切换保留当前页面、筛选条件与锚点；内容不自动翻译。详情别名共用原 canonical，
+不重复进入 sitemap/Pagefind，SQLite 中的旧 URL 不变。Public 交互和断点以旧站为准。
 Note 阅读提供 TOC、代码复制、脚注、宽表格滚动与组内上下篇。
 
 Note 评论与 Reactions 使用 giscus。当前仓库尚未启用 GitHub Discussions，公开的

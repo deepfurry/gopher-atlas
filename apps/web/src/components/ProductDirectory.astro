@@ -1,6 +1,6 @@
 ---
 import PageHero from './PageHero.astro';
-import { words, type Locale } from '../lib/i18n';
+import { words, localized, type Locale } from '../lib/i18n';
 import type { Publication } from '../lib/publication/indexes';
 import NoteGroupCard from './NoteGroupCard.astro';
 interface Props {
@@ -17,7 +17,19 @@ const { kind, publication: p, locale = 'zh' } = Astro.props,
   label={kind === 'topics' ? 'Topics' : 'Notes'}
   title={t[kind]}
   description={kind === 'topics' ? t.topicsIntro : t.notesIntro}
-/>
+  >{
+    kind === 'topics' && (
+      <>
+        <>
+          <a class="btn primary" href={localized('/articles/', locale)}>
+            {t.filterArticles}
+          </a>
+          <button data-copy-link>{t.copy}</button>
+        </>
+      </>
+    )
+  }</PageHero
+>
 <section>
   <div class="section-intro">
     <span class="eyebrow">Directory</span><h2>
@@ -28,38 +40,48 @@ const { kind, publication: p, locale = 'zh' } = Astro.props,
       }
     </h2><p>{kind === 'topics' ? t.topicHint : t.noteHint}</p>
   </div>
-  <div class="topic-grid">
+  <div class={kind === 'topics' ? 'topic-grid' : 'note-grid'}>
     {
       kind === 'topics'
-        ? topics.map((topic) => (
-            <article class="subtle-panel topic-card" lang={topic.language}>
+        ? topics.map((topic, index) => (
+            <article
+              class="subtle-panel topic-card"
+              lang={topic.language}
+              style={`--card-order:${index}`}
+            >
               <>
                 <div class="small-meta">
                   <>
-                    <span>{t.topics}</span>
+                    <span>{t.topic}</span>
                     <span>
-                      {topic.topicEntries.length} {t.articleCount}
+                      {topic.topicEntries.length}{' '}
+                      {locale === 'zh' ? '篇' : 'articles'}
                     </span>
                   </>
                 </div>
-                <h2>
-                  <a href={topic.canonicalPath}>{topic.title}</a>
-                </h2>
-                <p>{topic.summary}</p>
-                <div class="small-meta">
-                  {t.readingOrder} ·{' '}
-                  {topic.type === 'topic' ? topic.payload.recommendedCount : 0}
+                <div>
+                  <h2>
+                    <a href={localized(topic.canonicalPath, locale)}>
+                      {topic.title}
+                    </a>
+                  </h2>
+                  <p>{topic.summary}</p>
                 </div>
                 <div class="actions">
-                  <a class="btn" href={topic.canonicalPath}>
-                    {t.enterTopics}
+                  <a class="btn" href={localized(topic.canonicalPath, locale)}>
+                    {t.enterTopic}
                   </a>
                 </div>
               </>
             </article>
           ))
-        : p.groups.map((group) => (
-            <NoteGroupCard group={group} publication={p} locale={locale} />
+        : p.groups.map((group, index) => (
+            <NoteGroupCard
+              group={group}
+              publication={p}
+              locale={locale}
+              order={index}
+            />
           ))
     }
   </div>

@@ -151,6 +151,27 @@ it('reserves every English chrome route against historical redirects', () => {
     'public_page_conflict',
   );
 });
+it('reserves detail and collection locale aliases without changing canonical pages or snapshots', () => {
+  const s = fixture(),
+    original = JSON.stringify(s);
+  const paths = publicPages(createPublication(s)).map((page) => page.path);
+  expect(paths.every((path) => !path.startsWith('/en/'))).toBe(true);
+  expect(JSON.stringify(s)).toBe(original);
+  for (const path of [
+    s.content[0].canonicalPath,
+    '/tags/concurrency/',
+    '/authors/fixture-author/',
+    '/notes/go/',
+    '/tags/',
+    '/authors/',
+  ]) {
+    const other = fixture();
+    other.routes.push({ path: '/en' + path, kind: 'redirect', contentId: 1 });
+    expect(() => publicPages(createPublication(other))).toThrow(
+      'public_page_conflict',
+    );
+  }
+});
 it('writes direct permanent redirects, rejects conflicting/missing/chained/self targets and platform overflow', () => {
   const s = fixture();
   expect(redirects(s)).toBe(

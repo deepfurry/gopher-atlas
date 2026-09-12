@@ -5,7 +5,7 @@ import Articles from './Articles.astro';
 import ProductDirectory from './ProductDirectory.astro';
 import Search from './Search.astro';
 import MarkdownBody from './MarkdownBody.astro';
-import { words, type Locale } from '../lib/i18n';
+import { words, localized, type Locale } from '../lib/i18n';
 import { publication } from '../lib/publication/snapshot';
 import aboutZh from '../content/chrome/about.zh.md?raw';
 import aboutEn from '../content/chrome/about.en.md?raw';
@@ -19,7 +19,9 @@ interface Props {
     | 'notes'
     | 'about'
     | 'contribute'
-    | 'search';
+    | 'search'
+    | 'authors'
+    | 'tags';
   locale?: Locale;
 }
 const { page, locale = 'zh' } = Astro.props,
@@ -36,7 +38,19 @@ const body =
 
 <Layout
   title={page === 'home' ? t.subtitle : t[page]}
-  description={page === 'home' ? t.hero : t[page]}
+  description={page === 'home'
+    ? t.hero
+    : page === 'authors'
+      ? t.authorsIntro
+      : page === 'tags'
+        ? t.tagsIntro
+        : page === 'articles'
+          ? t.articlesIntro
+          : page === 'topics'
+            ? t.topicsIntro
+            : page === 'notes'
+              ? t.notesIntro
+              : t[page]}
   locale={locale}
   home={page === 'home'}
   searchIndex={page === 'about' || page === 'contribute'}
@@ -50,6 +64,68 @@ const body =
       <ProductDirectory kind={page} publication={publication} locale={locale} />
     ) : page === 'search' ? (
       <Search locale={locale} />
+    ) : page === 'authors' || page === 'tags' ? (
+      <section>
+        <header class="collection-heading">
+          <h1>{page === 'authors' ? t.authorsTitle : t.tagsTitle}</h1>
+          <p class="lede">
+            {page === 'authors' ? t.authorsIntro : t.tagsIntro}
+          </p>
+        </header>
+        <ul class="directory-list">
+          {page === 'authors'
+            ? publication.authors.map((author) => (
+                <li>
+                  <>
+                    {author.avatarUrl && (
+                      <img
+                        class="avatar"
+                        src={author.avatarUrl}
+                        alt=""
+                        width="56"
+                        height="56"
+                        loading="lazy"
+                        referrerpolicy="no-referrer"
+                      />
+                    )}
+                    <h2>
+                      <a href={localized(`/authors/${author.slug}/`, locale)}>
+                        {author.displayName}
+                      </a>
+                    </h2>
+                    <p>
+                      {publication.contentByAuthor.get(author.id)!.length}{' '}
+                      {t.contentCount}
+                    </p>
+                  </>
+                </li>
+              ))
+            : publication.tags.map((tag) => (
+                <li>
+                  <>
+                    <h2>
+                      <a href={localized(`/tags/${tag.slug}/`, locale)}>
+                        {tag.name}
+                      </a>
+                    </h2>
+                    <p>{tag.description}</p>
+                    <span class="muted">
+                      {publication.contentByTag.get(tag.id)!.length}{' '}
+                      {t.contentCount}
+                    </span>
+                  </>
+                </li>
+              ))}
+        </ul>
+        {!(page === 'authors'
+          ? publication.authors.length
+          : publication.tags.length) && (
+          <p class="empty">
+            {t.noPublicContent}{' '}
+            <a href={localized('/', locale)}>{t.otherReading}</a>
+          </p>
+        )}
+      </section>
     ) : (
       <article class="prose">
         <>

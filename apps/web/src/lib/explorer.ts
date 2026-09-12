@@ -109,23 +109,31 @@ export function mountSelect(root: HTMLElement) {
     const selected =
       options.find((option) => option.dataset.value === input.value) ??
       options[0];
-    root.querySelector('[data-value]')!.textContent = selected.textContent;
+    root.querySelector('[data-value]')!.textContent =
+      selected.querySelector('[data-option-label]')?.textContent ??
+      selected.textContent;
     options.forEach((o) =>
       o.setAttribute('aria-selected', String(o === selected)),
     );
   };
   const close = () => {
-    list.hidden = true;
+    root.dataset.open = 'false';
+    list.inert = true;
+    list.setAttribute('aria-hidden', 'true');
     trigger.setAttribute('aria-expanded', 'false');
   };
   const open = () => {
-    list.hidden = false;
+    root.dataset.open = 'true';
+    list.inert = false;
+    list.removeAttribute('aria-hidden');
     trigger.setAttribute('aria-expanded', 'true');
     (
       options.find((o) => o.dataset.value === input.value) || options[0]
     ).focus();
   };
-  trigger.addEventListener('click', () => (list.hidden ? open() : close()));
+  trigger.addEventListener('click', () =>
+    root.dataset.open !== 'true' ? open() : close(),
+  );
   options.forEach((option) =>
     option.addEventListener('click', () => {
       input.value = option.dataset.value || '';
@@ -142,7 +150,7 @@ export function mountSelect(root: HTMLElement) {
     }
     if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
       e.preventDefault();
-      if (list.hidden) {
+      if (root.dataset.open !== 'true') {
         open();
         return;
       }
@@ -162,6 +170,11 @@ export function mountSelect(root: HTMLElement) {
   document.addEventListener('click', (e) => {
     if (e.target instanceof Node && !root.contains(e.target)) close();
   });
+  root.addEventListener('focusout', (e) => {
+    if (!(e.relatedTarget instanceof Node) || !root.contains(e.relatedTarget))
+      close();
+  });
+  close();
   return sync;
 }
 export function mountExplorer(root: HTMLElement) {
@@ -247,7 +260,11 @@ export function mountExplorer(root: HTMLElement) {
       filtered.slice((state.page - 1) * 12, state.page * 12).map((r) => r.id),
     );
     nodes.forEach((n) => (n.hidden = !shown.has(Number(n.dataset.id))));
-    filtered.forEach((row) => results.append(byId.get(row.id)!));
+    filtered.forEach((row, index) => {
+      const node = byId.get(row.id)!;
+      node.style.setProperty('--card-order', String(index % 12));
+      results.append(node);
+    });
     count.textContent = `${filtered.length} ${t.found}`;
     empty.hidden = filtered.length > 0;
     pages.replaceChildren();

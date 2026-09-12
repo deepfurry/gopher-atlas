@@ -1,4 +1,4 @@
-import { words, type Locale } from './i18n';
+import { words, alternateChrome, type Locale } from './i18n';
 export function mountChrome() {
   const root = document.documentElement,
     t = words[(root.dataset.locale as Locale) || 'zh'];
@@ -74,6 +74,30 @@ export function mountChrome() {
     toggle?.setAttribute('aria-expanded', 'false');
     nav?.classList.remove('open');
   };
+  // Filters use push/replaceState and headings use fragments. Preserve both at click time.
+  document
+    .querySelector<HTMLAnchorElement>('[data-language-link]')
+    ?.addEventListener('click', (event) => {
+      const link = event.currentTarget as HTMLAnchorElement;
+      link.href =
+        alternateChrome(
+          location.pathname,
+          root.dataset.locale === 'en' ? 'zh' : 'en',
+        ) +
+        location.search +
+        location.hash;
+    });
+  window.addEventListener('resize', () => {
+    if (innerWidth >= 768) close();
+  });
+  document.addEventListener('click', (e) => {
+    if (
+      e.target instanceof Node &&
+      !nav?.contains(e.target) &&
+      !toggle?.contains(e.target)
+    )
+      close();
+  });
   toggle?.addEventListener('click', () => {
     const open = toggle.getAttribute('aria-expanded') !== 'true';
     toggle.setAttribute('aria-expanded', String(open));

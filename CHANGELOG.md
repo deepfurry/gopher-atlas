@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Watch configured Development publication generations and refresh only Public,
+  preserving CMS/Admin; retry transient reads and disable watching for fixtures.
+- Add a Development-only Blog preview that flushes Draft autosave and reuses
+  Public rendering through a bounded, non-persistent POST. Production excludes it.
+
 - Fix silent Astro development startup failure in Windows terminals by relaying
   detached child output over pipes; retain process-tree cleanup and exit codes.
 

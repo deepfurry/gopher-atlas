@@ -5,6 +5,7 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { supervise } from '../../scripts/dev-processes.mjs';
+import { setTimeout as delay } from 'node:timers/promises';
 
 const [mode, directory, outcome] = process.argv.slice(2);
 const fixture = fileURLToPath(import.meta.url);
@@ -17,9 +18,10 @@ if (mode === 'manager') {
   });
   const timer = setInterval(() => {
     if (
-      ['tree.json', 'leaf.json', 'exit.json'].every((file) =>
-        existsSync(join(directory, file)),
-      )
+      (outcome === 'restart'
+        ? ['cms.json', 'admin.json', 'public.json']
+        : ['tree.json', 'leaf.json', 'exit.json']
+      ).every((file) => existsSync(join(directory, file)))
     ) {
       clearInterval(timer);
       process.send?.('ready');
@@ -28,10 +30,32 @@ if (mode === 'manager') {
   const commands =
     outcome === 'spawn-error'
       ? [{ name: 'missing', command: join(directory, 'no-such-executable') }]
-      : outcome === 'output'
-        ? [command('output')]
-        : [command('tree'), command('exit')];
-  process.exitCode = await supervise(commands, { graceMs: 150 });
+      : outcome === 'restart'
+        ? [command('cms'), command('admin'), command('public')]
+        : outcome === 'output'
+          ? [command('output')]
+          : [command('tree'), command('exit')];
+  process.exitCode = await supervise(commands, {
+    graceMs: 150,
+    onStart:
+      outcome === 'restart'
+        ? async ({ restart, signal }) => {
+            while (
+              !signal.aborted &&
+              !existsSync(join(directory, 'restart.flag'))
+            ) {
+              try {
+                await delay(20, undefined, { signal });
+              } catch {
+                return;
+              }
+            }
+            if (signal.aborted) return;
+            await restart('public');
+            writeFileSync(join(directory, 'restarted.flag'), 'done');
+          }
+        : undefined,
+  });
   if (outcome === 'output') {
     console.log('supervisor output still open');
     console.error('supervisor errors still open');

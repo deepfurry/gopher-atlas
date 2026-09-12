@@ -65,12 +65,15 @@ async function stopChildren(children, graceMs) {
   }
 }
 
-// Any exit (including success), spawn failure, or Ctrl+C stops the whole group.
+// Unexpected exits stop the group. Explicit restarts replace only their named child.
 export async function supervise(
   commands,
-  { graceMs = 5000, stdio = 'inherit' } = {},
+  { graceMs = 5000, stdio = 'inherit', onStart } = {},
 ) {
   const children = [];
+  const running = new Map();
+  const intentional = new WeakSet();
+  const controller = new AbortController();
   let stopping = false;
   let finish;
   const result = new Promise((done) => {
@@ -79,6 +82,7 @@ export async function supervise(
   const stop = (code) => {
     if (stopping) return;
     stopping = true;
+    controller.abort();
     void stopChildren(children, graceMs).then(() => finish(code));
   };
   const interrupt = () => stop(130);
@@ -86,8 +90,7 @@ export async function supervise(
   process.on('SIGINT', interrupt);
   process.on('SIGTERM', terminate);
   try {
-    for (const { name, command, args = [], cwd, env } of commands) {
-      if (stopping) break;
+    const launch = ({ name, command, args = [], cwd, env }) => {
       // Detached Windows children cannot safely inherit console/ConPTY handles.
       // Keep Ctrl+C on the supervisor and relay output over ordinary pipes;
       // otherwise Astro can exit before its startup error reaches the terminal.
@@ -106,6 +109,8 @@ export async function supervise(
         child.stderr.pipe(process.stderr, { end: false });
       }
       children.push(child);
+      const closed = new Promise((done) => child.once('close', done));
+      running.set(name, { child, closed });
       child.once('error', () => {
         console.error(
           `${name} could not start; stopping development services.`,
@@ -113,9 +118,36 @@ export async function supervise(
         stop(1);
       });
       child.once('exit', (code, signal) => {
+        if (intentional.has(child)) return;
         if (!stopping) console.log(`${name} exited (${code ?? signal}).`);
         stop(code ?? (signal === 'SIGINT' ? 130 : 1));
       });
+    };
+    for (const command of commands) {
+      if (stopping) break;
+      launch(command);
+    }
+    const restart = async (name, beforeStart = () => {}) => {
+      if (stopping) return;
+      const command = commands.find((item) => item.name === name);
+      const previous = running.get(name);
+      if (!command || !previous) throw new Error('Unknown development process');
+      intentional.add(previous.child);
+      await stopChildren([previous.child], graceMs);
+      await previous.closed;
+      const index = children.indexOf(previous.child);
+      if (index !== -1) children.splice(index, 1);
+      if (stopping) return;
+      await beforeStart();
+      if (!stopping) launch(command);
+    };
+    if (onStart && !stopping) {
+      Promise.resolve(onStart({ restart, signal: controller.signal })).catch(
+        () => {
+          console.error('Development watcher stopped unexpectedly.');
+          stop(1);
+        },
+      );
     }
     if (!commands.length) stop(0);
     return await result;

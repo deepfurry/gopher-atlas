@@ -1,10 +1,16 @@
 import { fork, spawnSync, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+  existsSync,
+} from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createConnection } from 'node:net';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 
 const directories: string[] = [];
 const managers: ChildProcess[] = [];
@@ -123,4 +129,32 @@ it('preserves child stdout/stderr and the exit code without closing supervisor o
   expect(stderr).toContain('synthetic startup failure');
   expect(stdout).toContain('supervisor output still open');
   expect(stderr).toContain('supervisor errors still open');
+}, 15000);
+
+it('restarts only Public while CMS/Admin listeners and process identities stay alive', async () => {
+  const test = launch('restart');
+  await test.ready;
+  const read = (role: string) =>
+    JSON.parse(readFileSync(join(test.directory, `${role}.json`), 'utf8'));
+  const before = ['cms', 'admin', 'public'].map(read);
+  writeFileSync(join(test.directory, 'restart.flag'), 'restart');
+  await vi.waitFor(() => {
+    expect(existsSync(join(test.directory, 'restarted.flag'))).toBe(true);
+    expect(read('public').pid).not.toBe(before[2].pid);
+  });
+  const after = ['cms', 'admin', 'public'].map(read);
+  expect(after.slice(0, 2)).toEqual(before.slice(0, 2));
+  expect(await Promise.all(after.map((row) => listening(row.port)))).toEqual([
+    true,
+    true,
+    true,
+  ]);
+  expect(await listening(before[2].port)).toBe(false);
+  test.child.send('interrupt');
+  expect((await test.exited)[0]).toBe(130);
+  expect(await Promise.all(after.map((row) => listening(row.port)))).toEqual([
+    false,
+    false,
+    false,
+  ]);
 }, 15000);

@@ -83,6 +83,9 @@ disabled. Local development uses explicit fixtures, never Production credentials
 User-run dev-web may also read a development bucket using CONTENT_R2_* or the
 development-only CMS credential fallback. The Node preparation step only GETs
 latest/snapshot; it removes private configuration before spawning browser tools.
+The development watcher reuses that same loader and only reads latest/snapshot;
+it never writes R2 or invokes Hook. Existing configured Production buckets/hooks
+are not rejected by Development tooling; no separate bucket/credential is required.
 Checks never read the real root .env or contact real buckets. Production keeps
 the separate content RO credential, and never enables this fallback.
 

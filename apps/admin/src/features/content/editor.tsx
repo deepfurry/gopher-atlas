@@ -11,6 +11,7 @@ import {
   Prohibit,
   ClockCounterClockwise,
   Article,
+  ArrowSquareOut,
 } from '@phosphor-icons/react';
 import { DropdownMenu, MenuItem, MenuSeparator } from '@/components/ui/menu';
 import { Tabs, TabPanel } from '@/components/ui/tabs';
@@ -249,6 +250,29 @@ function DraftWorkspace({
     }
   };
   const locked = !content.actions.editDraft;
+  const blogPreview = async () => {
+    if (!import.meta.env.DEV) return;
+    const preview = window.open('about:blank', '_blank');
+    if (!preview) {
+      toast.error('请允许此后台打开新窗口，再点击博客预览。');
+      return;
+    }
+    preview.opener = null;
+    preview.document.title = '正在准备博客预览';
+    preview.document.body.textContent = '正在保存草稿并准备博客预览…';
+    setBusy(true);
+    setError(null);
+    try {
+      await flush();
+      const { showSavedBlogPreview } = await import('./blog-preview');
+      await showSavedBlogPreview(content.id, preview);
+    } catch (error) {
+      preview.close();
+      setError(error);
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <>
       <header className="editor-header">
@@ -261,6 +285,16 @@ function DraftWorkspace({
           <ContentStatus content={content} />
         </div>
         <div className="workflow-actions">
+          {import.meta.env.DEV && content.actions.editDraft && (
+            <Button
+              variant="outline"
+              disabled={busy || save.status === 'conflict'}
+              onClick={() => void blogPreview()}
+            >
+              <ArrowSquareOut />
+              博客预览
+            </Button>
+          )}
           {content.actions.editDraft && (
             <Button
               variant="outline"

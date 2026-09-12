@@ -145,11 +145,7 @@ export function validateLatest(data) {
   return latest;
 }
 
-export async function loadSnapshot(env, { read = readFileSync, get } = {}) {
-  if (env.CONTENT_SNAPSHOT_FILE) {
-    const data = read(env.CONTENT_SNAPSHOT_FILE);
-    return { snapshot: validateSnapshot(data), data, hash: sha256(data) };
-  }
+export function validateContentInput(env, { development = false } = {}) {
   const required = [
     'CONTENT_R2_ENDPOINT',
     'CONTENT_R2_BUCKET',
@@ -165,7 +161,12 @@ export async function loadSnapshot(env, { read = readFileSync, get } = {}) {
     throw new Error('content_input_invalid');
   }
   if (
-    endpoint.protocol !== 'https:' ||
+    (endpoint.protocol !== 'https:' &&
+      !(
+        development &&
+        endpoint.protocol === 'http:' &&
+        ['127.0.0.1', 'localhost', '[::1]'].includes(endpoint.hostname)
+      )) ||
     endpoint.username ||
     endpoint.password ||
     endpoint.search ||
@@ -174,6 +175,17 @@ export async function loadSnapshot(env, { read = readFileSync, get } = {}) {
     !/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(env.CONTENT_R2_BUCKET)
   )
     throw new Error('content_input_invalid');
+}
+
+export async function loadSnapshot(
+  env,
+  { read = readFileSync, get, development = false } = {},
+) {
+  if (env.CONTENT_SNAPSHOT_FILE) {
+    const data = read(env.CONTENT_SNAPSHOT_FILE);
+    return { snapshot: validateSnapshot(data), data, hash: sha256(data) };
+  }
+  validateContentInput(env, { development });
   try {
     const latest = validateLatest(await get('latest.json', 8192));
     const data = await get(latest.snapshotKey, maxSnapshotBytes);

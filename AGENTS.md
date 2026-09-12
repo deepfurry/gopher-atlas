@@ -54,6 +54,11 @@ architecture and current scope are summarized in `docs/implementation-status.md`
   fill missing CONTENT_R2_* from corresponding CMS R2_*; explicit fixture wins.
   Build/Production never load root .env or use fallback. Tests use synthetic env
   files only. `make dev` owns/cleans all child trees; it never migrates the DB.
+- ADR 0011: Development watches the configured content bucket; only changed,
+  validated generations restart Public. CMS/Admin survive controlled restarts.
+  Explicit fixtures disable watching. The local Draft preview POST route is
+  injected only by Astro dev, reuses Public rendering and never persists data,
+  advances generation or performs storage I/O. Production excludes the capability.
 - Preserve migrations 00001–00003 and schema version 3. No auto migration.
 - Public routes use snapshot canonicalPath. Derived pages/indexes fail on broken
   references or route/group conflicts. Redirect overflow fails, never truncates.

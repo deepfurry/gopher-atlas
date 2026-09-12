@@ -77,7 +77,8 @@ make dev
 ```
 
 该命令先编译开发 CMS、准备 Public 快照，再启动 CMS / Admin / Public。
-任一服务退出或启动失败会停止其余服务，`Ctrl+C` 统一退出；Linux/macOS 先发送终止信号，
+Public 检测到新 generation 时只重启 Astro，CMS/Admin 保持运行。
+非预期的服务退出或启动失败会停止其余服务，`Ctrl+C` 统一退出；Linux/macOS 先发送终止信号，
 超时后强制清理进程组，Windows 按本次启动的 PID 清理完整子进程树。
 Windows 的子进程输出通过管道转发到当前终端，避免 PowerShell/Windows Terminal
 中分离进程继承控制台句柄后静默退出；`Ctrl+C` 仍由启动器统一处理。
@@ -197,6 +198,13 @@ P0-4 publication 网络步骤独立于 SQLite 事务；旧站导入和生产切�
 
 - 后台只使用简体中文，不引入 i18n。208px 左侧导航可收起为图标栏，顶部提供面包屑、
   搜索、新建、主题与账户菜单；窄屏使用抽屉导航。Phosphor 图标与 Base UI 控件统一交互。
+- Development 编辑器提供“博客预览”：先 flush 当前自动保存队列，再以 Public 的真实
+  ContentDetail/Layout/Markdown 样式打开当前 Draft。预览不要求发布，不推进 generation，
+  不写 R2 或预览文件；冲突/保存失败时停止。修改后再次点击即可预览最新保存内容。
+  预览数据只通过一次 POST 传递，不放 URL/浏览器存储。未填标题、路径或语言使用展示
+  占位值；专题条目优先使用本地已发布快照，没有快照的条目标注待发布。
+  样式/模板热更新可重载当前预览；直接打开预览 URL 不含 Draft 数据，需从后台进入。
+  Production 构建没有此入口。
 - 导航按工作台、内容、内容资源、编辑流程、成员、发布与运维分组，入口与动作仍由
   server permissions/actions 控制。搜索和摘要使用现有有界 API，明确标注已加载范围。
 - Content 下四个类型入口复用同一张可筛选、cursor 分页的表格。创建后直接进入编辑器；
@@ -251,10 +259,17 @@ development 的八个 P0-4 变量全部留空时，Worker disabled，公开 muta
 CONTENT_SNAPSHOT_FILE=tests/fixtures/content-snapshot-v1.json
 ```
 
-然后直接 `make dev-web`；若希望读取开发内容桶，把该字段留空，并配好上述 R2 字段。
-没有 `latest.json` 会明确提示 `no published snapshot available`，不会悄悄改用 fixture。
-此时先单独运行 CMS/Admin 发布开发快照，或显式选择 fixture 后再启动 `make dev`。
-快照在启动时读取，重新运行 `dev-web` / `dev` 才载入新 generation；不会把 Draft 直接展示给读者。
+然后直接 `make dev-web`；fixture 模式不访问或轮询 R2。若希望联调真实发布，把该字段留空，
+直接复用根 `.env` 现有的 `R2_*` / `R2_CONTENT_BUCKET`，无需新建 bucket 或凭据；
+已有 `CONTENT_R2_*` 仍可显式覆盖。配置使用哪个 bucket/Hook 就使用哪个，不额外分类或阻止。
+CMS 发布仍执行原有 R2 + Deploy Hook pipeline，watcher 只读取结果。
+
+`make dev` / `make dev-web` 每两秒检查 `latest.json`，generation 未变时不下载快照或重启。
+新 generation 通过原有 hash/schema/引用图/路由校验后，替换 `.generated` 输入并仅重启
+Astro，更新 `getStaticPaths`；已打开的 Public 页面通过 Vite 重连刷新。保留三个服务运行，
+在 Admin 发布后几秒内即可看到新页面与新路由，无需手工重启。轮询失败保留当前内容并重试。
+初次 bucket 尚无 `latest.json` 时明确显示等待状态，Public 使用空站点并继续等待首次发布；
+这不是 fixture fallback。Production 缺失/损坏输入仍然 fail-closed。
 Astro dev 不生成 Pagefind 索引，完整搜索应使用 fixture build 后的 preview。
 
 Production / Cloudflare 的 `pnpm --filter @gopheratlas/web build` 行为不变：不读取根 `.env`、

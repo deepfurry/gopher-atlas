@@ -53,6 +53,13 @@ for (const root of [
       readFileSync(path).includes(Buffer.from(canary))
     )
       throw new Error('Synthetic secret-output scan failed');
+    for (const marker of [
+      '/__dev/blog-preview/',
+      'showSavedBlogPreview',
+      'GOPHERATLAS_DEV_ADMIN_ORIGIN',
+    ])
+      if (readFileSync(path).includes(Buffer.from(marker)))
+        throw new Error('Development preview leaked into Production output');
   }
 }
 console.log('Synthetic secret-output scan passed.');

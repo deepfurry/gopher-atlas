@@ -15,8 +15,12 @@ import type { Content } from '../lib/publication/types';
 interface Props {
   content: Content;
   publication: Publication;
+  preview?: {
+    updatedAt: number;
+    entries: { position: number; title: string; content?: Content }[];
+  };
 }
-const { content: item, publication: p } = Astro.props;
+const { content: item, publication: p, preview } = Astro.props;
 const author = required(p.authorById, item.authorId);
 const cover =
   item.coverAssetId === null
@@ -37,8 +41,16 @@ const info = typeInfo[item.type];
   image={cover?.url}
   imageAlt=""
   ogType={item.type === 'topic' ? 'website' : 'article'}
-  searchIndex
+  searchIndex={!preview}
+  noindex={Boolean(preview)}
 >
+  {
+    preview && (
+      <p class="notice" role="status">
+        本地草稿预览，不会发布内容。
+      </p>
+    )
+  }
   <div class="reading-layout">
     <article class="prose content-detail">
       <header>
@@ -59,14 +71,25 @@ const info = typeInfo[item.type];
             rel="author"
             data-pagefind-meta="author">{author.displayName}</a
           >
-          <span
-            >发布于 <time
-              datetime={new Date(item.firstPublishedAt).toISOString()}
-              >{dateLabel(item.firstPublishedAt)}</time
-            ></span
-          >
           {
-            item.lastPublishedAt !== item.firstPublishedAt && (
+            preview ? (
+              <span>
+                草稿保存于{' '}
+                <time datetime={new Date(preview.updatedAt).toISOString()}>
+                  {dateLabel(preview.updatedAt)}
+                </time>
+              </span>
+            ) : (
+              <span>
+                发布于{' '}
+                <time datetime={new Date(item.firstPublishedAt).toISOString()}>
+                  {dateLabel(item.firstPublishedAt)}
+                </time>
+              </span>
+            )
+          }
+          {
+            !preview && item.lastPublishedAt !== item.firstPublishedAt && (
               <span>
                 更新于{' '}
                 <time datetime={new Date(item.lastPublishedAt).toISOString()}>
@@ -108,15 +131,24 @@ const info = typeInfo[item.type];
           <section class="topic-entries" aria-label="专题阅读路径">
             <h2>阅读路径</h2>
             <ol>
-              {(p.topicTargets.get(item.id) ?? []).map((entry) => (
-                <li value={entry.position}>
-                  <ContentList
-                    items={[entry.content]}
-                    publication={p}
-                    heading="h3"
-                  />
-                </li>
-              ))}
+              {(preview?.entries ?? p.topicTargets.get(item.id) ?? []).map(
+                (entry) => (
+                  <li value={entry.position}>
+                    {entry.content ? (
+                      <ContentList
+                        items={[entry.content]}
+                        publication={p}
+                        heading="h3"
+                      />
+                    ) : (
+                      <>
+                        <h3>{'title' in entry ? entry.title : '未命名内容'}</h3>
+                        <p>本地快照中尚未发布此条目。</p>
+                      </>
+                    )}
+                  </li>
+                ),
+              )}
             </ol>
           </section>
         )

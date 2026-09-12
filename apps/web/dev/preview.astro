@@ -1,0 +1,41 @@
+---
+import ContentDetail from '../src/components/ContentDetail.astro';
+import { publication } from '../src/lib/publication/snapshot';
+import { readPreviewRequest, parsePreview } from './preview';
+export const prerender = false;
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+Astro.response.headers.set(
+  'Referrer-Policy',
+  'strict-origin-when-cross-origin',
+);
+let data;
+try {
+  if (!import.meta.env.DEV) return new Response(null, { status: 404 });
+  data = parsePreview(
+    await readPreviewRequest(
+      Astro.request,
+      process.env.GOPHERATLAS_DEV_ADMIN_ORIGIN || 'http://127.0.0.1:5173',
+    ),
+    publication,
+  );
+} catch {
+  return new Response(
+    '无法生成博客预览。请从本地后台重新保存并打开预览，检查正文与属性格式。',
+    {
+      status: 400,
+      headers: {
+        'Cache-Control': 'private, no-store',
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Robots-Tag': 'noindex, nofollow',
+      },
+    },
+  );
+}
+---
+
+<ContentDetail
+  content={data.item}
+  publication={data.publication}
+  preview={data.preview}
+/>

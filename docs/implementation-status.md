@@ -265,3 +265,39 @@ Public or existing dependency versions changed; only the Admin icon dependency
 was replaced. The build still reports a large main JavaScript chunk (about
 718 kB before compression); it is not a functional failure and remains a future
 performance refinement.
+
+## Live local publication and Draft preview (2026-09-12)
+
+Started from clean synchronized dev at
+`16a184f2485e839a4aae44a2e47649d63ad29e57`. ADR 0011 adds a Development-only
+two-second snapshot watcher. It reuses configured R2 values, validates changed
+generations with the existing loader, and performs named Public-only restarts.
+Unchanged generations do not download/restart; read errors retry; explicit
+fixtures disable watching. Empty latest starts an explicitly empty local site.
+Production input, migrations, APIs and publication semantics are unchanged.
+
+The Admin's Development-only Blog preview flushes autosave, reads the authorized
+saved Draft and posts only a presentation projection to an injected Astro dev
+route. It reuses ContentDetail/Layout/Markdown, has no preview persistence or
+external I/O, and is excluded from Production artifacts. Same-Public-origin
+resubmission keeps previews usable through Astro hot reload; new Draft changes
+are selected by clicking preview again. GET URLs are not shareable previews.
+
+Windows browser acceptance ran real `make dev` against disposable schema-3 SQLite
+and loopback S3/Hook/marker substitutes. A test-only file-read override supplied a
+synthetic root environment without reading/changing the real `.env`. Publishing
+from Admin advanced generation 3 to 4; the open 4321 article list automatically
+refreshed and the new route rendered. CMS/Admin PIDs stayed unchanged while only
+Astro's PID changed. A subsequent Draft edit appeared in Blog preview while the
+published page remained on its immutable version; generation/job counts stayed
+at 4. Template hot reload also re-rendered the preview with HTTP 200. Ctrl+C
+released all three service ports. No production credentials/services were used.
+
+Final `make check` passed: 149 JavaScript tests passed, one platform-specific
+skip, generated artifacts aligned, Public fixture build and embedded CMS build
+passed. Production output scanning rejects the development preview route/module
+markers as well as synthetic secrets. The full Linux
+`go test -race -tags=adminembed ./...` gate passed through WSL. A separate real
+Linux process-tree test confirmed that only Public restarts and all descendants
+are cleaned on interruption. Dependencies, migrations, sqlc, OpenAPI and CMS
+publication code have no changes.

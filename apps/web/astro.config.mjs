@@ -4,12 +4,14 @@ import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 import { markdownOptions } from './src/lib/publication/markdown.ts';
+import developmentPreview from './dev/integration.mjs';
 
 export default defineConfig({
   site: 'https://gopheratlas.com',
   output: 'static',
   trailingSlash: 'always',
   integrations: [
+    developmentPreview(),
     react(),
     sitemap({ filter: (page) => !page.endsWith('/404/') }),
   ],

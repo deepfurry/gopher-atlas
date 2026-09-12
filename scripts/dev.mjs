@@ -33,7 +33,7 @@ async function dev() {
   if (build !== 0) return build;
   let web;
   try {
-    web = await prepareDevelopmentWeb();
+    web = await prepareDevelopmentWeb(env);
   } catch (error) {
     console.error(preparationMessage(error));
     return 1;
@@ -42,20 +42,23 @@ async function dev() {
   console.log(
     'Development: CMS 127.0.0.1:46217 (or CMS_LISTEN_ADDR), Admin http://127.0.0.1:5173, Public http://127.0.0.1:4321. Ctrl+C stops all.',
   );
-  return supervise([
-    { name: 'CMS', command: binary, cwd: root, env },
-    {
-      name: 'Admin',
-      command: process.execPath,
-      args: [packageCLI(admin, 'vite'), '--host', '127.0.0.1'],
-      cwd: admin,
-      env: {
-        ...publicToolEnv(),
-        CMS_LISTEN_ADDR: env.CMS_LISTEN_ADDR || '127.0.0.1:46217',
+  return supervise(
+    [
+      { name: 'CMS', command: binary, cwd: root, env },
+      {
+        name: 'Admin',
+        command: process.execPath,
+        args: [packageCLI(admin, 'vite'), '--host', '127.0.0.1'],
+        cwd: admin,
+        env: {
+          ...publicToolEnv(),
+          CMS_LISTEN_ADDR: env.CMS_LISTEN_ADDR || '127.0.0.1:46217',
+        },
       },
-    },
-    web,
-  ]);
+      web.command,
+    ],
+    { onStart: web.onStart },
+  );
 }
 try {
   process.exitCode = await dev();

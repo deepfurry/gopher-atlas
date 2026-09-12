@@ -86,6 +86,12 @@ under Development. The shared Production preparation defaults and build entry do
 not enable fallback or dotenv. Private config is removed before launching Astro.
 The make dev supervisor builds an unembedded CMS, prepares Public input, then owns
 the three direct service processes and cleans their descendants on exit/signal.
+ADR 0011 adds a serialized generation watcher and named Public-only restarts;
+old inputs survive failed refreshes. No separate content bucket is required.
+An empty bucket starts an explicitly empty Development publication and waits.
+The dev-only preview route receives an ephemeral POST projection from Admin after
+autosave and uses the actual Public renderer. It has no CMS/storage dependency,
+no persisted preview data, and is absent from Production builds.
 
 P0-5 Public uses `src/lib/publication` for schema-validated maps, strict references,
 stable sorting, pages and direct redirects. A static catch-all dispatches exact

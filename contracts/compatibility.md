@@ -61,3 +61,10 @@ at the repository. Only APP_ENV unset/empty/development permits per-field
 CONTENT_R2_* fallback to CMS R2_*; Production builds retain separate RO inputs and
 no dotenv/fallback. A missing development latest.json has a safe specific error;
 missing buckets, forbidden requests and corrupt snapshots remain failures.
+
+Development watches the existing configured bucket every two seconds and restarts
+only Public for changed, validated generations. Empty latest at startup yields an
+explicit empty Development site while waiting; runtime read errors retain the last
+good input. Production loading remains fail-closed. Loopback HTTP is permitted only
+by Development reads for local storage substitutes; ordinary builds require HTTPS.
+ADR 0011 defines the transient local Draft preview, excluded from Production.

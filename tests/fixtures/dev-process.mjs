@@ -28,10 +28,23 @@ if (mode === 'manager') {
   const commands =
     outcome === 'spawn-error'
       ? [{ name: 'missing', command: join(directory, 'no-such-executable') }]
-      : [command('tree'), command('exit')];
+      : outcome === 'output'
+        ? [command('output')]
+        : [command('tree'), command('exit')];
   process.exitCode = await supervise(commands, { graceMs: 150 });
+  if (outcome === 'output') {
+    console.log('supervisor output still open');
+    console.error('supervisor errors still open');
+  }
   clearInterval(timer);
   process.disconnect?.();
+} else if (mode === 'output') {
+  // Exceed pipe buffering and end naturally so the supervisor must drain both
+  // streams without losing the trailing diagnostic or closing its own streams.
+  process.stdout.write('synthetic stdout\n'.repeat(8192));
+  process.stderr.write('synthetic stderr\n'.repeat(8192));
+  console.error('synthetic startup failure');
+  process.exitCode = 7;
 } else if (mode === 'exit') {
   writeFileSync(join(directory, 'exit.json'), '{}');
   setInterval(() => {

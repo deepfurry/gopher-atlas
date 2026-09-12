@@ -38,9 +38,11 @@ function launch(outcome: string) {
   );
   managers.push(child);
   // Drain output; fixtures never include application configuration or credentials.
-  child.stdout?.resume();
-  child.stderr?.resume();
-  const exited = once(child, 'exit');
+  let stdout = '',
+    stderr = '';
+  child.stdout?.setEncoding('utf8').on('data', (chunk) => (stdout += chunk));
+  child.stderr?.setEncoding('utf8').on('data', (chunk) => (stderr += chunk));
+  const exited = once(child, 'close');
   const ready = once(child, 'message');
   const ports = () =>
     ['tree', 'leaf'].map(
@@ -48,7 +50,14 @@ function launch(outcome: string) {
         JSON.parse(readFileSync(join(directory, `${role}.json`), 'utf8'))
           .port as number,
     );
-  return { child, directory, exited, ready, ports };
+  return {
+    child,
+    directory,
+    exited,
+    ready,
+    ports,
+    output: () => ({ stdout, stderr }),
+  };
 }
 
 async function listening(port: number) {
@@ -103,4 +112,15 @@ it.skipIf(process.platform === 'win32')(
 it('reports a process spawn failure without hanging', async () => {
   const test = launch('spawn-error');
   expect((await test.exited)[0]).toBe(1);
+}, 15000);
+
+it('preserves child stdout/stderr and the exit code without closing supervisor output', async () => {
+  const test = launch('output');
+  expect((await test.exited)[0]).toBe(7);
+  const { stdout, stderr } = test.output();
+  expect(stdout).toContain('synthetic stdout\n'.repeat(8192));
+  expect(stderr).toContain('synthetic stderr\n'.repeat(8192));
+  expect(stderr).toContain('synthetic startup failure');
+  expect(stdout).toContain('supervisor output still open');
+  expect(stderr).toContain('supervisor errors still open');
 }, 15000);

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fix silent Astro development startup failure in Windows terminals by relaying
+  detached child output over pipes; retain process-tree cleanup and exit codes.
+
 - Rebuild Admin as a Chinese editorial workspace with collapsible navigation,
   scoped search, account/theme menus, shared Base UI controls and Phosphor icons.
 - Redesign content/editor/reviews/assets/tags/people/publication/audit surfaces;

@@ -79,6 +79,8 @@ make dev
 该命令先编译开发 CMS、准备 Public 快照，再启动 CMS / Admin / Public。
 任一服务退出或启动失败会停止其余服务，`Ctrl+C` 统一退出；Linux/macOS 先发送终止信号，
 超时后强制清理进程组，Windows 按本次启动的 PID 清理完整子进程树。
+Windows 的子进程输出通过管道转发到当前终端，避免 PowerShell/Windows Terminal
+中分离进程继承控制台句柄后静默退出；`Ctrl+C` 仍由启动器统一处理。
 数据库仍需提前显式迁移，不会自动建业务 Schema。也可以分三个终端单独启动：
 
 ```sh

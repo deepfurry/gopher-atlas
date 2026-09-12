@@ -88,15 +88,23 @@ export async function supervise(
   try {
     for (const { name, command, args = [], cwd, env } of commands) {
       if (stopping) break;
+      // Detached Windows children cannot safely inherit console/ConPTY handles.
+      // Keep Ctrl+C on the supervisor and relay output over ordinary pipes;
+      // otherwise Astro can exit before its startup error reaches the terminal.
+      const relay = process.platform === 'win32' && stdio === 'inherit';
       const child = spawn(command, args, {
         cwd,
         env,
-        stdio,
+        stdio: relay ? ['ignore', 'pipe', 'pipe'] : stdio,
         windowsHide: true,
         // Own groups also keep Windows Ctrl+C focused on this supervisor while
         // it stops each hidden child tree, rather than racing every console child.
         detached: true,
       });
+      if (relay) {
+        child.stdout.pipe(process.stdout, { end: false });
+        child.stderr.pipe(process.stderr, { end: false });
+      }
       children.push(child);
       child.once('error', () => {
         console.error(

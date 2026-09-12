@@ -128,7 +128,13 @@ function mount(path = '/profile') {
 it('shows a real GitHub login entry for logged-out visitors', async () => {
   mount();
   expect(
-    await screen.findByRole('link', { name: '使用 GitHub 登录' }),
+    // Cold lazy-route imports contend with the full parallel workspace suite.
+    // Wait for the actual login entry, not a fixed delay or a loading placeholder.
+    await screen.findByRole(
+      'link',
+      { name: '使用 GitHub 登录' },
+      { timeout: 4000 },
+    ),
   ).toHaveProperty('pathname', '/api/auth/github');
   expect(screen.queryByLabelText('密码')).toBeNull();
 });

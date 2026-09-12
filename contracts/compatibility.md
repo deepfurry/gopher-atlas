@@ -8,7 +8,7 @@ existing fields. Exact currently executable HTTP shapes live in `openapi.yaml`.
 Public URL families are `/articles/:slug/`, `/posts/:slug/`,
 `/notes/:group/:slug/`, `/topics/:slug/`, `/tags/:slug/`, `/authors/:slug/`,
 plus index/search/about/contribute pages. Astro uses `trailingSlash: always`.
-Posts have no date component. Legacy route verification belongs to P0-6.
+Posts have no date component. Development legacy route verification is implemented in P0-5.5; Production comparison remains P0-6.
 Previously published routes remain reserved forever and redirect with 301 directly
 to the current canonical route, never through chains.
 
@@ -53,7 +53,7 @@ Unknown snapshot fields/versions, missing build inputs and hash mismatch fail.
 P0-5 renders snapshot canonicalPath and derived Author/Tag/Note-group pages.
 Historical redirects are direct static 301 rules, with platform-limit failures.
 Collections paginate statically at /page/N/ after the first page. No runtime
-CMS/API dependency or snapshot version change. P0-6 owns legacy URL verification.
+CMS/API dependency or snapshot version change. P0-6 owns Production URL verification.
 
 Development commands dev-web/dev read optional root .env, with process env taking
 precedence. Explicit CONTENT_SNAPSHOT_FILE wins and relative dev paths are rooted
@@ -68,3 +68,21 @@ explicit empty Development site while waiting; runtime read errors retain the la
 good input. Production loading remains fail-closed. Loopback HTTP is permitted only
 by Development reads for local storage substitutes; ordinary builds require HTTPS.
 ADR 0011 defines the transient local Draft preview, excluded from Production.
+
+P0-5.5 is the authorized pre-cutover tightening of snapshot v1: Note groupDescription/
+groupOrder and Topic recommendedCount are required in snapshots, Curated enums
+are closed, Topic references must be Curated. Old incomplete snapshot files fail
+closed and need regeneration from a compatible CMS; immutable object keys are never
+overwritten. Stored omitted payload fields deserialize to defaults; existing
+incompatible content must be corrected and republished, not silently rewritten.
+
+Public has seven /en/ chrome routes with canonical/hreflang only for those static
+counterparts. Content canonical paths are not locale aliases. Curated browser
+filtering/pagination is 12 per page; Note group cards use 4. Auxiliary collections
+retain 24-item static pagination. Posts retain compatible detail/collection paths
+but are removed from primary discovery and RSS/Pagefind. Legacy category exception
+benchmarking-and-comparisons and all accepted old slugs are preserved explicitly.
+Old Articles query links using category titles, tag names, comma-separated values
+and legacy sort names resolve against the static Topic/Tag projection. No Category
+field or runtime query service is introduced. Recommended sorting keeps featured,
+mustRead, rating and added-date precedence.

@@ -78,9 +78,15 @@ export function content(
     seoDescription: '',
     payload:
       type === 'note'
-        ? { group: 'Runtime', groupSlug: 'runtime', order: 0 }
+        ? {
+            group: 'Runtime',
+            groupSlug: 'runtime',
+            groupDescription: '',
+            groupOrder: 0,
+            order: 0,
+          }
         : type === 'topic'
-          ? { order: 0 }
+          ? { order: 0, recommendedCount: 0 }
           : type === 'curated_article'
             ? {
                 sourceUrl: 'https://example.com/source',
@@ -89,8 +95,8 @@ export function content(
                 sourceName: '',
                 sourcePublishedAt: '',
                 sourceLanguage: '',
-                difficulty: 'custom-difficulty',
-                rating: 'custom-rating',
+                difficulty: 'intermediate',
+                rating: 'A+',
                 mustRead: false,
                 relatedLinks: [],
               }

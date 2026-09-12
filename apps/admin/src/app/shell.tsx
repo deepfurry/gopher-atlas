@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { contentKey, getContent, type Content } from '@/features/content/api';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import {
   SidebarSimple,
@@ -41,17 +43,26 @@ export function Shell() {
   const [collapsed, setCollapsed] = useSidebarPreference();
   const main = useRef<HTMLElement>(null);
   const groups = visibleNavigation(me.permissions);
+  // Subscribe to the editor's existing cache without issuing another request.
+  const detailId = /^\/content\/(\d+)/.exec(location.pathname)?.[1];
+  const cached = useQuery<Content>({
+    queryKey: contentKey(Number(detailId) || 0),
+    queryFn: ({ signal }) => getContent(Number(detailId), signal),
+    enabled: false,
+  });
+  const activeSearch =
+    detailId && cached.data ? `?type=${cached.data.type}` : location.search;
   useEffect(() => {
     setMobileOpen(false);
     main.current?.scrollTo?.(0, 0);
   }, [location.pathname, location.search]);
   const currentGroup = groups.find((group) =>
     group.items.some((item) =>
-      isActive(item.to, location.pathname, location.search),
+      isActive(item.to, location.pathname, activeSearch),
     ),
   );
   const current = currentGroup?.items.find((item) =>
-    isActive(item.to, location.pathname, location.search),
+    isActive(item.to, location.pathname, activeSearch),
   );
   const detail = location.pathname.startsWith('/content/')
     ? '编辑内容'
@@ -72,11 +83,7 @@ export function Shell() {
             </p>
           )}
           {group.items.map((item) => {
-            const active = isActive(
-              item.to,
-              location.pathname,
-              location.search,
-            );
+            const active = isActive(item.to, location.pathname, activeSearch);
             const content = (
               <>
                 <item.icon

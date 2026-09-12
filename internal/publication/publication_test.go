@@ -69,7 +69,7 @@ func (r *rig) draft(t *testing.T, kind, slug string) content.Detail {
 		in.Payload = json.RawMessage(`{"group":"Public group","groupSlug":"public","order":1}`)
 	}
 	if kind == "curated_article" {
-		in.Payload = json.RawMessage(`{"sourceUrl":"https://example.com/source"}`)
+		in.Payload = json.RawMessage(`{"sourceUrl":"https://example.com/source","rating":"A","difficulty":"beginner"}`)
 	}
 	_, err = r.content.Save(ctx, r.admin, d.ID, in)
 	must(t, err)
@@ -337,7 +337,7 @@ func TestCoverSnapshotPrivacyAndPublishedIsolation(t *testing.T) {
 
 func TestSnapshotGraphAndExportGenerationChange(t *testing.T) {
 	r := newRig(t)
-	a := r.publish(t, r.draft(t, "post", "a"))
+	a := r.publish(t, r.draft(t, "curated_article", "a"))
 	b := r.publish(t, r.draft(t, "curated_article", "b"))
 	topic := r.draft(t, "topic", "ordered")
 	in := topic.Draft.DraftInput

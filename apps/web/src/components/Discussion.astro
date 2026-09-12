@@ -1,0 +1,50 @@
+---
+import { discussion } from '../config/discussion';
+import { discussionEnabled, discussionTerm } from '../lib/discussion';
+import { words, type Locale } from '../lib/i18n';
+interface Props {
+  groupSlug: string;
+  slug: string;
+  locale?: Locale;
+}
+const { groupSlug, slug, locale = 'zh' } = Astro.props,
+  t = words[locale],
+  enabled = discussionEnabled(discussion);
+const href = enabled
+  ? `https://github.com/${discussion.repo}/discussions`
+  : 'https://github.com/deepfurry/gopher-atlas';
+---
+
+<section
+  class="discussion"
+  data-pagefind-ignore
+  data-discussion
+  data-term={discussionTerm(groupSlug, slug)}
+  data-config={JSON.stringify(discussion)}
+>
+  <h2>{t.discussion}</h2><p>{enabled ? t.discussionHint : t.discussionOff}</p>
+  {
+    enabled && (
+      <>
+        <>
+          <button data-load-discussion>{t.discussionLoad}</button>
+          <div class="giscus" />
+          <p hidden data-discussion-error>
+            {t.discussionError}
+          </p>
+        </>
+      </>
+    )
+  }
+  <p>
+    <a href={href} target="_blank" rel="noopener noreferrer"
+      >GitHub {enabled ? 'Discussions' : ''} ↗</a
+    >
+  </p>
+</section>
+<script>
+  import { mountDiscussion } from '../lib/discussion';
+  document
+    .querySelectorAll<HTMLElement>('[data-discussion]')
+    .forEach(mountDiscussion);
+</script>

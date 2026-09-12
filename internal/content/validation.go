@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -22,12 +23,15 @@ func webURL(s string) bool         { return len(s) <= 2048 && markdown.WebURL(s,
 
 type PostPayload struct{}
 type NotePayload struct {
-	Group     string `json:"group"`
-	GroupSlug string `json:"groupSlug"`
-	Order     int64  `json:"order"`
+	Group            string `json:"group"`
+	GroupSlug        string `json:"groupSlug"`
+	GroupDescription string `json:"groupDescription"`
+	GroupOrder       int64  `json:"groupOrder"`
+	Order            int64  `json:"order"`
 }
 type TopicPayload struct {
-	Order int64 `json:"order"`
+	Order            int64 `json:"order"`
+	RecommendedCount int64 `json:"recommendedCount"`
 }
 type RelatedLink struct {
 	Label string `json:"label"`
@@ -86,7 +90,7 @@ func CanonicalPayload(kind string, raw []byte, complete bool) (json.RawMessage, 
 		if err := strictPayload(raw, &p); err != nil {
 			return nil, err
 		}
-		if !bounded(p.Group, 100) || p.Order < 0 || p.Order > 1000000 || (p.GroupSlug != "" && !validSlug(p.GroupSlug)) ||
+		if !bounded(p.Group, 100) || !bounded(p.GroupDescription, 1000) || p.GroupOrder < 0 || p.GroupOrder > 1000000 || p.Order < 0 || p.Order > 1000000 || (p.GroupSlug != "" && !validSlug(p.GroupSlug)) ||
 			(complete && (strings.TrimSpace(p.Group) == "" || !validSlug(p.GroupSlug))) {
 			return nil, fault.Payload
 		}
@@ -96,7 +100,7 @@ func CanonicalPayload(kind string, raw []byte, complete bool) (json.RawMessage, 
 		if err := strictPayload(raw, &p); err != nil {
 			return nil, err
 		}
-		if p.Order < 0 || p.Order > 1000000 {
+		if p.Order < 0 || p.Order > 1000000 || p.RecommendedCount < 0 || p.RecommendedCount > RelationLimit {
 			return nil, fault.Payload
 		}
 		value = p
@@ -114,6 +118,10 @@ func CanonicalPayload(kind string, raw []byte, complete bool) (json.RawMessage, 
 			if _, err := time.Parse("2006-01-02", p.SourcePublishedAt); err != nil {
 				return nil, fault.Payload
 			}
+		}
+		if (!slices.Contains([]string{"beginner", "intermediate", "advanced"}, p.Difficulty) && (complete || p.Difficulty != "")) ||
+			(!slices.Contains([]string{"S+", "S", "A+", "A", "B+", "B", "C+", "C"}, p.Rating) && (complete || p.Rating != "")) {
+			return nil, fault.Payload
 		}
 		for _, link := range p.RelatedLinks {
 			if !bounded(link.Label, 200) || strings.TrimSpace(link.Label) == "" || !webURL(link.URL) {

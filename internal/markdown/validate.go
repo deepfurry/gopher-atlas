@@ -54,7 +54,7 @@ func Valid(value string) bool {
 	}
 	source := []byte(value)
 	context := parser.NewContext()
-	document := goldmark.New(goldmark.WithExtensions(extension.GFM)).Parser().Parse(text.NewReader(source), parser.WithContext(context))
+	document := goldmark.New(goldmark.WithExtensions(extension.GFM, extension.Footnote)).Parser().Parse(text.NewReader(source), parser.WithContext(context))
 	valid := true
 	for _, ref := range context.References() {
 		if !safeLink(html.UnescapeString(string(ref.Destination()))) {

@@ -39,14 +39,11 @@ it('indexes all public relations and uses deterministic featured/recent and note
   expect(p.contentByType.get('post')?.map((c) => c.id)).toEqual([1, 6]);
   expect(p.notesByGroup.get('go')?.content.map((c) => c.id)).toEqual([5, 2]);
   expect(p.topicTargets.get(4)?.map((t) => [t.position, t.content.id])).toEqual(
-    [
-      [1, 1],
-      [2, 2],
-    ],
+    [[1, 3]],
   );
   expect(p.contentByTag.get(2)?.map((c) => c.id)).toEqual([1, 6]);
   expect(p.contentByAuthor.get(2)?.map((c) => c.id)).toEqual([6, 5, 2]);
-  expect(p.feed.map((c) => c.id)).toEqual([6, 5, 3, 2, 1]);
+  expect(p.feed.map((c) => c.id)).toEqual([5, 3, 2]);
   const shuffled = structuredClone(snapshot);
   for (const key of ['content', 'authors', 'assets', 'tags', 'routes'] as const)
     shuffled[key].reverse();
@@ -112,7 +109,7 @@ it('fails closed on broken references, duplicate slugs, routes and conflicting n
       s.content[3].topicEntries[0].targetContentId = 4;
     },
     (s) => {
-      s.content[3].topicEntries[1].position = 1;
+      s.content[3].topicEntries.push({ ...s.content[3].topicEntries[0] });
     },
     (s) => {
       s.authors[1].slug = s.authors[0].slug;
@@ -131,7 +128,13 @@ it('fails closed on broken references, duplicate slugs, routes and conflicting n
       s.content[4] = {
         ...s.content[4],
         type: 'note',
-        payload: { group: 'Conflicting name', groupSlug: 'go', order: 0 },
+        payload: {
+          group: 'Conflicting name',
+          groupSlug: 'go',
+          groupDescription: '',
+          groupOrder: 0,
+          order: 0,
+        },
       };
     },
   ];
@@ -140,6 +143,13 @@ it('fails closed on broken references, duplicate slugs, routes and conflicting n
     mutate(s);
     expect(() => createPublication(s)).toThrow();
   }
+});
+it('reserves every English chrome route against historical redirects', () => {
+  const s = fixture();
+  s.routes.push({ path: '/en/articles/', kind: 'redirect', contentId: 1 });
+  expect(() => publicPages(createPublication(s))).toThrow(
+    'public_page_conflict',
+  );
 });
 it('writes direct permanent redirects, rejects conflicting/missing/chained/self targets and platform overflow', () => {
   const s = fixture();

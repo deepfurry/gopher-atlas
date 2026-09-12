@@ -1,16 +1,32 @@
 import {
   createMarkdownProcessor,
   type RemarkPlugins,
+  type RehypePlugins,
+  type AstroMarkdownOptions,
 } from '@astrojs/markdown-remark';
 import { remarkPlugins, validateMarkdown } from '@gopheratlas/markdown';
+import { readingEnhancements } from './reading';
 
 export const markdownOptions = {
   // Shared list contains plain plugins; Astro narrows Unified's variadic tuple type.
   remarkPlugins: remarkPlugins as RemarkPlugins,
   smartypants: false,
   remarkRehype: { allowDangerousHtml: false },
-  shikiConfig: { themes: { light: 'github-light', dark: 'github-dark' } },
-} as const;
+  rehypePlugins: [readingEnhancements] as RehypePlugins,
+  shikiConfig: {
+    themes: { light: 'github-light', dark: 'github-dark' },
+    transformers: [
+      {
+        pre(
+          this: { options: { lang: string } },
+          node: { properties: Record<string, unknown> },
+        ) {
+          node.properties['data-language'] = this.options.lang;
+        },
+      },
+    ],
+  },
+} satisfies AstroMarkdownOptions;
 const processor = createMarkdownProcessor(markdownOptions);
 export async function renderMarkdown(source: string) {
   // Validate before Astro's processor; invalid content never reaches HTML handling.

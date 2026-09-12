@@ -9,7 +9,7 @@ import {
 } from '@phosphor-icons/react';
 import { useMe } from '@/app/context';
 import { client, unwrap, ErrorNotice, type Schema } from '@/shared/api';
-import { types } from '@/shared/status';
+import { types, productTypes } from '@/shared/status';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, MenuItem, MenuLabel } from '@/components/ui/menu';
 const icons = {
@@ -42,9 +42,9 @@ export function CreateContent({ compact = false }: { compact?: boolean }) {
         label="选择内容类型"
       >
         <MenuLabel>开始一份新内容</MenuLabel>
-        {Object.entries(types)
-          .filter(([type]) => type !== 'topic' || me.permissions.createTopic)
-          .map(([type, label]) => {
+        {productTypes
+          .filter((type) => type !== 'topic' || me.permissions.createTopic)
+          .map((type) => {
             const Icon = icons[type as keyof typeof icons];
             return (
               <MenuItem
@@ -52,7 +52,7 @@ export function CreateContent({ compact = false }: { compact?: boolean }) {
                 onClick={() => create.mutate(type as Schema<'ContentType'>)}
               >
                 <Icon />
-                {label}
+                新建{types[type]}
               </MenuItem>
             );
           })}

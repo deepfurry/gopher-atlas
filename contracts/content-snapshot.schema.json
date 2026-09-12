@@ -215,7 +215,13 @@
     "note": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["group", "groupSlug", "order"],
+      "required": [
+        "group",
+        "groupSlug",
+        "order",
+        "groupDescription",
+        "groupOrder"
+      ],
       "properties": {
         "group": {
           "type": "string",
@@ -231,18 +237,32 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 1000000
+        },
+        "groupDescription": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "groupOrder": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
         }
       }
     },
     "topic": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["order"],
+      "required": ["order", "recommendedCount"],
       "properties": {
         "order": {
           "type": "integer",
           "minimum": 0,
           "maximum": 1000000
+        },
+        "recommendedCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
         }
       }
     },
@@ -290,12 +310,10 @@
           "maxLength": 32
         },
         "difficulty": {
-          "type": "string",
-          "maxLength": 32
+          "enum": ["beginner", "intermediate", "advanced"]
         },
         "rating": {
-          "type": "string",
-          "maxLength": 16
+          "enum": ["S+", "S", "A+", "A", "B+", "B", "C+", "C"]
         },
         "mustRead": {
           "type": "boolean"

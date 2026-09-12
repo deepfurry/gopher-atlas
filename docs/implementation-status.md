@@ -11,6 +11,8 @@ enhancements, no migration, and no external publication. The complete P0-4 Asset
 & Publication Pipeline document (2026-09-11) defines the publication boundary.
 The complete P0-5 Full Public Astro Site document (2026-09-11) defines the current
 reader-site scope and Development/Production operations model.
+The complete P0-5.5 Product Realignment & Legacy-Ready Rebuild document
+(2026-09-12) supersedes the product scope while preserving the CMS architecture.
 
 P0-0 began from main at `3aa6aaf` (LICENSE only), implemented the executable
 foundation in `40c2709`, then the pnpm 12.3.4 toolchain upgrade landed in `fd77dbe`.
@@ -24,15 +26,16 @@ P0-3 began from synchronized dev at `9784819` on
 were added; existing toolchain/application pins remain unchanged. Both migrations
 are preserved and SchemaVersion remains 2.
 
-| Phase           | Actual scope                                                                                                                                                                                                                                                                              |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P0-0 (complete) | pnpm workspace, static Astro baseline, Admin/Base UI skeleton, Fiber shell, Markdown safety, OpenAPI/SQL tooling, design/contracts/ADRs, CI and make check                                                                                                                                |
-| P0-1 (complete) | Four real identity tables, sqlc, pooled SQLite PRAGMAs, GitHub OAuth and numeric identity, pending/active/disabled users, fixed roles/capabilities, author profiles, persistent hashed sessions/CSRF/state, Zap/Lumberjack/contrib logger and Monitor, readiness, embedded identity Admin |
-| P0-2 (complete) | Content/Draft/Revision, reviews, tags/topics, permanent routes, audit persistence, optimistic concurrency, editorial action APIs and state machine                                                                                                                                        |
-| P0-3 (complete) | Feature-based Admin, safe Markdown editor/preview, autosave/conflicts, immutable Review Workspace/History, typed forms/Tags/Topics, Authors/Users/Audit/Monitor, server projections                                                                                                       |
-| P0-4 (complete) | R2 assets, published projection v1, generation/jobs/snapshots, hook/recovery/coalescing                                                                                                                                                                                                   |
-| P0-5 (complete) | Full Public route families, publication design, search/SEO/redirects; cutover stays P0-6                                                                                                                                                                                                  |
-| P0-6 (deferred) | Legacy import/verification, route preservation, backup/restore drill, deployment and cutover                                                                                                                                                                                              |
+| Phase               | Actual scope                                                                                                                                                                                                                                                                              |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0-0 (complete)     | pnpm workspace, static Astro baseline, Admin/Base UI skeleton, Fiber shell, Markdown safety, OpenAPI/SQL tooling, design/contracts/ADRs, CI and make check                                                                                                                                |
+| P0-1 (complete)     | Four real identity tables, sqlc, pooled SQLite PRAGMAs, GitHub OAuth and numeric identity, pending/active/disabled users, fixed roles/capabilities, author profiles, persistent hashed sessions/CSRF/state, Zap/Lumberjack/contrib logger and Monitor, readiness, embedded identity Admin |
+| P0-2 (complete)     | Content/Draft/Revision, reviews, tags/topics, permanent routes, audit persistence, optimistic concurrency, editorial action APIs and state machine                                                                                                                                        |
+| P0-3 (complete)     | Feature-based Admin, safe Markdown editor/preview, autosave/conflicts, immutable Review Workspace/History, typed forms/Tags/Topics, Authors/Users/Audit/Monitor, server projections                                                                                                       |
+| P0-4 (complete)     | R2 assets, published projection v1, generation/jobs/snapshots, hook/recovery/coalescing                                                                                                                                                                                                   |
+| P0-5 (complete)     | Full Public route families, publication design, search/SEO/redirects; cutover stays P0-6                                                                                                                                                                                                  |
+| P0-5.5 (acceptance) | Product alignment, Development Legacy importer, existing Admin Shell with three product lines, legacy Public identity, Markdown/giscus/chrome i18n; human visual signoff and operator mappings remain                                                                                     |
+| P0-6 (deferred)     | Controlled Production import/route comparison, backup/restore drill, deployment and cutover                                                                                                                                                                                               |
 
 P0-1 validation covers migration up/down/rollback, pooled PRAGMAs/FKs, bootstrap,
 last-Admin concurrency, state replay/mismatch/expiry, hashed session rotation/
@@ -301,3 +304,65 @@ markers as well as synthetic secrets. The full Linux
 Linux process-tree test confirmed that only Public restarts and all descendants
 are cleaned on interruption. Dependencies, migrations, sqlc, OpenAPI and CMS
 publication code have no changes.
+
+## P0-5.5 implementation evidence
+
+Started on clean synchronized dev at `2429f4058ab520aa8e40c2e13279c81e904c6946`.
+The complete supplied P0-5.5 plan and real legacy checkout were audited first.
+Legacy source HEAD: `e1a623b20389422421a7d808134ee093b28b491d`.
+
+Phase 1 adds typed payload constraints, curated-only Topics, shared Note group
+validation, safe legacy date restoration and the plan/apply importer. Migrations
+00001–00003 and schema 3 stay unchanged. Phase 2 keeps the Shell and restructures
+three product tables/forms. A narrow optional list metadata projection preserves
+reviewer pending-Revision visibility. Phase 3 restores legacy Public identity and
+product interactions. Phase 4 adds the shared reading UI, seven English chrome
+pages and configurable Note-only giscus. Phase 5 has real-source Development
+rehearsal and static/browser evidence. Phase 6 is ready for human A-grade visual
+acceptance; that signoff and a mapped daily-Development R2 apply are not implied
+by passing automated checks.
+
+A disposable Development rehearsal imported all 35 real legacy documents, 118 tags
+and three images, producing generation 35. Actual COS image bytes were downloaded,
+validated and hashed, then stored through the normal Asset service using a local
+storage substitute. This is not a real R2 upload. The normal CMS worker and watcher
+were exercised against local S3/Hook substitutes, with no Production deployment.
+An existing local Author was inspected read-only for the requested real apply;
+final author mapping and target DB remain an explicit operator choice. A separate
+fresh disposable DB also passed the actual CLI plan/apply path, using the AWS S3
+adapter against a local S3 substitute: 118 tags, three assets, 35 content items and
+generation 35. Re-planning reported zero errors and zero warnings. The existing
+daily Development DB and root .env were not modified.
+
+The source plan records 126 existing Topic/Note/Tag routes and 27 new Curated archive
+routes, 27 Topic entries and 11 recommendations. Public fixture dist verification
+covers 28 canonical pages, RSS/sitemap/redirects/Pagefind/marker and privacy. The
+full Legacy build additionally checks every planned route, exact dates, external
+source links, all Topic entries/recommendation boundaries, migrated image URLs,
+Note group names/descriptions, Pagefind and the generation/hash marker. Run it with
+`node scripts/check-legacy-public.mjs <plan.json> <exported-snapshot.json>` after an
+explicit `CONTENT_SNAPSHOT_FILE` Web build of that same snapshot.
+
+Windows browser verification ran real `make dev` with synthetic config and real
+legacy content in the disposable DB. Curated metadata/rating controls, Topic
+keyboard ordering and updated Draft Preview, Note group/form/long-body preview,
+English chrome, legacy filter query compatibility, light/dark and 360 px Public
+layouts were inspected. A Note Draft change appeared in preview while generation
+remained 35. Direct publish then advanced to 36; the normal worker completed and
+Public refreshed automatically while CMS/Admin kept running. The prototype image
+objects stayed in local fake storage; public-domain R2 image delivery and actual
+giscus Discussions require the operator's configuration, not a claimed browser pass.
+
+`pnpm install --frozen-lockfile`, `make generate` and full `make check` passed,
+including 166 JavaScript tests (one existing platform-gated skip), Go/SQLite tests,
+lint/typecheck, generated drift, fixture output/privacy and fresh embedded CMS.
+The full Linux `go test -race -tags=adminembed ./...` passed through WSL. Final
+completion records any subsequent checks after review fixes. Migrations 00001–00003,
+schema 3 and existing dependency pins are unchanged.
+
+Giscus is integration-ready. Read-only GitHub inspection found Discussions disabled
+on deepfurry/gopher-atlas. Its public repository ID is configured; installing giscus,
+enabling Discussions and choosing a category remain manual setup. Empty category
+identifiers keep the integration disabled without affecting reading.
+Production legacy import, deployment, backup/restore drill, route comparison and DNS
+cutover remain P0-6. No main merge or Production operation is included.

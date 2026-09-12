@@ -25,6 +25,8 @@ export interface Tag {
 export interface NotePayload {
   group: string;
   groupSlug: string;
+  groupDescription: string;
+  groupOrder: number;
   order: number;
 }
 export interface CuratedPayload {
@@ -34,8 +36,8 @@ export interface CuratedPayload {
   sourceName: string;
   sourcePublishedAt: string;
   sourceLanguage: string;
-  difficulty: string;
-  rating: string;
+  difficulty: '' | 'beginner' | 'intermediate' | 'advanced';
+  rating: '' | 'S+' | 'S' | 'A+' | 'A' | 'B+' | 'B' | 'C+' | 'C';
   mustRead: boolean;
   relatedLinks: { label: string; url: string }[];
 }
@@ -62,7 +64,7 @@ export type Content = ContentFields &
   (
     | { type: 'post'; payload: Record<string, never> }
     | { type: 'note'; payload: NotePayload }
-    | { type: 'topic'; payload: { order: number } }
+    | { type: 'topic'; payload: { order: number; recommendedCount: number } }
     | { type: 'curated_article'; payload: CuratedPayload }
   );
 export type ContentType = Content['type'];

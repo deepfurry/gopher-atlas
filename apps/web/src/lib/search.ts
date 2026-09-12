@@ -1,3 +1,4 @@
+import { words, type Locale } from './i18n';
 interface SearchData {
   url: string;
   meta: { title?: string };
@@ -34,7 +35,7 @@ export function excerptText(value: string) {
   );
 }
 export function safeResultURL(path: string) {
-  return /^\/(?:articles|posts|notes|topics|about|contribute)\/(?:[a-z0-9-]+\/)*$/.test(
+  return /^\/(?:en\/)?(?:articles|notes|topics|about|contribute)\/(?:[a-z0-9-]+\/)*$/.test(
     path,
   );
 }
@@ -57,6 +58,7 @@ export function mountSearch(
   root: HTMLElement,
   load: () => Promise<SearchAPI> = loadPagefind,
 ) {
+  const t = words[(document.documentElement.dataset.locale as Locale) || 'zh'];
   const form = root.querySelector<HTMLFormElement>('form')!;
   const input = root.querySelector<HTMLInputElement>('input')!;
   const status = root.querySelector<HTMLElement>('[role=status]')!;
@@ -82,7 +84,7 @@ export function mountSearch(
           link = document.createElement('a'),
           excerpt = document.createElement('p');
         link.href = data.url;
-        link.textContent = data.meta.title || '阅读内容';
+        link.textContent = data.meta.title || t.readContent;
         excerpt.textContent = excerptText(data.plain_excerpt);
         h2.append(link);
         li.append(h2, excerpt);
@@ -91,13 +93,14 @@ export function mountSearch(
       list.append(fragment);
       shown += page.length;
       status.textContent = hits.length
-        ? `找到 ${hits.length} 条结果，已显示 ${shown} 条。`
-        : '没有找到相关内容。试试其他关键词，或浏览内容目录。';
+        ? document.documentElement.dataset.locale === 'en'
+          ? `${hits.length} results, ${shown} shown.`
+          : `找到 ${hits.length} 条结果，已显示 ${shown} 条。`
+        : t.searchEmpty;
       more.hidden = shown >= hits.length;
     } catch {
       if (ticket === epoch) {
-        status.textContent =
-          '搜索暂时无法加载。请再次搜索重试，或浏览内容目录。';
+        status.textContent = t.searchError;
         more.hidden = true;
         api = undefined;
       }
@@ -114,10 +117,10 @@ export function mountSearch(
     shown = 0;
     hits = [];
     if (!query) {
-      status.textContent = '输入关键词，搜索文章、笔记与专题。';
+      status.textContent = t.searchHint;
       return;
     }
-    status.textContent = '正在搜索…';
+    status.textContent = t.searching;
     try {
       api ??= load();
       const found = await bounded((await bounded(api)).search(query));
@@ -127,8 +130,7 @@ export function mountSearch(
     } catch {
       if (ticket === epoch) {
         api = undefined;
-        status.textContent =
-          '搜索暂时无法加载。请再次搜索重试，或浏览内容目录。';
+        status.textContent = t.searchError;
       }
     }
   }

@@ -1,20 +1,5 @@
 ---
-import Layout from '../layouts/Layout.astro';
+import SitePage from '../components/SitePage.astro';
 ---
 
-<Layout title="关于" searchIndex>
-  <article class="prose">
-    <p class="eyebrow">About the atlas</p><h1>让知识彼此连接。</h1>
-    <p>
-      GopherAtlas 是面向 Go
-      开发者的开放知识地图，也是一份由多位作者共同维护的技术刊物。
-    </p>
-    <h2>从阅读到理解</h2><p>
-      我们关注文章背后的问题、推理与实践，让精选资料、原创写作和工程笔记形成可持续积累的阅读路径。
-    </p>
-    <h2>共同维护</h2><p>
-      项目由 DeepFurry 发起。欢迎通过<a href="/contribute/">参与贡献</a
-      >了解如何加入。
-    </p>
-  </article>
-</Layout>
+<SitePage page="about" />

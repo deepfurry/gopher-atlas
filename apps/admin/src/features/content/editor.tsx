@@ -46,6 +46,7 @@ import {
 } from './form';
 import { InsertImage } from '@/features/assets/editor-assets';
 import { MarkdownEditor } from './markdown-editor';
+import { isSafeLink } from '@gopheratlas/markdown';
 import { RevisionView } from './revision-view';
 import { RevisionHistory, RouteHistory } from './history';
 import { UnsavedGuard } from './unsaved';
@@ -277,8 +278,8 @@ function DraftWorkspace({
     <>
       <header className="editor-header">
         <div className="editor-context">
-          <Link to="/content" className="caption">
-            内容
+          <Link to={`/content?type=${content.type}`} className="caption">
+            {types[content.type]}
           </Link>
           <span className="caption">/ {types[content.type]}</span>
           <h1>{values.title || content.title || '未命名内容'}</h1>
@@ -292,7 +293,11 @@ function DraftWorkspace({
               onClick={() => void blogPreview()}
             >
               <ArrowSquareOut />
-              博客预览
+              {content.type === 'curated_article'
+                ? '预览收录页'
+                : content.type === 'topic'
+                  ? '预览专区'
+                  : '博客预览'}
             </Button>
           )}
           {content.actions.editDraft && (
@@ -471,9 +476,29 @@ function DraftWorkspace({
                 }}
               >
                 <fieldset disabled={busy || locked} className="editor-fieldset">
-                  <div className="editor-layout">
+                  <div className={`editor-layout editor-${content.type}`}>
                     <div className="editor-source-column">
-                      <EditorTitle />
+                      <EditorTitle type={content.type} />
+                      <h2 className="editor-body-label">
+                        {content.type === 'curated_article'
+                          ? '收录理由 / 编辑点评'
+                          : content.type === 'topic'
+                            ? '专区导读'
+                            : 'Markdown 正文'}
+                      </h2>
+                      {content.type === 'curated_article' &&
+                        values.payload?.sourceUrl &&
+                        /^https?:\/\//.test(values.payload.sourceUrl) &&
+                        isSafeLink(values.payload.sourceUrl) && (
+                          <a
+                            className="text-action"
+                            href={values.payload.sourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            打开原文 ↗
+                          </a>
+                        )}
                       <MarkdownEditor
                         value={values.bodyMarkdown ?? ''}
                         onChange={(value) =>

@@ -1,0 +1,135 @@
+---
+import MarkdownBody from './MarkdownBody.astro';
+import { words, type Locale } from '../lib/i18n';
+import { dateLabel, type Publication } from '../lib/publication/indexes';
+import type { Content } from '../lib/publication/types';
+interface Props {
+  item: Extract<Content, { type: 'curated_article' }>;
+  publication: Publication;
+  locale?: Locale;
+  searchable?: boolean;
+}
+const { item, publication: p, locale = 'zh', searchable = false } = Astro.props;
+const t = words[locale],
+  source = item.payload;
+const topics = (p.contentByType.get('topic') ?? []).filter((topic) =>
+  topic.topicEntries.some((entry) => entry.targetContentId === item.id),
+);
+const tags = item.tagIds.map((id) => p.tagById.get(id)!);
+---
+
+<article
+  class="article-card"
+  lang={item.language}
+  data-article={searchable ? '' : undefined}
+  data-id={item.id}
+  data-topics={JSON.stringify(topics.map((topic) => topic.slug))}
+  data-tags={JSON.stringify(tags.map((tag) => tag.slug))}
+  data-language={source.sourceLanguage}
+  data-rating={source.rating}
+  data-difficulty={source.difficulty}
+  data-title={item.title}
+  data-recommended={source.mustRead ? '1' : '0'}
+  data-featured={item.featured ? '1' : '0'}
+  data-added={item.firstPublishedAt}
+  data-source-date={source.sourcePublishedAt}
+>
+  <div class="article-top">
+    <div class="tag-list">
+      {
+        topics.map((topic) => (
+          <a class="chip" href={topic.canonicalPath}>
+            {topic.title}
+          </a>
+        ))
+      }{source.mustRead && <span class="chip">{t.mustRead}</span>}
+    </div><span class="rating" data-rating={source.rating}>{source.rating}</span
+    >
+  </div>
+  <h2>
+    <a href={source.sourceUrl} target="_blank" rel="noopener noreferrer"
+      >{item.title}</a
+    >
+  </h2>
+  <p class="summary">{item.summary}</p>
+  <div class="small-meta">
+    <span
+      >{
+        [source.sourceAuthor, source.sourceName].filter(Boolean).join(' · ')
+      }</span
+    >{
+      source.sourcePublishedAt && (
+        <span>
+          {t.sourceDate} {source.sourcePublishedAt.slice(0, 10)}
+        </span>
+      )
+    }<span
+      >{
+        source.sourceLanguage === 'zh'
+          ? '中文'
+          : source.sourceLanguage === 'en'
+            ? 'English'
+            : source.sourceLanguage
+      } · {source.difficulty ? t[source.difficulty] : ''}</span
+    >
+  </div>
+  <div class="rationale">
+    <strong>{t.rationale}：</strong><MarkdownBody source={item.bodyMarkdown} />
+  </div>
+  <ul class="tag-list">
+    {
+      tags.map((tag) => (
+        <li>
+          <a class="chip" href={`/tags/${tag.slug}/`}>
+            {tag.name}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+  <div class="actions">
+    <a
+      class="btn primary"
+      href={source.sourceUrl}
+      target="_blank"
+      rel="noopener noreferrer">{t.read}</a
+    >{
+      source.originalUrl && (
+        <a
+          class="btn"
+          href={source.originalUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {t.original}
+        </a>
+      )
+    }<button type="button" data-copy-text={source.sourceUrl}
+      >{t.copySource}</button
+    ><a class="btn" href={item.canonicalPath}>{t.archive}</a>
+  </div>
+  {
+    source.relatedLinks.length > 0 && (
+      <div class="related-links">
+        <>
+          <span class="muted">{t.related}</span>
+          <div class="actions">
+            {source.relatedLinks.map((link) => (
+              <a
+                class="chip"
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </>
+      </div>
+    )
+  }
+  <time class="sr-only" datetime={new Date(item.firstPublishedAt).toISOString()}
+    >{dateLabel(item.firstPublishedAt)}</time
+  >
+</article>

@@ -3,6 +3,7 @@ package content
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 
 	"github.com/deepfurry/gopher-atlas/internal/auth"
@@ -26,6 +27,28 @@ func routeAvailable(ctx context.Context, q *dbsqlc.Queries, id int64, path strin
 	return nil
 }
 func claimRoute(ctx context.Context, q *dbsqlc.Queries, c dbsqlc.ContentItem, r dbsqlc.ContentRevision, now int64) error {
+	// Revalidate immutable pending material against the current product contract.
+	// Historic revisions remain untouched; an incompatible one must be restored/edited.
+	fields := revisionFields(r)
+	if err := validateFields(c.Type, &fields, true); err != nil {
+		return err
+	}
+	if c.Type == "note" {
+		var note NotePayload
+		if json.Unmarshal(fields.Payload, &note) != nil {
+			return fault.Payload
+		}
+		others, err := q.PublishedNoteGroupMetadata(ctx, dbsqlc.PublishedNoteGroupMetadataParams{ContentID: c.ID, GroupSlug: note.GroupSlug})
+		if err != nil {
+			return dbError(err)
+		}
+		for _, raw := range others {
+			var other NotePayload
+			if json.Unmarshal([]byte(raw), &other) != nil || note.Group != other.Group || note.GroupDescription != other.GroupDescription || note.GroupOrder != other.GroupOrder {
+				return fault.Payload
+			}
+		}
+	}
 	path, err := candidatePath(c.Type, revisionFields(r))
 	if err != nil {
 		return err
@@ -34,6 +57,14 @@ func claimRoute(ctx context.Context, q *dbsqlc.Queries, c dbsqlc.ContentItem, r 
 		return err
 	}
 	if c.Type == "topic" {
+		entries, err := q.RevisionTopicEntries(ctx, r.ID)
+		if err != nil {
+			return dbError(err)
+		}
+		var payload TopicPayload
+		if json.Unmarshal(fields.Payload, &payload) != nil || payload.RecommendedCount > int64(len(entries)) {
+			return fault.Payload
+		}
 		count, err := q.UnpublishableTopicTargets(ctx, r.ID)
 		if err != nil {
 			return dbError(err)
@@ -194,6 +225,9 @@ func (s *Service) PublishReviewed(ctx context.Context, actor auth.Principal, id,
 	})
 }
 func (s *Service) PublishDirect(ctx context.Context, actor auth.Principal, id, version int64) (Detail, error) {
+	return s.publishDirect(ctx, actor, id, version, nil)
+}
+func (s *Service) publishDirect(ctx context.Context, actor auth.Principal, id, version int64, dates *LegacyDates) (Detail, error) {
 	s.fence.Lock()
 	defer s.fence.Unlock()
 	return s.mutate(ctx, actor, id, func(q *dbsqlc.Queries, u dbsqlc.User, c dbsqlc.ContentItem, now int64) error {
@@ -218,6 +252,11 @@ func (s *Service) PublishDirect(ctx context.Context, actor auth.Principal, id, v
 		}
 		if err := appendEvent(ctx, q, u, id, r.ID, "content.published_direct", now); err != nil {
 			return err
+		}
+		if dates != nil {
+			if err := q.RestoreLegacyPublicationDates(ctx, dbsqlc.RestoreLegacyPublicationDatesParams{ID: id, FirstPublishedAt: stamp(dates.First), LastPublishedAt: stamp(dates.Last), CreatedAt: dates.First, UpdatedAt: dates.Last}); err != nil {
+				return dbError(err)
+			}
 		}
 		return outbox.MarkDirty(ctx, q, now)
 	})

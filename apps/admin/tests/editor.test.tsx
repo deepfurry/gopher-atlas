@@ -23,9 +23,11 @@ it.each(['editor', 'reviewer', 'admin'] as const)(
     );
     const menu = await screen.findByRole('menu');
     expect(
-      within(menu).queryByRole('menuitem', { name: '专题' }) !== null,
+      within(menu).queryByRole('menuitem', { name: '新建话题专区' }) !== null,
     ).toBe(role === 'admin');
-    fireEvent.click(within(menu).getByRole('menuitem', { name: '文章' }));
+    fireEvent.click(
+      within(menu).getByRole('menuitem', { name: '新建学习随笔' }),
+    );
     await title();
     expect(
       state.requests.some(
@@ -46,14 +48,18 @@ it.each(['post', 'note', 'curated_article', 'topic'] as const)(
     mount();
     await title();
     expect(screen.queryByLabelText(/raw json/i)).toBeNull();
-    expect(screen.queryByRole('switch', { name: '重点推荐' }) !== null).toBe(
-      type === 'topic',
-    );
+    expect(
+      screen.queryByRole('switch', { name: '首页推荐', hidden: true }) !== null,
+    ).toBe(type === 'topic');
     if (type !== 'post')
       fireEvent.click(
         screen.getByRole('tab', {
           name: (
-            { note: '笔记', curated_article: '精选', topic: '专题' } as const
+            {
+              note: '分组',
+              curated_article: '原文与策展',
+              topic: '文章编排',
+            } as const
           )[type as 'note' | 'curated_article' | 'topic'],
         }),
       );
@@ -65,15 +71,15 @@ it.each(['post', 'note', 'curated_article', 'topic'] as const)(
       );
     }
     if (type === 'curated_article') {
-      expect((screen.getByLabelText('难度') as HTMLInputElement).value).toBe(
-        'custom-difficulty',
-      );
+      expect(
+        screen.getByRole('combobox', { name: '难度' }).textContent,
+      ).toContain('进阶');
       fireEvent.click(screen.getByRole('button', { name: '添加相关链接' }));
       expect(screen.getByLabelText('链接 1 URL')).toBeTruthy();
     }
     if (type === 'topic') {
       expect(screen.queryByRole('group', { name: '标签' })).toBeNull();
-      expect(screen.getByRole('group', { name: '专题条目' })).toBeTruthy();
+      expect(screen.getByRole('group', { name: '精选文章编排' })).toBeTruthy();
       expect(
         screen.queryByRole('option', { name: 'A useful post' }),
       ).toBeNull();

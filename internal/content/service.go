@@ -3,6 +3,7 @@ package content
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -137,6 +138,12 @@ func (s *Service) Save(ctx context.Context, actor auth.Principal, id int64, inpu
 	return result, err
 }
 func validateRelations(ctx context.Context, q *dbsqlc.Queries, c dbsqlc.ContentItem, f Fields, r Relations) error {
+	if c.Type == "topic" {
+		var p TopicPayload
+		if json.Unmarshal(f.Payload, &p) != nil || p.RecommendedCount < 0 || p.RecommendedCount > int64(len(r.TopicEntries)) {
+			return fault.Payload
+		}
+	}
 	if err := assets.ValidateCover(ctx, q, f.CoverAssetID); err != nil {
 		return err
 	}
@@ -175,7 +182,7 @@ func validateRelations(ctx context.Context, q *dbsqlc.Queries, c dbsqlc.ContentI
 		targets = append(targets, e.TargetContentID)
 	}
 	if len(targets) > 0 {
-		count, err := q.CountExistingContent(ctx, targets)
+		count, err := q.CountCuratedContent(ctx, targets)
 		if err != nil {
 			return dbError(err)
 		}

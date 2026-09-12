@@ -11,6 +11,7 @@ import {
   publicPages,
   redirects,
 } from '../apps/web/src/lib/publication/routes.ts';
+import { chromePaths, words } from '../apps/web/src/lib/i18n.ts';
 
 // Deliberately fixture-only: this gate never loads .env, contacts R2 or starts CMS.
 const input = readFileSync('tests/fixtures/content-snapshot-v1.json');
@@ -30,6 +31,7 @@ const allPaths = [
   '/notes/',
   '/tags/',
   '/authors/',
+  ...chromePaths.map((path) => `/en${path}`),
   ...pages.map((page) => page.path),
 ];
 for (const path of allPaths) {
@@ -42,18 +44,28 @@ for (const path of allPaths) {
   assert(doc.querySelector('a.skip-link[href="#main"]'));
   assert(!doc.querySelector('script[src*="api-client"], iframe, astro-island'));
   for (const link of doc.querySelectorAll('a[href^="/"]')) {
-    const target = link.getAttribute('href').split('#')[0];
+    const target = link.getAttribute('href').split(/[?#]/)[0];
     assert(
       allPaths.includes(target) || target === '/rss.xml',
       `Broken generated link in ${path}: ${target}`,
     );
   }
 }
+for (const path of ['/notes/', '/en/notes/']) {
+  const doc = pageDocument(path);
+  for (const group of p.groups) {
+    const heading = doc.querySelector(
+      `.note-group h2 a[href="/notes/${group.slug}/"]`,
+    );
+    assert.equal(heading?.textContent, group.name, `Note group label: ${path}`);
+    assert(heading.closest('article').textContent.includes(group.description));
+  }
+}
 for (const item of snapshot.content) {
   const doc = pageDocument(item.canonicalPath),
     metadata = seo(item);
   assert.equal(doc.documentElement.lang, item.language);
-  assert.equal(doc.querySelector('h1').textContent, item.title);
+  assert.equal(doc.querySelector('h1').textContent.trim(), item.title);
   assert.equal(doc.title, `${metadata.title} · GopherAtlas`);
   assert.equal(
     doc.querySelector('meta[name=description]')?.content,
@@ -67,8 +79,17 @@ for (const item of snapshot.content) {
     doc.querySelector('meta[property="og:title"]')?.content,
     metadata.title,
   );
-  assert(doc.querySelector('main[data-pagefind-body]'));
-  assert(doc.querySelector('.content-detail > .markdown h2'));
+  assert.equal(
+    !!doc.querySelector('main[data-pagefind-body]'),
+    item.type !== 'post',
+  );
+  assert(doc.querySelector('.content-detail .markdown h2'));
+  if (item.type !== 'topic')
+    assert(
+      doc
+        .querySelector('.publication-meta [rel=author]')
+        ?.textContent.includes(p.authorById.get(item.authorId).displayName),
+    );
   for (const image of doc.querySelectorAll('.markdown img, .cover-image'))
     assert.equal(new URL(image.src).origin, 'https://assets.gopheratlas.com');
   if (item.coverAssetId !== null) {
@@ -95,17 +116,19 @@ for (const item of snapshot.content) {
     for (const value of [
       item.payload.sourceAuthor,
       item.payload.sourceName,
-      item.payload.difficulty,
+      words.zh[item.payload.difficulty],
       item.payload.rating,
     ].filter(Boolean))
       assert(doc.querySelector('.source-meta').textContent.includes(value));
   }
   if (item.type === 'topic')
     assert.deepEqual(
-      [...doc.querySelectorAll('.topic-entries h3 a')].map((a) =>
+      [...doc.querySelectorAll('.topic-entries .article-card h2 a')].map((a) =>
         a.getAttribute('href'),
       ),
-      p.topicTargets.get(item.id).map((entry) => entry.content.canonicalPath),
+      p.topicTargets
+        .get(item.id)
+        .map((entry) => entry.content.payload.sourceUrl),
     );
 }
 assert.deepEqual(
@@ -167,7 +190,10 @@ assert(Number.isFinite(Date.parse(marker.builtAt)));
 assert.match(marker.commitSha, /^[a-f0-9]{40,64}$/);
 assert(existsSync(`${out}/pagefind/pagefind.js`));
 const index = JSON.parse(read('pagefind/pagefind-entry.json'));
-assert.equal(index.languages.zh.page_count, snapshot.content.length + 2);
+assert.equal(
+  index.languages.zh.page_count,
+  snapshot.content.filter((item) => item.type !== 'post').length + 4,
+);
 assert(
   read('robots.txt').includes(
     'Sitemap: https://gopheratlas.com/sitemap-index.xml',

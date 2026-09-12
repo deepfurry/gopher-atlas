@@ -18,6 +18,8 @@ silently rewriting history. Routine implementation choices do not need an ADR.
 | [0010](0010-admin-editorial-workspace.md)               | Chinese Admin shell, shared Base UI controls and Markdown-first workspace     | Accepted                             |
 | [0011](0011-local-live-public-and-draft-preview.md)     | Local snapshot watching, isolated Public restarts and transient Draft preview | Accepted                             |
 
+| [0012](0012-product-realignment-and-legacy-import.md) | Three product lines, legacy import and Public identity | Accepted |
+
 New records include date, status, context, decision, alternatives, consequences
 and implementation scope. Earlier ADR phase boundaries describe their original
 increments; later ADRs record the additions.

@@ -1,7 +1,7 @@
 # GopherAtlas agent entry point
 
 GopherAtlas is a Go knowledge atlas and multi-author Markdown publication.
-This repository implements **P0-5: Full Public Astro Site**, on the existing publication pipeline.
+This repository implements **P0-5.5: Product Realignment & Legacy-Ready Rebuild**, on the existing publication pipeline.
 During early development the user authorizes work on clean, synchronized `dev`;
 commit/push there within task authorization. Never modify `main`, the Production
 release snapshot. Development and Production are the only environments.
@@ -75,9 +75,16 @@ architecture and current scope are summarized in `docs/implementation-status.md`
 - Snapshot v1 exports selected published Revisions only. Web requires explicit
   fixture or private R2 read-only input, no silent fallback or browser credentials.
 - UI says Published in CMS with independent marker status. P0-5 builds Public
-  routes/search/SEO from snapshot v1 only. P0-6 import/cutover remains deferred.
+  routes/search/SEO from snapshot v1 only. P0-5.5 imports Development legacy content; P0-6 Production migration/cutover remains deferred.
 
 Completion gate: **`make check`**. Report actual commands and results, inspect the
 complete diff, and preserve local files. Commit/push only within user authorization.
 Run `make generate` for SQL/OpenAPI changes. `make build-cms` builds Admin then
 compiles with `adminembed`; plain Go tooling intentionally has no production SPA.
+
+Product alignment: curated_article / topic / note are the normal workflows; post
+is compatibility-only. Read ADR 0012 before product/import changes. Topic targets
+must be Curated; Note group metadata is payload-derived and consistent. Legacy
+logo/visuals/interactions are acceptance criteria. Import plan is read-only; apply
+uses existing Asset/Content services and explicit author mapping, never raw SQL
+content insertion or relaxed Markdown safety. No migration is needed for P0-5.5.

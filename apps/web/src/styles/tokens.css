@@ -1,0 +1,56 @@
+/* Legacy GopherAtlas visual tokens. See /legacy-attribution.txt. */
+:root {
+  color-scheme: dark;
+  --bg-top: #181e24;
+  --bg: #11161a;
+  --text: #ece8e1;
+  --text-soft: #bbb9b3;
+  --text-muted: #8a8f8d;
+  --accent: #a6bbbd;
+  --accent-strong: #dde7e6;
+  --accent-soft: rgba(166, 187, 189, 0.18);
+  --accent-glow: rgba(189, 207, 209, 0.42);
+  --panel: rgba(19, 24, 29, 0.82);
+  --panel-soft: rgba(17, 22, 26, 0.72);
+  --surface: rgba(255, 255, 255, 0.035);
+  --surface-strong: rgba(255, 255, 255, 0.08);
+  --line: rgba(234, 237, 239, 0.11);
+  --line-strong: rgba(234, 237, 239, 0.22);
+  --button-strong: rgba(223, 231, 229, 0.9);
+  --button-strong-hover: rgba(239, 244, 243, 0.96);
+  --button-strong-text: #101417;
+  --ring: rgba(223, 231, 229, 0.7);
+  --selection: rgba(166, 187, 189, 0.22);
+  --shadow: 0 28px 70px rgba(0, 0, 0, 0.22);
+  --shadow-soft: 0 16px 38px rgba(0, 0, 0, 0.16);
+  --scrollbar-thumb: rgba(223, 231, 229, 0.25);
+  --scrollbar-thumb-hover: rgba(223, 231, 229, 0.4);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg-top: #f1ebe2;
+  --bg: #e4dbcf;
+  --text: #1f2526;
+  --text-soft: #5f6668;
+  --text-muted: #7d827f;
+  --accent: #6d857f;
+  --accent-strong: #445752;
+  --accent-soft: rgba(109, 133, 127, 0.18);
+  --accent-glow: rgba(175, 155, 120, 0.34);
+  --panel: rgba(248, 244, 238, 0.78);
+  --panel-soft: rgba(255, 251, 246, 0.66);
+  --surface: rgba(24, 28, 30, 0.04);
+  --surface-strong: rgba(24, 28, 30, 0.08);
+  --line: rgba(22, 27, 31, 0.1);
+  --line-strong: rgba(22, 27, 31, 0.16);
+  --button-strong: rgba(31, 37, 38, 0.92);
+  --button-strong-hover: rgba(15, 19, 20, 0.98);
+  --button-strong-text: #f6f2eb;
+  --ring: rgba(68, 87, 82, 0.35);
+  --selection: rgba(109, 133, 127, 0.18);
+  --shadow: 0 28px 60px rgba(50, 43, 31, 0.08);
+  --shadow-soft: 0 16px 34px rgba(50, 43, 31, 0.06);
+  --scrollbar-thumb: rgba(68, 87, 82, 0.26);
+  --scrollbar-thumb-hover: rgba(68, 87, 82, 0.38);
+}

@@ -16,7 +16,9 @@ import {
 import { CoverField } from '@/features/assets/editor-assets';
 import { useMe } from '@/app/context';
 import type { Schema } from '@/shared/api';
-import { name, types } from '@/shared/status';
+import { name, ratings, difficulties } from '@/shared/status';
+import { Select } from '@/components/ui/select';
+import { NoteGroupFields } from './note-group';
 import { Button, IconButton } from '@/components/ui/button';
 import { Input, Textarea } from '@/components/ui/input';
 import { Checkbox, Switch } from '@/components/ui/checkbox';
@@ -52,6 +54,9 @@ export const draftSchema = z.object({
   payload: z
     .object({
       group: text(100).optional(),
+      groupDescription: text(1000).optional(),
+      groupOrder: z.number().int().min(0).max(1000000).optional(),
+      recommendedCount: z.number().int().min(0).max(100).optional(),
       groupSlug: text(100)
         .regex(/^(?:[a-z0-9]+(?:-[a-z0-9]+)*)?$/)
         .optional(),
@@ -62,8 +67,10 @@ export const draftSchema = z.object({
       sourceName: text(200).optional(),
       sourcePublishedAt: text(100).optional(),
       sourceLanguage: text(32).optional(),
-      difficulty: text(32).optional(),
-      rating: text(16).optional(),
+      difficulty: z
+        .enum(['', 'beginner', 'intermediate', 'advanced'])
+        .optional(),
+      rating: z.enum(['', ...ratings]).optional(),
       mustRead: z.boolean().optional(),
       relatedLinks: z
         .array(z.object({ label: text(200), url: text(2048) }))
@@ -115,7 +122,7 @@ function PayloadField({
   label: string;
   field: Exclude<
     keyof FormValues['payload'],
-    'relatedLinks' | 'mustRead' | 'order'
+    'relatedLinks' | 'mustRead' | 'order' | 'groupOrder' | 'recommendedCount'
   >;
   type?: string;
 }) {
@@ -133,11 +140,11 @@ function PayloadField({
     </label>
   );
 }
-function Order() {
+function Order({ label = '排序' }: { label?: string }) {
   const { register } = useFormContext<FormValues>();
   return (
     <label>
-      排序
+      {label}
       <Input
         type="number"
         min={0}
@@ -198,7 +205,9 @@ export function TypeFields({
   id: number;
   initial: Schema<'TopicTargetSummary'>[];
 }) {
-  const { control } = useFormContext<FormValues>();
+  const { control, setValue } = useFormContext<FormValues>();
+  const recommendedCount =
+    useWatch({ control, name: 'payload.recommendedCount' }) ?? 0;
   switch (type) {
     case 'post':
       return (
@@ -207,21 +216,21 @@ export function TypeFields({
     case 'note':
       return (
         <>
-          <PayloadField label="分组名称" field="group" />
-          <PayloadField label="分组路径标识" field="groupSlug" />
-          <Order />
+          <NoteGroupFields id={id} />
+          <Order label="组内排序" />
         </>
       );
     case 'curated_article':
       return (
         <>
           <p className="caption">
-            正文用于说明推荐理由与解读，不会抓取来源原文。
+            收录外部优质文章。Markdown 用于收录理由 /
+            编辑点评，不抓取或转载原文。
           </p>
-          <PayloadField label="来源 URL" field="sourceUrl" type="url" />
-          <PayloadField label="原文 URL" field="originalUrl" type="url" />
-          <PayloadField label="原作者" field="sourceAuthor" />
-          <PayloadField label="来源名称" field="sourceName" />
+          <PayloadField label="原文地址" field="sourceUrl" type="url" />
+          <PayloadField label="原始出处 URL" field="originalUrl" type="url" />
+          <PayloadField label="外部作者" field="sourceAuthor" />
+          <PayloadField label="来源平台" field="sourceName" />
           <label>
             原文发布日期
             <Controller
@@ -238,8 +247,39 @@ export function TypeFields({
           </label>
           <PayloadField label="原文语言" field="sourceLanguage" />
           <div className="form-pair">
-            <PayloadField label="难度" field="difficulty" />
-            <PayloadField label="评分" field="rating" />
+            <Controller
+              control={control}
+              name="payload.difficulty"
+              render={({ field }) => (
+                <Select
+                  label="难度"
+                  value={field.value ?? ''}
+                  onValueChange={field.onChange}
+                  options={[
+                    { value: '', label: '选择难度' },
+                    ...Object.entries(difficulties).map(([value, label]) => ({
+                      value,
+                      label,
+                    })),
+                  ]}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="payload.rating"
+              render={({ field }) => (
+                <Select
+                  label="评级"
+                  value={field.value ?? ''}
+                  onValueChange={field.onChange}
+                  options={[
+                    { value: '', label: '选择评级' },
+                    ...ratings.map((value) => ({ value, label: value })),
+                  ]}
+                />
+              )}
+            />
           </div>
           <Controller
             control={control}
@@ -258,7 +298,7 @@ export function TypeFields({
     case 'topic':
       return (
         <>
-          <Order />
+          <Order label="专区排序" />
           <Controller
             control={control}
             name="topicEntries"
@@ -268,6 +308,12 @@ export function TypeFields({
                 value={field.value}
                 onChange={field.onChange}
                 initial={initial}
+                recommendedCount={recommendedCount}
+                onRecommendedCountChange={(count) =>
+                  setValue('payload.recommendedCount', count, {
+                    shouldDirty: true,
+                  })
+                }
               />
             )}
           />
@@ -275,7 +321,7 @@ export function TypeFields({
       );
   }
 }
-export function EditorTitle() {
+export function EditorTitle({ type }: { type?: Schema<'ContentType'> }) {
   const {
     register,
     formState: { errors },
@@ -295,6 +341,20 @@ export function EditorTitle() {
       {errors.title && (
         <span className="error-message">{errors.title.message}</span>
       )}
+      {type && (
+        <Field
+          label={
+            type === 'curated_article'
+              ? '文章摘要'
+              : type === 'topic'
+                ? '专区简介'
+                : '随笔摘要'
+          }
+          field="summary"
+          max={4000}
+          multiline
+        />
+      )}
     </div>
   );
 }
@@ -302,7 +362,7 @@ export function Metadata({ content }: { content: Content }) {
   const me = useMe();
   const { control, setValue } = useFormContext<FormValues>();
   const values = useWatch({ control });
-  const [tab, setTab] = useState('basic');
+  const [tab, setTab] = useState(content.type === 'post' ? 'basic' : 'type');
   return (
     <aside className="metadata-rail" aria-label="内容属性">
       <div className="inspector-heading">
@@ -314,8 +374,17 @@ export function Metadata({ content }: { content: Content }) {
         value={tab}
         onValueChange={setTab}
         items={[
-          { value: 'basic', label: '基础', icon: <SlidersHorizontal /> },
-          { value: 'type', label: types[content.type], icon: <Article /> },
+          {
+            value: 'type',
+            label:
+              content.type === 'curated_article'
+                ? '原文与策展'
+                : content.type === 'topic'
+                  ? '文章编排'
+                  : '分组',
+            icon: <Article />,
+          },
+          { value: 'basic', label: '发布属性', icon: <SlidersHorizontal /> },
           { value: 'seo', label: '搜索展示', icon: <MagnifyingGlass /> },
         ]}
       >
@@ -332,7 +401,6 @@ export function Metadata({ content }: { content: Content }) {
               values.payload ?? {},
             )}
           </output>
-          <Field label="摘要" field="summary" max={4000} multiline />
           <Field label="语言" field="language" max={32} />
           {content.actions.assignByline ? (
             <label>
@@ -385,7 +453,7 @@ export function Metadata({ content }: { content: Content }) {
               control={control}
               render={({ field }) => (
                 <Switch
-                  label="重点推荐"
+                  label="首页推荐"
                   checked={field.value}
                   onCheckedChange={field.onChange}
                 />

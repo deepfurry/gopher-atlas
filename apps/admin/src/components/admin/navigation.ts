@@ -1,7 +1,5 @@
 import {
   House,
-  Files,
-  Article,
   Notebook,
   BookmarkSimple,
   Stack,
@@ -31,20 +29,18 @@ export const navigation: { label: string; items: NavItem[] }[] = [
   {
     label: '内容',
     items: [
-      { to: '/content', label: '全部内容', icon: Files },
-      { to: '/content?type=post', label: '文章', icon: Article },
-      { to: '/content?type=note', label: '笔记', icon: Notebook },
       {
         to: '/content?type=curated_article',
-        label: '精选',
+        label: '精选文章',
         icon: BookmarkSimple,
       },
       {
         to: '/content?type=topic',
-        label: '专题',
+        label: '话题专区',
         icon: Stack,
         permission: 'createTopic',
       },
+      { to: '/content?type=note', label: '学习随笔', icon: Notebook },
     ],
   },
   {
@@ -128,10 +124,9 @@ export function isActive(to: string, pathname: string, search: string) {
   const target = new URL(to, 'https://cms.invalid');
   if (target.pathname === '/content')
     return (
-      (pathname.startsWith('/content/') && !target.searchParams.has('type')) ||
-      (pathname === '/content' &&
-        new URLSearchParams(search).get('type') ===
-          target.searchParams.get('type'))
+      (pathname === '/content' || pathname.startsWith('/content/')) &&
+      (new URLSearchParams(search).get('type') ?? 'curated_article') ===
+        target.searchParams.get('type')
     );
   return (
     pathname === target.pathname ||

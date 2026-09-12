@@ -24,13 +24,12 @@ it.each(['editor', 'reviewer', 'admin'] as const)(
     const nav = await screen.findByRole('navigation', { name: '工作台导航' });
     expect(
       within(nav)
-        .getByRole('link', { name: '全部内容' })
+        .getByRole('link', { name: '精选文章' })
         .getAttribute('aria-current'),
     ).toBe('page');
     for (const label of [
-      '文章',
-      '笔记',
-      '精选',
+      '学习随笔',
+      '精选文章',
       '素材库',
       '作者管理',
       '个人资料',
@@ -40,7 +39,7 @@ it.each(['editor', 'reviewer', 'admin'] as const)(
       expect(within(nav).queryByRole('link', { name: label }) !== null).toBe(
         role !== 'editor',
       );
-    for (const label of ['用户管理', '运行监控', '标签', '专题'])
+    for (const label of ['用户管理', '运行监控', '标签', '话题专区'])
       expect(within(nav).queryByRole('link', { name: label }) !== null).toBe(
         role === 'admin',
       );
@@ -58,7 +57,7 @@ it('persists sidebar collapse, keeps accessible links and restores on remount', 
   expect(
     document.querySelector('.admin-shell')?.classList.contains('is-collapsed'),
   ).toBe(true);
-  expect(screen.getByRole('link', { name: '笔记' })).toBeTruthy();
+  expect(screen.getByRole('link', { name: '学习随笔' })).toBeTruthy();
   view.unmount();
   mount('/content');
   expect(await screen.findByRole('button', { name: '展开导航' })).toBeTruthy();
@@ -71,10 +70,10 @@ it('opens modal mobile navigation and closes it after a route change', async () 
   mount('/content');
   fireEvent.click(await screen.findByRole('button', { name: '打开导航' }));
   const drawer = await screen.findByRole('dialog', { name: 'GopherAtlas' });
-  fireEvent.click(within(drawer).getByRole('link', { name: '笔记' }));
+  fireEvent.click(within(drawer).getByRole('link', { name: '学习随笔' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   expect(
-    await screen.findByRole('heading', { name: '笔记', level: 1 }),
+    await screen.findByRole('heading', { name: '学习随笔', level: 1 }),
   ).toBeTruthy();
 });
 
@@ -108,7 +107,7 @@ it('exposes account identity and all theme preferences in Chinese', async () => 
 it('opens scoped search with Ctrl+K and uses the existing content query', async () => {
   const state = backend();
   mount('/content');
-  await screen.findByRole('heading', { name: '全部内容' });
+  await screen.findByRole('heading', { name: '精选文章' });
   fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
   const dialog = await screen.findByRole('dialog', { name: '搜索' });
   fireEvent.change(within(dialog).getByRole('searchbox'), {

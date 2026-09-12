@@ -1,0 +1,25 @@
+---
+import { words, localized, type Locale } from '../lib/i18n';
+interface Props {
+  locale?: Locale;
+}
+const { locale = 'zh' } = Astro.props,
+  t = words[locale];
+---
+
+<section class="home-hero">
+  <div class="home-copy">
+    <span>Golang or go home?</span><div>
+      <h1 class="home-wordmark">GopherAtlas</h1><p>{t.hero}</p>
+    </div><div class="actions">
+      <a class="btn primary" href={localized('/articles/', locale)}
+        >{t.browse}</a
+      ><a class="btn" href={localized('/topics/', locale)}>{t.enterTopics}</a>
+    </div>
+  </div><div class="home-art">
+    <div class="home-hero__stage">
+      <div class="home-hero__halo"></div><div class="home-hero__ornaments">
+      </div><img class="home-hero__logo" src="/images/logo.png" alt="" />
+    </div>
+  </div>
+</section>

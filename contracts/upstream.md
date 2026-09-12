@@ -92,3 +92,19 @@ the separate content RO credential, and never enables this fallback.
 Pagefind assets are generated locally and loaded only by the search UI. A unified
 zh index includes English content, with Chinese segmentation and no English
 stemming. No hosted search, CMS query or private R2 browser request is required.
+
+## P0-5.5 Legacy and discussion boundaries
+
+Legacy plan reads only a local source checkout. Explicit Development apply may
+fetch planned Markdown images over bounded public HTTPS, with redirects disabled
+and private/loopback/resolved non-public addresses rejected. It uses existing R2
+asset upload outside SQLite transactions, and never fetches external article bodies.
+Apply itself never calls a Deploy Hook; durable jobs are processed later by the
+ordinary CMS worker. Automated verification always uses fake storage/Hook.
+
+Giscus is a separate public browser integration, only on published Notes. Public
+repo/category IDs live in source config, without credentials. Stable term mapping,
+strict matching, reactions, lazy loading and exact giscus.app theme messages are
+used. Missing/failed giscus never blocks reading. There is no comment/reaction API,
+DB, local anonymous identity or CMS permission coupling. Draft Preview never loads
+comments. See https://giscus.app and ADR 0012.

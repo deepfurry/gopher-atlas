@@ -1,0 +1,240 @@
+.site-header {
+  border-bottom: 1px solid var(--line);
+  position: relative;
+  z-index: 20;
+}
+.header-inner {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.brand strong {
+  display: block;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+.brand small {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.brand img {
+  width: 36px;
+  height: 36px;
+}
+#primary-navigation {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+#primary-navigation > a {
+  white-space: nowrap;
+  font-size: 14px;
+  color: var(--text-soft);
+}
+#primary-navigation > a:not(.github-link):not(.language-link) {
+  display: flex;
+  align-items: center;
+  min-height: 72px;
+  border-bottom: 1px solid transparent;
+}
+#primary-navigation > a[aria-current='page'] {
+  color: var(--text);
+  border-bottom-color: var(--accent-strong) !important;
+}
+.github-link {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 44px;
+}
+.theme-toggle {
+  border: 0;
+  background: none;
+  color: var(--text);
+  width: 32px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+}
+.light-icon {
+  display: none;
+}
+[data-theme='light'] .light-icon {
+  display: block;
+}
+[data-theme='light'] .dark-icon {
+  display: none;
+}
+.language-link {
+  font: 12px var(--font-mono) !important;
+}
+button.menu-toggle {
+  display: none;
+}
+.site-footer {
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+.footer-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  padding-block: 24px;
+}
+.footer-inner p + p {
+  margin-top: 6px;
+}
+.footer-inner nav {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  color: var(--text-soft);
+}
+.home-page main {
+  display: flex;
+  align-items: center;
+  padding-block: 32px;
+}
+.home-page .footer-inner {
+  padding-block: 16px;
+}
+.home-hero {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.68fr);
+  gap: 64px;
+  align-items: center;
+}
+.home-copy {
+  max-width: 704px;
+  display: grid;
+  gap: 32px;
+}
+.home-copy > span {
+  font: 16px var(--font-mono);
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+.home-wordmark {
+  font-size: clamp(3.3rem, 8.5vw, 8.05rem);
+  line-height: 0.97;
+  margin: 0 0 24px;
+}
+.home-copy p {
+  max-width: 672px;
+  font-size: 17px;
+  line-height: 2.1;
+  color: var(--text-soft);
+}
+.home-art {
+  display: flex;
+  justify-content: flex-end;
+  padding-right: clamp(28px, 4vw, 64px);
+}
+.back-top {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 10;
+  background: var(--panel) !important;
+}
+.public-toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 10px 18px;
+  border-radius: 8px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 100;
+}
+.public-toast.visible {
+  opacity: 1;
+}
+@media (max-width: 1100px) {
+  #primary-navigation {
+    gap: 16px;
+  }
+  .brand small {
+    display: none;
+  }
+  .home-art {
+    padding-right: 0;
+  }
+  .home-hero {
+    gap: 32px;
+  }
+}
+@media (max-width: 1023px) {
+  .home-hero {
+    grid-template-columns: 1fr;
+  }
+  .home-art {
+    display: none;
+  }
+  .home-copy {
+    max-width: 780px;
+  }
+  .home-page main {
+    min-height: calc(100svh - 230px);
+  }
+}
+@media (max-width: 767px) {
+  button.menu-toggle {
+    display: inline-flex;
+  }
+  #primary-navigation {
+    display: none;
+    position: absolute;
+    top: 84px;
+    left: 12px;
+    right: 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  #primary-navigation.open {
+    display: flex;
+  }
+  #primary-navigation > a:not(.github-link):not(.language-link) {
+    min-height: 40px;
+  }
+  .footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .home-copy {
+    gap: 28px;
+  }
+  .home-copy p {
+    font-size: 16px;
+  }
+  .home-wordmark {
+    font-size: clamp(44px, 10vw, 80px);
+  }
+  .back-top {
+    right: 12px;
+    bottom: 12px;
+  }
+}

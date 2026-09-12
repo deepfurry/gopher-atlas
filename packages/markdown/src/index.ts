@@ -76,8 +76,13 @@ export const remarkGuard: Plugin<[], Root> = () => (tree, file) => {
 
 export const remarkPlugins: PluggableList = [remarkGfm, remarkGuard];
 
+/** The shared non-executing parser; consumers must still apply safety validation. */
+export function parseMarkdown(markdown: string): Root {
+  return unified().use(remarkParse).use(remarkGfm).parse(markdown);
+}
+
 export function validateMarkdown(markdown: string): MarkdownIssue[] {
-  const tree = unified().use(remarkParse).use(remarkGfm).parse(markdown);
+  const tree = parseMarkdown(markdown);
   const issues = inspect(tree);
   if (/^---\r?\n[\s\S]*?\r?\n(?:---|\.\.\.)(?:\r?\n|$)/u.test(markdown))
     issues.push({ code: 'frontmatter', line: 1 });

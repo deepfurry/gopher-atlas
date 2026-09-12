@@ -1,0 +1,51 @@
+---
+import { words, type Locale } from '../lib/i18n';
+interface Props {
+  locale?: Locale;
+}
+const { locale = 'zh' } = Astro.props,
+  t = words[locale];
+---
+
+<div class="prose" data-search>
+  <h1>{t.search}</h1><p class="lede">{t.searchHint}</p><form role="search">
+    <label for="search-query">{t.keyword}</label><div class="search-form">
+      <input
+        id="search-query"
+        type="search"
+        name="q"
+        maxlength="200"
+        autocomplete="off"
+        placeholder="Go, context, goroutine"
+        aria-describedby="search-status"
+      /><button type="submit">{t.search}</button>
+    </div>
+  </form><p
+    id="search-status"
+    class="search-status"
+    role="status"
+    aria-live="polite"
+  >
+    {t.searchHint}
+  </p><ol
+    class="search-results"
+    data-results
+    aria-label={locale === 'zh' ? '搜索结果' : 'Search results'}
+  >
+  </ol><button data-more hidden>{t.more}</button><noscript
+    ><p>
+      {
+        locale === 'zh'
+          ? '搜索需要 JavaScript。'
+          : 'Search requires JavaScript.'
+      }
+      <a href={locale === 'zh' ? '/articles/' : '/en/articles/'}>{t.browse}</a>
+    </p></noscript
+  >
+</div>
+<script>
+  import { mountSearch } from '../lib/search';
+  document
+    .querySelectorAll<HTMLElement>('[data-search]')
+    .forEach((root) => mountSearch(root));
+</script>

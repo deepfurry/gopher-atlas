@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { ArrowUp, ArrowDown, X, Plus } from '@phosphor-icons/react';
+import {
+  ArrowUp,
+  ArrowDown,
+  X,
+  Plus,
+  DotsSixVertical,
+  Star,
+} from '@phosphor-icons/react';
+import { reorderTopic } from './topic-order';
 import { client, unwrap, ErrorNotice, type Schema } from '@/shared/api';
 import { usePages } from '@/shared/query';
 import { LoadMore } from '@/shared/pagination';
@@ -132,20 +140,25 @@ export function TopicEntries({
   value,
   onChange,
   initial = [],
+  recommendedCount = 0,
+  onRecommendedCountChange = () => {},
 }: {
   id: number;
   value: Schema<'TopicEntry'>[];
   onChange: (entries: Schema<'TopicEntry'>[]) => void;
   initial?: Schema<'TopicTargetSummary'>[];
+  recommendedCount?: number;
+  onRecommendedCountChange?: (count: number) => void;
 }) {
   const [search, setSearch] = useState(''),
     [choice, setChoice] = useState('');
+  const [dragging, setDragging] = useState<number | null>(null);
   const q = useDebounced(search);
   const targets = usePages(['content', 'targets', q], async (after, signal) =>
     unwrap(
       await client.GET('/api/admin/v1/content', {
         signal,
-        params: { query: { after, q } },
+        params: { query: { after, q, type: 'curated_article' } },
       }),
     ),
   );
@@ -167,9 +180,17 @@ export function TopicEntries({
     ];
     onChange(next);
   };
+  const moveTo = (from: number, to: number, recommended: boolean) => {
+    const next = reorderTopic(value, recommendedCount, from, to, recommended);
+    onRecommendedCountChange(next.recommendedCount);
+    onChange(next.entries);
+  };
   const options = targets.items
     .filter(
-      (t) => t.id !== id && !value.some((e) => e.targetContentId === t.id),
+      (t) =>
+        t.type === 'curated_article' &&
+        t.id !== id &&
+        !value.some((e) => e.targetContentId === t.id),
     )
     .map((t) => ({
       value: String(t.id),
@@ -177,49 +198,114 @@ export function TopicEntries({
     }));
   return (
     <fieldset className="selector">
-      <legend>专题条目</legend>
-      <ol className="topic-entries">
-        {value.map((entry, index) => {
-          const target = known.get(entry.targetContentId);
-          return (
-            <li key={entry.targetContentId}>
-              <div className="topic-entry-heading">
-                <span className="entry-number">{index + 1}</span>
-                <strong>
-                  {target?.title || `内容 #${entry.targetContentId}`}
-                </strong>
-              </div>
-              {(!target?.published || target.archived) && (
-                <p className="caption">条目未发布，专题暂时无法发布</p>
-              )}
-              <div className="toolbar">
-                <IconButton
-                  label={`上移条目 ${index + 1}`}
-                  disabled={index === 0}
-                  onClick={() => move(index, -1)}
+      <legend>精选文章编排</legend>
+      {[true, false].map((recommended) => (
+        <section
+          key={String(recommended)}
+          className="topic-section"
+          aria-label={recommended ? '推荐阅读' : '专区文章'}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            if (dragging !== null)
+              moveTo(
+                dragging,
+                recommended ? recommendedCount : value.length,
+                recommended,
+              );
+            setDragging(null);
+          }}
+        >
+          <h3>
+            {recommended ? '推荐阅读' : '专区文章'}{' '}
+            <span className="caption">
+              {recommended ? recommendedCount : value.length - recommendedCount}
+            </span>
+          </h3>
+          <ol
+            className="topic-entries"
+            start={recommended ? 1 : recommendedCount + 1}
+          >
+            {value.map((entry, index) => {
+              if (index < recommendedCount !== recommended) return null;
+              const target = known.get(entry.targetContentId);
+              return (
+                <li
+                  key={entry.targetContentId}
+                  draggable
+                  onDragStart={() => setDragging(index)}
+                  onDragEnd={() => setDragging(null)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (dragging !== null) moveTo(dragging, index, recommended);
+                    setDragging(null);
+                  }}
                 >
-                  <ArrowUp />
-                </IconButton>
-                <IconButton
-                  label={`下移条目 ${index + 1}`}
-                  disabled={index === value.length - 1}
-                  onClick={() => move(index, 1)}
-                >
-                  <ArrowDown />
-                </IconButton>
-                <IconButton
-                  label={`移除条目 ${index + 1}`}
-                  onClick={() => onChange(value.filter((_, i) => i !== index))}
-                >
-                  <X />
-                </IconButton>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+                  <div className="topic-entry-heading">
+                    <span className="entry-number">{index + 1}</span>
+                    <DotsSixVertical aria-hidden="true" />
+                    <strong>
+                      {target?.title || `内容 #${entry.targetContentId}`}
+                    </strong>
+                  </div>
+                  {(!target?.published || target.archived) && (
+                    <p className="caption">精选文章未发布，专区暂时无法发布</p>
+                  )}
+                  <div className="toolbar">
+                    <IconButton
+                      label={`上移条目 ${index + 1}`}
+                      disabled={index === 0}
+                      onClick={() => move(index, -1)}
+                    >
+                      <ArrowUp />
+                    </IconButton>
+                    <IconButton
+                      label={`下移条目 ${index + 1}`}
+                      disabled={index === value.length - 1}
+                      onClick={() => move(index, 1)}
+                    >
+                      <ArrowDown />
+                    </IconButton>
+                    <IconButton
+                      label={`移除条目 ${index + 1}`}
+                      onClick={() => {
+                        onRecommendedCountChange(
+                          recommendedCount - Number(index < recommendedCount),
+                        );
+                        onChange(value.filter((_, i) => i !== index));
+                      }}
+                    >
+                      <X />
+                    </IconButton>
+                    <Button
+                      variant="ghost"
+                      onClick={() =>
+                        moveTo(index, recommendedCount, !recommended)
+                      }
+                    >
+                      <Star />
+                      {recommended ? '移出推荐' : '设为推荐'}
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+          {!value.some(
+            (_, index) => index < recommendedCount === recommended,
+          ) && (
+            <p className="caption">
+              {recommended
+                ? '将重点文章移入推荐阅读。'
+                : '搜索并添加精选文章，或拖动调整编排。'}
+            </p>
+          )}
+        </section>
+      ))}
       <SearchSelect
-        label="添加条目"
+        label="搜索精选文章"
         value={choice}
         onValueChange={setChoice}
         options={options}
@@ -233,6 +319,9 @@ export function TopicEntries({
         onClick={() => {
           const target = Number(choice);
           if (
+            targets.items.some(
+              (item) => item.id === target && item.type === 'curated_article',
+            ) &&
             target !== id &&
             !value.some((e) => e.targetContentId === target)
           ) {
@@ -242,7 +331,7 @@ export function TopicEntries({
         }}
       >
         <Plus />
-        添加条目
+        添加精选文章
       </Button>
       <ErrorNotice error={targets.error} />
     </fieldset>

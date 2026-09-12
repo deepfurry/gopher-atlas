@@ -4,23 +4,31 @@ This is an engineering constraint, not optional visual inspiration. Implementati
 tokens and examples are documented in `docs/design-system.md`. New screens must
 be checked in light/dark themes, narrow layouts and reduced-motion mode.
 
-## Public: Technical Journal × Knowledge Atlas
+## Public: legacy GopherAtlas product identity
 
-- Astro owns layouts, pages and article rendering. React islands are for necessary
-  interactions only. **No shadcn/ui or Admin component imports in Public.**
-- Use self-hosted Geist Sans Variable for Latin/UI and JetBrains Mono Variable for
-  code. CJK fallback: PingFang SC, Microsoft YaHei, Noto Sans CJK SC, Source Han
-  Sans SC, system sans-serif. Do not download large external CJK webfonts.
-- Reading column: 720–760 px (baseline 736 px). Body ~17 px, line height 1.75–1.8;
-  H1 42–48 px on desktop, H2 28–32 px, H3 21–24 px; code 14–15 px / 1.6–1.65.
-  An optional desktop TOC is 240–280 px. Narrow screens shrink type and columns.
-- Warm-paper/graphite light theme; graphite/warm-black dark surfaces; restrained
-  teal/cyan accents. Colors must use semantic tokens; token literals belong in
-  their declaration block, with matching fixed colors allowed in the favicon.
-- Structure with typography, borders, numbering, whitespace, metadata and tags.
-  Long-form text must never stretch across a wide desktop viewport.
-- No glassmorphism, decorative-gradient surfaces, neon branding, or pervasive
-  large rounded cards. Do not turn the publication into a SaaS dashboard.
+ADR 0012 supersedes the earlier generic journal direction. The old repository at
+`e1a623b` is the A-grade visual/interaction baseline, not optional inspiration.
+
+- Preserve the official compass logo, Sora wordmark and Plus Jakarta Sans Latin
+  font files. CJK uses local Noto Sans SC / Microsoft YaHei / system fallbacks;
+  do not download large external CJK webfonts. Font licenses ship with Public.
+- Preserve legacy warm light / graphite dark semantic tokens, subtle hero glows,
+  72 px header, active underline, primary product navigation and footer hierarchy.
+  The shell is at most 1440 px with 24 px desktop / 12 px narrow gutters.
+- Home remains the single-screen brand introduction and compass visual. Curated
+  lists are editorial rows with external source/title/read actions, Topic chips,
+  ratings, rationale, tags and source metadata. Do not replace them with SaaS cards.
+- Topics retain guide/recommended-reading columns and ordered curated lists.
+  Notes retain group cards and four-entry group pagination. Only Notes get a full
+  long-form reading system: 752 px body, 256 px TOC, 17 px / 1.9 body and 14 px / 1.75
+  code. Narrow pages stack, provide an inline TOC, and scroll wide code/tables.
+- Legacy rounded/translucent directory panels and subtle decorative glows are
+  explicitly allowed for Public. Do not propagate this visual language to Admin.
+- Astro owns static pages and one shared safe Markdown/Shiki renderer. No shadcn,
+  Admin client/components, runtime CMS/API/SQLite or private R2 access in Public.
+- Default Chinese canonical routes are preserved. Seven /en/ site-owned routes
+  localize chrome; content is never automatically translated. Search/Tag/Author
+  remain auxiliary navigation. Post is compatibility-only.
 
 ## Admin: dense, calm editorial workspace
 
@@ -48,7 +56,7 @@ be checked in light/dark themes, narrow layouts and reduced-motion mode.
 
 ## Shared interaction and accessibility requirements
 
-- Public follows OS light/dark preference. Admin offers 跟随系统 / 浅色 / 深色;
+- Public defaults to legacy dark with a persisted light/dark toggle. Admin offers 跟随系统 / 浅色 / 深色;
   only theme and sidebar-collapse preferences may use localStorage. Draft content may not.
 - Honor `prefers-reduced-motion`. Normal transitions should be 150–250 ms.
 - Visible keyboard focus, semantic headings/landmarks, skip links, named controls,

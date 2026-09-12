@@ -2,9 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import {
   ArrowUpRight,
-  PencilSimple,
+  BookmarkSimple,
+  Notebook,
+  Stack,
   Tray,
-  CheckCircle,
   CloudArrowUp,
   Pulse,
 } from '@phosphor-icons/react';
@@ -17,7 +18,13 @@ import {
   Badge,
 } from '@/components/ui/workspace';
 import { CreateContent } from '@/components/admin/create-content';
-import { date, states, types, publicationStates } from '@/shared/status';
+import {
+  date,
+  states,
+  types,
+  productTypes,
+  publicationStates,
+} from '@/shared/status';
 export default function Overview() {
   const me = useMe();
   const ready = useQuery({
@@ -48,7 +55,9 @@ export default function Overview() {
     queryFn: async ({ signal }) =>
       unwrap(await client.GET('/api/admin/v1/publication/status', { signal })),
   });
-  const items = content.data?.items ?? [],
+  const items = (content.data?.items ?? []).filter(
+      (item) => item.type !== 'post',
+    ),
     pending = reviews.data?.items ?? [];
   const recent = [...items]
     .sort((a, b) => b.updatedAt - a.updatedAt)
@@ -80,29 +89,35 @@ export default function Overview() {
         actions={<CreateContent />}
       />
       <div className="workbench-summary">
-        <Link to="/content?state=draft">
-          <PencilSimple />
-          <div>
-            <span>草稿</span>
-            <strong>
-              {content.isPending
-                ? '—'
-                : items.filter((i) => i.editorialState === 'draft').length}
-            </strong>
-          </div>
-        </Link>
-        <Link to="/content?state=changes_requested">
-          <PencilSimple />
-          <div>
-            <span>需要修改</span>
-            <strong>
-              {content.isPending
-                ? '—'
-                : items.filter((i) => i.editorialState === 'changes_requested')
-                    .length}
-            </strong>
-          </div>
-        </Link>
+        {productTypes
+          .filter((type) => type !== 'topic' || me.permissions.createTopic)
+          .map((type) => {
+            const Icon = {
+              curated_article: BookmarkSimple,
+              topic: Stack,
+              note: Notebook,
+            }[type];
+            const rows = items.filter((item) => item.type === type);
+            return (
+              <Link key={type} to={`/content?type=${type}`}>
+                <Icon />
+                <div>
+                  <span>{types[type]}</span>
+                  <strong>
+                    {content.isPending ? '—' : rows.length}
+                    {content.data?.nextCursor ? '+' : ''}
+                  </strong>
+                  <span className="caption">
+                    {type === 'curated_article'
+                      ? '发现值得反复阅读的原文'
+                      : type === 'topic'
+                        ? '组织导读与推荐阅读'
+                        : '记录原创学习与实践'}
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
         {me.permissions.review && (
           <Link to="/reviews">
             <Tray />
@@ -116,13 +131,6 @@ export default function Overview() {
             </div>
           </Link>
         )}
-        <Link to="/content">
-          <CheckCircle />
-          <div>
-            <span>已在 CMS 发布</span>
-            <strong>{content.isPending ? '—' : published.length}</strong>
-          </div>
-        </Link>
       </div>
       <p className="caption summary-scope">
         内容摘要基于可访问内容的第一页；最近编辑按这些内容的更新时间排序。
@@ -133,7 +141,7 @@ export default function Overview() {
           <section className="workbench-section">
             <div className="section-heading">
               <h2>最近编辑</h2>
-              <Link to="/content" className="caption">
+              <Link to="/content?type=curated_article" className="caption">
                 查看内容 →
               </Link>
             </div>
@@ -144,7 +152,7 @@ export default function Overview() {
             ) : (
               <EmptyState
                 title="开始积累第一份内容"
-                description="新建文章、笔记或精选，写下值得分享的知识。"
+                description="收录精选文章、编排话题专区，或写一篇学习随笔。"
               />
             )}
           </section>

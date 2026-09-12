@@ -1,16 +1,17 @@
 ---
 import type { CuratedPayload } from '../lib/publication/types';
+import { words } from '../lib/i18n';
 interface Props {
   payload: CuratedPayload;
 }
 const { payload: p } = Astro.props;
 const fields = [
-  ['来源作者', p.sourceAuthor],
+  ['外部作者', p.sourceAuthor],
   ['来源', p.sourceName],
   ['发布日期', p.sourcePublishedAt],
   ['原文语言', p.sourceLanguage],
-  ['阅读难度', p.difficulty],
-  ['推荐评分', p.rating],
+  ['阅读难度', p.difficulty ? words.zh[p.difficulty] : ''],
+  ['评级', p.rating],
 ];
 ---
 

@@ -1,0 +1,53 @@
+---
+import { words, type Locale } from '../lib/i18n';
+import { dateLabel, type Publication } from '../lib/publication/indexes';
+interface Props {
+  group: Publication['groups'][number];
+  publication: Publication;
+  locale: Locale;
+}
+const { group, publication: p, locale } = Astro.props,
+  t = words[locale];
+---
+
+<article class="subtle-panel note-group" data-paged="4">
+  <header class="note-group-heading">
+    <h2><a href={`/notes/${group.slug}/`}>{group.name}</a></h2>
+    <span class="small-meta"
+      >{group.content.length}
+      {
+        locale === 'zh' ? '篇' : group.content.length === 1 ? 'note' : 'notes'
+      }</span
+    >
+    {
+      group.content.length > 4 && (
+        <div class="paged-controls">
+          <>
+            <button data-prev>{t.previous}</button>
+            <span data-page-label />
+            <button data-next>{t.next}</button>
+          </>
+        </div>
+      )
+    }
+  </header>
+  <p class="description">{group.description}</p>
+  <div class="reading-links">
+    {
+      group.content.map((note) => (
+        <a
+          class="reading-link"
+          href={note.canonicalPath}
+          data-page-item
+          lang={note.language}
+        >
+          <strong>{note.title}</strong>
+          <small>
+            {dateLabel(note.firstPublishedAt)} ·{' '}
+            {p.authorById.get(note.authorId)!.displayName}
+          </small>
+        </a>
+      ))
+    }
+  </div>
+</article>

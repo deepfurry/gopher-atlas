@@ -946,7 +946,7 @@ export interface components {
         ContentType: "curated_article" | "post" | "note" | "topic";
         /** @enum {string} */
         EditorialState: "draft" | "in_review" | "changes_requested" | "synced";
-        /** @description Content identity reference. Array order becomes one-based position. Self and duplicate targets are invalid. Unpublished targets are allowed until Topic publication. */
+        /** @description Curated article identity only. Array order becomes one-based position. Self and duplicate targets are invalid; unpublished curated targets allowed until Topic publication. */
         TopicEntry: {
             /** Format: int64 */
             targetContentId: number;
@@ -957,10 +957,18 @@ export interface components {
             groupSlug?: string;
             /** Format: int64 */
             order?: number;
+            groupDescription?: string;
+            /** Format: int64 */
+            groupOrder?: number;
         };
         TopicPayload: {
             /** Format: int64 */
             order?: number;
+            /**
+             * Format: int64
+             * @description First N entries are recommended reading; cannot exceed topicEntries length.
+             */
+            recommendedCount?: number;
         };
         RelatedLink: {
             label: string;
@@ -977,8 +985,16 @@ export interface components {
             /** @description Empty or valid YYYY-MM-DD date. */
             sourcePublishedAt?: string;
             sourceLanguage?: string;
-            difficulty?: string;
-            rating?: string;
+            /**
+             * @description Empty only in incomplete Drafts; required before submission/publication.
+             * @enum {string}
+             */
+            difficulty?: "" | "beginner" | "intermediate" | "advanced";
+            /**
+             * @description Empty only in incomplete Drafts; required before submission/publication.
+             * @enum {string}
+             */
+            rating?: "" | "S+" | "S" | "A+" | "A" | "B+" | "B" | "C+" | "C";
             mustRead?: boolean;
             relatedLinks?: components["schemas"]["RelatedLink"][];
         };
@@ -1073,6 +1089,7 @@ export interface components {
             owner: components["schemas"]["AuthorSummary"];
             byline: components["schemas"]["AuthorSummary"];
             publishedRevisionNo: number | null;
+            product?: components["schemas"]["ProductSummary"];
         };
         /** @description Permanently owned path. At most one canonical per Content. Redirects resolve by content identity to the current canonical, without chains. Unpublish/archive never release paths. */
         Route: {
@@ -1492,6 +1509,25 @@ export interface components {
             publicMarker: components["schemas"]["BuildMarker"] | null;
             /** @enum {string} */
             computedState: "live" | "pending" | "behind" | "unknown";
+        };
+        /** @description Bounded list-only product projection. Owner/Admin sees authoring metadata; other Reviewer sees exact pending immutable metadata. No body. Topic inverse labels use Admin Drafts or otherwise published Topics. */
+        ProductSummary: {
+            summary: string;
+            payload: components["schemas"]["TypedPayload"];
+            language: string;
+            featured: boolean;
+            entryCount: number;
+            tags: {
+                /** Format: int64 */
+                id: number;
+                name: string;
+                slug: string;
+            }[];
+            topics: {
+                /** Format: int64 */
+                id: number;
+                title: string;
+            }[];
         };
     };
     responses: {

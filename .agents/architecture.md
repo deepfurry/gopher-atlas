@@ -10,7 +10,7 @@ P0-4 provides immutable assets, snapshot v1 and durable publication. P0-5 adds
 static reader routes/search/SEO over that input, preserving the generation marker.
 Development uses dev and local fixtures; Production uses main and private R2.
 The manually installed CMS uses systemd and Tailscale Serve; see operations docs.
-Legacy migration and DNS cutover remain P0-6.
+P0-5.5 adds Development legacy import and product realignment; Production migration and DNS cutover remain P0-6.
 
 Dependency direction:
 
@@ -98,6 +98,13 @@ stable sorting, pages and direct redirects. A static catch-all dispatches exact
 canonical/derived paths to Public templates; collections use 24-item static pages.
 Source-owned home/about/contribute/directories/search remain ordinary Astro pages.
 The same shared Markdown/Shiki pipeline renders body and biography, without fetch.
-Only search has browser code; it lazily loads Pagefind and uses safe text results.
+Browser code handles chrome, static in-page filters/pagination, reading controls and Note-only giscus; search lazily loads Pagefind and uses safe text results.
 RSS, sitemap, redirects and marker are build output. No Public request touches
 CMS/SQLite/private R2. See ADR 0009 and scripts/check-public-build.mjs.
+
+ADR 0012 aligns normal UX to Curated/Topic/Note while preserving Post compatibility.
+The optional Content list product projection batches safe metadata and inverse
+Topics without changing visibility. Importer plan reproduces legacy loader/slug/
+date/order semantics; offline apply uses existing services, not a parallel CMS.
+No migration or generation semantics change. Snapshot v1 is expressly tightened
+before cutover, with matching exporter/build consumer deployment required.

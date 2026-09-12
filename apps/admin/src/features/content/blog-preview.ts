@@ -15,6 +15,8 @@ export function previewProjection(
     payload = {
       group: '未设置分组',
       groupSlug: 'preview',
+      groupDescription: '',
+      groupOrder: 0,
       order: 0,
       ...payload,
       ...('group' in payload && !payload.group ? { group: '未设置分组' } : {}),
@@ -36,7 +38,8 @@ export function previewProjection(
       relatedLinks: [],
       ...payload,
     };
-  if (content.type === 'topic') payload = { order: 0, ...payload };
+  if (content.type === 'topic')
+    payload = { order: 0, recommendedCount: 0, ...payload };
   const slug = draft.slug || `preview-${content.id}`;
   const prefix =
     content.type === 'note'

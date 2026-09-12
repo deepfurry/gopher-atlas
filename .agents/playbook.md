@@ -39,3 +39,10 @@ in a local browser. Do not connect to Production to validate implementation.
 Run commands from the repository root unless README says otherwise. Tests and
 builds must work without OAuth/R2/Cloudflare secrets and without a running CMS.
 Go tooling fixtures are disposable and must never point at `DATABASE_PATH`.
+
+For P0-5.5 use ADR 0012 and operations/legacy-import.md. Preserve migrations 1–3.
+Compare Public A-grade surfaces against the actual old site, not a generic style.
+Use real legacy content in disposable Development verification before fixture-only
+polish. Automated gates remain fake/offline. A separately authorized real apply
+uses explicit local author/DB mappings and current R2 config; it is not a Production
+cutover. Never report a fake-storage rehearsal as an actual R2 upload.

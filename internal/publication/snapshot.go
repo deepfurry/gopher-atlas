@@ -269,6 +269,7 @@ func validateGraph(s Snapshot) error {
 		return fault.SnapshotInvalid
 	}
 	contents := map[int64]PublicContent{}
+	groups := map[string]content.NotePayload{}
 	authors := map[int64]bool{}
 	tags := map[int64]bool{}
 	covers := map[int64]bool{}
@@ -291,6 +292,16 @@ func validateGraph(s Snapshot) error {
 		tags[t.ID] = true
 	}
 	for _, c := range s.Content {
+		if c.Type == "note" {
+			var note content.NotePayload
+			if json.Unmarshal(c.Payload, &note) != nil {
+				return fault.SnapshotInvalid
+			}
+			if prior, ok := groups[note.GroupSlug]; ok && (prior.Group != note.Group || prior.GroupDescription != note.GroupDescription || prior.GroupOrder != note.GroupOrder) {
+				return fault.SnapshotInvalid
+			}
+			groups[note.GroupSlug] = note
+		}
 		if c.ID <= 0 || contents[c.ID].ID != 0 || !authors[c.AuthorID] || c.CanonicalPath == "" || (c.CoverAssetID != nil && !covers[*c.CoverAssetID]) {
 			return fault.SnapshotInvalid
 		}
@@ -303,11 +314,17 @@ func validateGraph(s Snapshot) error {
 	}
 	for _, c := range s.Content {
 		seen := map[int64]bool{}
+		if c.Type == "topic" {
+			var p content.TopicPayload
+			if json.Unmarshal(c.Payload, &p) != nil || p.RecommendedCount < 0 || p.RecommendedCount > int64(len(c.TopicEntries)) {
+				return fault.SnapshotInvalid
+			}
+		}
 		if (c.Type == "topic" && len(c.TagIDs) > 0) || (c.Type != "topic" && len(c.TopicEntries) > 0) {
 			return fault.SnapshotInvalid
 		}
 		for i, e := range c.TopicEntries {
-			if e.Position != int64(i+1) || e.TargetContentID == c.ID || seen[e.TargetContentID] || contents[e.TargetContentID].ID == 0 {
+			if e.Position != int64(i+1) || e.TargetContentID == c.ID || seen[e.TargetContentID] || contents[e.TargetContentID].Type != "curated_article" {
 				return fault.SnapshotInvalid
 			}
 			seen[e.TargetContentID] = true

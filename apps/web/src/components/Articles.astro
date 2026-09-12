@@ -1,0 +1,206 @@
+---
+import CuratedCard from './CuratedCard.astro';
+import PublicSelect from './PublicSelect.astro';
+import PageHero from './PageHero.astro';
+import { words, type Locale } from '../lib/i18n';
+import { ratings } from '../lib/explorer';
+import { dateLabel, type Publication } from '../lib/publication/indexes';
+import type { Content } from '../lib/publication/types';
+interface Props {
+  publication: Publication;
+  locale?: Locale;
+}
+const { publication: p, locale = 'zh' } = Astro.props,
+  t = words[locale];
+const articles = p.contentByType.get('curated_article')! as Extract<
+  Content,
+  { type: 'curated_article' }
+>[];
+const topics = p.contentByType.get('topic')!;
+const tags = p.tags
+  .map((tag) => ({
+    ...tag,
+    count: (p.contentByTag.get(tag.id) ?? []).filter(
+      (c) => c.type === 'curated_article',
+    ).length,
+  }))
+  .filter((tag) => tag.count)
+  .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'en'));
+const stats = [
+  [articles.length, t.articles],
+  [topics.length, t.topics],
+  [tags.length, t.tags],
+  [
+    articles.length
+      ? dateLabel(Math.max(...articles.map((c) => c.firstPublishedAt)))
+      : '—',
+    t.updated,
+  ],
+];
+---
+
+<PageHero label="Articles" title={t.articles} description={t.articlesIntro}
+  ><div class="stats">
+    {
+      stats.map(([value, label]) => (
+        <div class="stat">
+          <>
+            <strong>{value}</strong>
+            <span>{label}</span>
+          </>
+        </div>
+      ))
+    }
+  </div></PageHero
+>
+<div data-explorer>
+  <section class="panel filters">
+    <header>
+      <div>
+        <span class="eyebrow">Search tools</span><h2>{t.filters}</h2>
+      </div><button data-copy-link>{t.copy}</button>
+    </header>
+    <form
+      action={locale === 'en' ? '/en/articles/' : '/articles/'}
+      method="get"
+    >
+      {
+        topics.map((topic) => (
+          <span
+            hidden
+            data-topic-title={topic.title}
+            data-topic-slug={topic.slug}
+          />
+        ))
+      }
+      <div class="filter-fields">
+        <label
+          ><span>{t.keyword}</span><input
+            type="search"
+            name="q"
+            placeholder={t.queryHint}
+            maxlength="200"
+          /></label
+        >
+        <PublicSelect
+          name="topic"
+          label={t.topics}
+          options={[
+            { value: '', label: t.allTopics },
+            ...topics.map((topic) => ({
+              value: topic.slug,
+              label: topic.title,
+            })),
+          ]}
+        />
+        <PublicSelect
+          name="lang"
+          label={t.language}
+          options={[
+            { value: '', label: t.allLanguages },
+            { value: 'zh', label: '中文' },
+            { value: 'en', label: 'English' },
+          ]}
+        />
+        <PublicSelect
+          name="sort"
+          label={t.sort}
+          value="source-date"
+          options={[
+            { value: 'source-date', label: t.sourceDateSort },
+            { value: 'recommended', label: t.recommended },
+            { value: 'added', label: t.added },
+            { value: 'rating', label: t.rating },
+            { value: 'title', label: t.title },
+          ]}
+        />
+      </div>
+      <fieldset class="filter-set">
+        <legend>{t.rating}</legend><div class="filter-chips">
+          {
+            ratings.map((rating) => (
+              <label>
+                <>
+                  <input
+                    class="sr-only"
+                    type="checkbox"
+                    name="rating"
+                    value={rating}
+                  />
+                  <span class="chip">{rating}</span>
+                </>
+              </label>
+            ))
+          }
+        </div>
+      </fieldset>
+      <div class="filter-fields">
+        <PublicSelect
+          name="difficulty"
+          label={t.difficulty}
+          options={[
+            { value: '', label: t.all },
+            ...(['beginner', 'intermediate', 'advanced'] as const).map(
+              (value) => ({ value, label: t[value] }),
+            ),
+          ]}
+        />
+      </div>
+      <fieldset class="filter-set">
+        <legend>{t.tags}</legend><div class="filter-chips">
+          {
+            tags.map((tag) => (
+              <label data-tag-option data-tag-name={tag.name}>
+                <>
+                  <input
+                    class="sr-only"
+                    type="checkbox"
+                    name="tags"
+                    value={tag.slug}
+                  />
+                  <span class="chip">
+                    {tag.name}
+                    <small>{tag.count}</small>
+                  </span>
+                </>
+              </label>
+            ))
+          }
+        </div><div class="load-tags">
+          <button type="button" data-more-tags hidden>{t.moreTags}</button>
+        </div>
+      </fieldset>
+      <div class="actions">
+        <button class="primary" type="submit">{t.apply}</button><button
+          type="button"
+          data-reset>{t.reset}</button
+        >
+      </div>
+    </form>
+  </section>
+  <div class="results-heading" data-results-heading>
+    <p role="status" aria-live="polite" data-result-count>
+      {articles.length}
+      {t.found}
+    </p>
+  </div>
+  <div data-results>
+    {
+      articles.map((item) => (
+        <CuratedCard item={item} publication={p} locale={locale} searchable />
+      ))
+    }
+  </div>
+  <p class="empty" data-empty hidden={articles.length > 0}>{t.empty}</p><nav
+    class="pagination"
+    data-pagination
+    aria-label={locale === 'zh' ? '文章分页' : 'Article pagination'}
+  >
+  </nav>
+</div>
+<script>
+  import { mountExplorer } from '../lib/explorer';
+  document
+    .querySelectorAll<HTMLElement>('[data-explorer]')
+    .forEach(mountExplorer);
+</script>

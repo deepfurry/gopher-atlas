@@ -1,0 +1,63 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Home from './Home.astro';
+import Articles from './Articles.astro';
+import ProductDirectory from './ProductDirectory.astro';
+import Search from './Search.astro';
+import MarkdownBody from './MarkdownBody.astro';
+import { words, type Locale } from '../lib/i18n';
+import { publication } from '../lib/publication/snapshot';
+import aboutZh from '../content/chrome/about.zh.md?raw';
+import aboutEn from '../content/chrome/about.en.md?raw';
+import contributeZh from '../content/chrome/contribute.zh.md?raw';
+import contributeEn from '../content/chrome/contribute.en.md?raw';
+interface Props {
+  page:
+    | 'home'
+    | 'articles'
+    | 'topics'
+    | 'notes'
+    | 'about'
+    | 'contribute'
+    | 'search';
+  locale?: Locale;
+}
+const { page, locale = 'zh' } = Astro.props,
+  t = words[locale];
+const body =
+  page === 'about'
+    ? locale === 'zh'
+      ? aboutZh
+      : aboutEn
+    : locale === 'zh'
+      ? contributeZh
+      : contributeEn;
+---
+
+<Layout
+  title={page === 'home' ? t.subtitle : t[page]}
+  description={page === 'home' ? t.hero : t[page]}
+  locale={locale}
+  home={page === 'home'}
+  searchIndex={page === 'about' || page === 'contribute'}
+>
+  {
+    page === 'home' ? (
+      <Home locale={locale} />
+    ) : page === 'articles' ? (
+      <Articles publication={publication} locale={locale} />
+    ) : page === 'topics' || page === 'notes' ? (
+      <ProductDirectory kind={page} publication={publication} locale={locale} />
+    ) : page === 'search' ? (
+      <Search locale={locale} />
+    ) : (
+      <article class="prose">
+        <>
+          <span class="eyebrow">{page}</span>
+          <h1>{t[page]}</h1>
+          <MarkdownBody source={body} />
+        </>
+      </article>
+    )
+  }
+</Layout>

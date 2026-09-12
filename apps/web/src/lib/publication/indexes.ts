@@ -12,6 +12,7 @@ const titled = (a: Content, b: Content) =>
 export function ordered(a: Content, b: Content) {
   if (a.type === 'note' && b.type === 'note')
     return (
+      a.payload.groupOrder - b.payload.groupOrder ||
       compareText(a.payload.groupSlug, b.payload.groupSlug) ||
       a.payload.order - b.payload.order ||
       titled(a, b)
@@ -58,7 +59,13 @@ export function createPublication(snapshot: Snapshot) {
   const contentByTag = new Map<number, Content[]>();
   const notesByGroup = new Map<
     string,
-    { slug: string; name: string; content: Content[] }
+    {
+      slug: string;
+      name: string;
+      description: string;
+      order: number;
+      content: Content[];
+    }
   >();
   const canonicalRouteByContentId = new Map<number, string>();
   const paths = new Set<string>();
@@ -89,13 +96,20 @@ export function createPublication(snapshot: Snapshot) {
     }
     if (item.type === 'note') {
       const group = notesByGroup.get(item.payload.groupSlug);
-      if (group && group.name !== item.payload.group)
+      if (
+        group &&
+        (group.name !== item.payload.group ||
+          group.description !== item.payload.groupDescription ||
+          group.order !== item.payload.groupOrder)
+      )
         throw new Error('public_note_group_conflict');
       if (group) group.content.push(item);
       else
         notesByGroup.set(item.payload.groupSlug, {
           slug: item.payload.groupSlug,
           name: item.payload.group,
+          description: item.payload.groupDescription,
+          order: item.payload.groupOrder,
           content: [item],
         });
     }
@@ -108,6 +122,11 @@ export function createPublication(snapshot: Snapshot) {
   >();
   for (const item of snapshot.content) {
     if (item.type !== 'topic') continue;
+    if (
+      item.payload.recommendedCount < 0 ||
+      item.payload.recommendedCount > item.topicEntries.length
+    )
+      throw new Error('public_topic_invalid');
     const positions = new Set<number>(),
       targets = new Set<number>();
     topicTargets.set(
@@ -123,6 +142,11 @@ export function createPublication(snapshot: Snapshot) {
             throw new Error('public_topic_invalid');
           positions.add(entry.position);
           targets.add(entry.targetContentId);
+          if (
+            required(contentById, entry.targetContentId).type !==
+            'curated_article'
+          )
+            throw new Error('public_topic_invalid');
           return {
             position: entry.position,
             content: required(contentById, entry.targetContentId),
@@ -142,8 +166,8 @@ export function createPublication(snapshot: Snapshot) {
     contentByTag,
     topicTargets,
     notesByGroup,
-    groups: [...notesByGroup.values()].sort((a, b) =>
-      compareText(a.slug, b.slug),
+    groups: [...notesByGroup.values()].sort(
+      (a, b) => a.order - b.order || compareText(a.slug, b.slug),
     ),
     authors: [...snapshot.authors].sort(
       (a, b) => compareText(a.displayName, b.displayName) || a.id - b.id,
@@ -151,7 +175,9 @@ export function createPublication(snapshot: Snapshot) {
     tags: [...snapshot.tags].sort(
       (a, b) => compareText(a.name, b.name) || a.id - b.id,
     ),
-    feed: snapshot.content.filter((item) => item.type !== 'topic').sort(recent),
+    feed: snapshot.content
+      .filter((item) => item.type === 'note' || item.type === 'curated_article')
+      .sort(recent),
     highlights(type: ContentType, limit = 3) {
       return [...(contentByType.get(type) ?? [])]
         .sort(featuredRecent)
@@ -165,22 +191,22 @@ export const typeInfo: Record<
   { title: string; path: string; description: string }
 > = {
   curated_article: {
-    title: '精选阅读',
+    title: '精选文章',
     path: '/articles/',
     description: '值得反复阅读的文章，以及推荐它们的理由。',
   },
   post: {
-    title: '原创文章',
+    title: '兼容内容',
     path: '/posts/',
     description: '从具体问题出发，理解 Go 的设计与实践。',
   },
   note: {
-    title: '工程笔记',
+    title: '学习随笔',
     path: '/notes/',
     description: '记录实验、排查与学习中逐渐清晰的认识。',
   },
   topic: {
-    title: '知识专题',
+    title: '话题专区',
     path: '/topics/',
     description: '把零散的知识连接成有序的阅读路径。',
   },

@@ -1,36 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { publication as p } from '../lib/publication/snapshot';
+import ProductDirectory from '../components/ProductDirectory.astro';
+import { publication } from '../lib/publication/snapshot';
 ---
 
-<Layout
-  title="工程笔记"
-  description="按主题组织的 Go 工程笔记，从实验和排查中积累经验。"
+<Layout title="学习随笔" description="使用 Golang 时遇到的问题与学习心得。"
+  ><ProductDirectory kind="notes" publication={publication} /></Layout
 >
-  <header class="page-heading">
-    <h1>工程笔记</h1><p class="lede">
-      从一个问题入手，逐步建立理解。按主题浏览有序的实践记录。
-    </p>
-  </header>
-  <ul class="directory">
-    {
-      p.groups.map((group) => (
-        <li>
-          <>
-            <h2>
-              <a href={`/notes/${group.slug}/`}>{group.name}</a>
-            </h2>
-            <p>{group.content.length} 篇笔记</p>
-          </>
-        </li>
-      ))
-    }
-  </ul>
-  {
-    !p.groups.length && (
-      <p class="empty">
-        还没有公开笔记。<a href="/posts/">浏览原创文章</a>。
-      </p>
-    )
-  }
-</Layout>

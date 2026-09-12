@@ -59,7 +59,7 @@ it('keeps a populated table responsive while a lazy editor route is pending', as
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
   });
-  expect(screen.getByRole('heading', { name: '全部内容' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: '精选文章' })).toBeTruthy();
   await act(async () => {
     release();
     await gate;
@@ -68,6 +68,6 @@ it('keeps a populated table responsive while a lazy editor route is pending', as
     await screen.findByRole('heading', { name: '编辑器已打开' }),
   ).toBeTruthy();
   expect(
-    screen.getByRole('link', { name: '全部内容' }).getAttribute('aria-current'),
+    screen.getByRole('link', { name: '精选文章' }).getAttribute('aria-current'),
   ).toBe('page');
 });

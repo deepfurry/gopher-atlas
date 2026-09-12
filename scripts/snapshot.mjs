@@ -39,6 +39,7 @@ export function validateSnapshot(data) {
     usedAssets = new Set(),
     usedTags = new Set(),
     canonicals = new Map();
+  const groups = new Map();
   for (const route of snapshot.routes) {
     if (!content.has(route.contentId)) invalid();
     if (route.kind === 'canonical') {
@@ -47,6 +48,18 @@ export function validateSnapshot(data) {
     }
   }
   for (const item of snapshot.content) {
+    if (item.type === 'note') {
+      const { group, groupSlug, groupDescription, groupOrder } = item.payload;
+      const metadata = JSON.stringify([group, groupDescription, groupOrder]);
+      if (groups.has(groupSlug) && groups.get(groupSlug) !== metadata)
+        invalid();
+      groups.set(groupSlug, metadata);
+    }
+    if (
+      item.type === 'topic' &&
+      item.payload.recommendedCount > item.topicEntries.length
+    )
+      invalid();
     const prefix = {
       post: 'posts',
       curated_article: 'articles',
@@ -82,7 +95,7 @@ export function validateSnapshot(data) {
     for (const entry of item.topicEntries)
       if (
         entry.targetContentId === item.id ||
-        !content.has(entry.targetContentId)
+        content.get(entry.targetContentId)?.type !== 'curated_article'
       )
         invalid();
     if (item.type === 'curated_article') {

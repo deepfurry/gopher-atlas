@@ -10,6 +10,8 @@ const definitions = structuredClone(schema.$defs);
 // local preview only; the published snapshot schema is never modified.
 definitions.curated_article.properties.sourceUrl.pattern =
   '^(?:https?://[^\\s]+)?$';
+definitions.curated_article.properties.rating.enum.push('');
+definitions.curated_article.properties.difficulty.enum.push('');
 const ajv = new Ajv2020({ strict: true });
 addFormats(ajv);
 const validate = ajv.compile({
@@ -49,6 +51,11 @@ export function parsePreview(value: unknown, base: Publication) {
   if (!validate(value)) throw new Error('preview_invalid');
   const input = value as Input,
     { item, author, cover, tags, targets } = input;
+  if (
+    item.type === 'topic' &&
+    item.payload.recommendedCount > item.topicEntries.length
+  )
+    throw new Error('preview_invalid');
   if (
     new TextEncoder().encode(item.bodyMarkdown).length > 524288 ||
     validateMarkdown(item.bodyMarkdown).length ||

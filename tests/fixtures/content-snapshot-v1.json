@@ -88,7 +88,9 @@
       "payload": {
         "group": "Go",
         "groupSlug": "go",
-        "order": 1
+        "order": 1,
+        "groupDescription": "",
+        "groupOrder": 0
       }
     },
     {
@@ -117,8 +119,8 @@
         "sourceName": "Go documentation",
         "sourcePublishedAt": "2022-06-06",
         "sourceLanguage": "en",
-        "difficulty": "进阶",
-        "rating": "5/5",
+        "difficulty": "intermediate",
+        "rating": "A+",
         "mustRead": true,
         "relatedLinks": [
           {
@@ -149,15 +151,12 @@
       "topicEntries": [
         {
           "position": 1,
-          "targetContentId": 1
-        },
-        {
-          "position": 2,
-          "targetContentId": 2
+          "targetContentId": 3
         }
       ],
       "payload": {
-        "order": 1
+        "order": 1,
+        "recommendedCount": 1
       }
     },
     {
@@ -182,7 +181,9 @@
       "payload": {
         "group": "Go",
         "groupSlug": "go",
-        "order": 0
+        "order": 0,
+        "groupDescription": "",
+        "groupOrder": 0
       }
     },
     {

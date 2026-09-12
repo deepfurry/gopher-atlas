@@ -1,5 +1,6 @@
 import { compareText, typeInfo, type Publication } from './indexes.ts';
 import type { Author, Content, Snapshot, Tag } from './types.ts';
+import { chromePaths } from '../i18n.ts';
 
 export const pageSize = 24;
 export interface CollectionPage {
@@ -47,6 +48,18 @@ export function publicPages(p: Publication): PublicPage[] {
   }));
   for (const type of ['curated_article', 'post', 'topic'] as const) {
     const info = typeInfo[type];
+    if (type !== 'post') {
+      pages.push({
+        kind: 'collection',
+        path: info.path,
+        title: info.title,
+        description: info.description,
+        content: p.contentByType.get(type)!,
+        page: 1,
+        total: 1,
+      });
+      continue;
+    }
     pages.push(
       ...collectionPages(
         info.path,
@@ -94,6 +107,7 @@ export function publicPages(p: Publication): PublicPage[] {
     '/tags/',
     '/authors/',
     '/404/',
+    ...chromePaths.map((path) => `/en${path}`),
   ]);
   for (const page of pages) {
     if (reserved.has(page.path)) throw new Error('public_page_conflict');

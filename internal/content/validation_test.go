@@ -24,7 +24,7 @@ func TestPayloadAndMarkdownBoundary(t *testing.T) {
 	}
 	canonical, err := CanonicalPayload("note", []byte(`{ "order": 2, "groupSlug":"go", "group":"Go" }`), true)
 	must(t, err)
-	if string(canonical) != `{"group":"Go","groupSlug":"go","order":2}` {
+	if string(canonical) != `{"group":"Go","groupSlug":"go","groupDescription":"","groupOrder":0,"order":2}` {
 		t.Fatal("payload not canonical")
 	}
 	_, err = CanonicalPayload("note", []byte("{}"), true)

@@ -7,10 +7,17 @@ export const statuses = {
   disabled: '已停用',
 };
 export const types = {
-  post: '文章',
-  note: '笔记',
-  curated_article: '精选',
-  topic: '专题',
+  curated_article: '精选文章',
+  topic: '话题专区',
+  note: '学习随笔',
+  post: '兼容内容',
+};
+export const productTypes = ['curated_article', 'topic', 'note'] as const;
+export const ratings = ['S+', 'S', 'A+', 'A', 'B+', 'B', 'C+', 'C'] as const;
+export const difficulties = {
+  beginner: '入门',
+  intermediate: '进阶',
+  advanced: '高级',
 };
 export const states = {
   draft: '草稿',
@@ -38,15 +45,18 @@ export const publicationStates = {
 export const payloadLabels: Record<string, string> = {
   group: '分组',
   groupSlug: '分组路径标识',
+  groupDescription: '分组说明',
+  groupOrder: '分组排序',
+  recommendedCount: '推荐阅读数',
   order: '排序',
-  sourceUrl: '来源 URL',
-  originalUrl: '原文 URL',
-  sourceAuthor: '原作者',
-  sourceName: '来源名称',
+  sourceUrl: '原文地址',
+  originalUrl: '原始出处 URL',
+  sourceAuthor: '外部作者',
+  sourceName: '来源平台',
   sourcePublishedAt: '原文发布日期',
   sourceLanguage: '原文语言',
   difficulty: '难度',
-  rating: '评分',
+  rating: '评级',
   mustRead: '必读',
   relatedLinks: '相关链接',
 };

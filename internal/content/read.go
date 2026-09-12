@@ -186,7 +186,10 @@ func (s *Service) List(ctx context.Context, actor auth.Principal, after int64, a
 		if len(rows) == PageSize {
 			result.NextCursor = &rows[len(rows)-1].ID
 		}
-		return enrichSummaries(ctx, q, result.Items)
+		if err := enrichSummaries(ctx, q, result.Items); err != nil {
+			return err
+		}
+		return enrichProducts(ctx, q, u, result.Items)
 	})
 	return result, err
 }

@@ -1,0 +1,306 @@
+/* Original GopherAtlas hero, MIT; see /legacy-attribution.txt. */
+.home-wordmark {
+  font-family: var(--font-wordmark);
+  font-weight: 540;
+  letter-spacing: -0.022em;
+  font-variation-settings: 'wght' 540;
+  text-wrap: balance;
+}
+
+.home-hero__stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(100%, 24rem);
+  aspect-ratio: 0.9;
+  isolation: isolate;
+}
+
+.home-hero__halo,
+.home-hero__ornaments {
+  position: absolute;
+  inset: 0;
+}
+
+.home-hero__stage::before,
+.home-hero__stage::after,
+.home-hero__halo::before {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+
+.home-hero__stage::before {
+  top: 19%;
+  left: 23%;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 999px;
+  background:
+    radial-gradient(
+      circle at center,
+      color-mix(in srgb, var(--accent-glow) 72%, transparent) 0 12%,
+      transparent 13%
+    ),
+    radial-gradient(
+      circle at center,
+      color-mix(in srgb, var(--accent-soft) 44%, transparent) 0 34%,
+      transparent 35%
+    ),
+    radial-gradient(
+      circle at center,
+      color-mix(in srgb, var(--line-strong) 16%, transparent) 0 58%,
+      transparent 59%
+    );
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--accent-glow) 10%, transparent),
+    6.2rem 8.2rem 0 -1.46rem
+      color-mix(in srgb, var(--accent-soft) 34%, transparent);
+  opacity: 0.42;
+  animation: hero-glint 15s ease-in-out infinite;
+}
+
+.home-hero__stage::after {
+  right: 16%;
+  bottom: 18%;
+  width: 5.8rem;
+  height: 5.8rem;
+  border-radius: 999px;
+  background:
+    radial-gradient(
+      circle at center,
+      color-mix(in srgb, var(--line-strong) 12%, transparent) 0 54%,
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at center,
+      color-mix(in srgb, var(--accent-soft) 16%, transparent) 0 72%,
+      transparent 73%
+    );
+  box-shadow:
+    -4.6rem -1.8rem 0 -2.72rem color-mix(in srgb, var(--line) 34%, transparent),
+    -6.8rem -2.6rem 0 -3.18rem
+      color-mix(in srgb, var(--accent-soft) 36%, transparent);
+  opacity: 0.48;
+  animation: hero-breathe 16s ease-in-out infinite reverse;
+}
+
+.home-hero__halo {
+  inset: 10% 8%;
+  border-radius: 42% 58% 50% 50% / 46% 44% 56% 54%;
+  background:
+    radial-gradient(
+      circle at 34% 30%,
+      color-mix(in srgb, var(--accent-soft) 132%, transparent),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 68% 60%,
+      color-mix(in srgb, var(--accent-glow) 96%, transparent),
+      transparent 24%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 84%, transparent),
+      transparent 76%
+    );
+  filter: blur(10px);
+  opacity: 0.94;
+  animation: hero-breathe 14.5s ease-in-out infinite;
+}
+
+.home-hero__halo::before {
+  top: 14%;
+  right: 18%;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 999px;
+  background:
+    radial-gradient(
+      circle at center,
+      color-mix(in srgb, var(--accent-soft) 54%, transparent) 0 22%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at center,
+      color-mix(in srgb, var(--surface) 42%, transparent) 0 66%,
+      transparent 67%
+    );
+  box-shadow: -1.8rem 9.8rem 0 -1.52rem
+    color-mix(in srgb, var(--accent-soft) 42%, transparent);
+  filter: blur(2px);
+  opacity: 0.56;
+  animation: hero-drift 15s ease-in-out infinite reverse;
+}
+
+.home-hero__ornaments::before,
+.home-hero__ornaments::after {
+  content: '';
+  position: absolute;
+  border-radius: 999px;
+}
+
+.home-hero__ornaments::before {
+  top: 31%;
+  left: 19%;
+  width: 4.6rem;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--line-strong) 22%, transparent),
+    transparent
+  );
+  box-shadow:
+    0 1.3rem 0 color-mix(in srgb, var(--line) 18%, transparent),
+    2.1rem 8.5rem 0 -0.34rem
+      color-mix(in srgb, var(--accent-soft) 28%, transparent);
+  opacity: 0.28;
+  animation: hero-slide 16s ease-in-out infinite;
+}
+
+.home-hero__ornaments::after {
+  top: 23%;
+  right: 16%;
+  width: 0.8rem;
+  height: 0.8rem;
+  background:
+    radial-gradient(
+      circle at center,
+      color-mix(in srgb, var(--accent-glow) 88%, transparent) 0 18%,
+      transparent 19%
+    ),
+    radial-gradient(
+      circle at center,
+      color-mix(in srgb, var(--accent-soft) 48%, transparent) 0 44%,
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at center,
+      color-mix(in srgb, var(--line-strong) 26%, transparent) 0 68%,
+      transparent 69%
+    );
+  box-shadow:
+    -7.2rem 6.8rem 0 -0.18rem
+      color-mix(in srgb, var(--accent-soft) 54%, transparent),
+    -1.1rem 10rem 0 -0.36rem
+      color-mix(in srgb, var(--line-strong) 28%, transparent);
+  opacity: 0.58;
+  animation: hero-drift 13.5s ease-in-out infinite;
+}
+
+.home-hero__logo {
+  position: relative;
+  z-index: 1;
+  width: min(58%, 14.5rem);
+  transform-origin: center;
+  will-change: transform;
+  filter: drop-shadow(0 26px 36px rgba(0, 0, 0, 0.18))
+    drop-shadow(0 0 18px color-mix(in srgb, var(--accent-glow) 8%, transparent));
+  animation: hero-float 18s ease-in-out infinite;
+}
+
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-8deg) scale(1);
+  }
+
+  50% {
+    transform: translateY(-12px) rotate(8deg) scale(1.015);
+  }
+}
+
+@keyframes hero-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.82;
+  }
+
+  50% {
+    transform: translate3d(-0.55rem, 0.85rem, 0) scale(1.08);
+    opacity: 1;
+  }
+}
+
+@keyframes hero-glint {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(0.94);
+    opacity: 0.58;
+  }
+
+  50% {
+    transform: translate3d(0.58rem, -0.72rem, 0) scale(1.06);
+    opacity: 0.96;
+  }
+}
+
+@keyframes hero-slide {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.46;
+  }
+
+  50% {
+    transform: translate3d(0.7rem, -0.9rem, 0);
+    opacity: 0.84;
+  }
+}
+
+@keyframes hero-breathe {
+  0%,
+  100% {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: scale(1.04) translate3d(0, -10px, 0);
+  }
+}
+
+@keyframes hero-orbit {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .home-hero__halo,
+  .home-hero__ornaments,
+  .home-hero__logo {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .home-hero__stage::before,
+  .home-hero__stage::after,
+  .home-hero__halo::before,
+  .home-hero__ornaments::before,
+  .home-hero__ornaments::after {
+    animation: none;
+  }
+}

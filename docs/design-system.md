@@ -1,34 +1,42 @@
 # GopherAtlas design system baseline
 
 `contracts/design.md` is mandatory. This guide maps it to current implementation;
-Both Admin and the P0-5 Public publication are implemented.
+The P0-5.5 product rebuild preserves the current Admin Shell.
 
 ## Public implementation
 
-`apps/web/src/styles/global.css` owns Public tokens; `Layout.astro` owns shared
-landmarks, metadata and navigation. Fontsource's variable Latin WOFF2 assets are
-bundled locally. CJK uses the reader's installed system fonts.
+ADR 0012 and the original GopherAtlas define the product baseline. Public CSS is
+split into tokens, chrome, legacy hero, products and reading; global.css contains
+base rules in a lower CSS layer so component/keyboard/mobile rules win correctly.
 
-| Token       | Light     | Dark      | Use                         |
-| ----------- | --------- | --------- | --------------------------- |
-| `--paper`   | `#f7f5ef` | `#191d1c` | Page surface                |
-| `--surface` | `#eeece5` | `#252b29` | Code/subtle inset surface   |
-| `--ink`     | `#252a29` | `#eceee7` | Reading text                |
-| `--muted`   | `#5b6461` | `#adb8b2` | Metadata and secondary text |
-| `--line`    | `#cfd3cc` | `#414b46` | Dividers                    |
-| `--accent`  | `#086a67` | `#77ccc2` | Links and focus             |
+| Token      | Light   | Dark    |
+| ---------- | ------- | ------- |
+| Background | #e4dbcf | #11161a |
+| Text       | #1f2526 | #ece8e1 |
+| Secondary  | #5f6668 | #bbb9b3 |
+| Accent     | #6d857f | #a6bbbd |
 
-The outer shell is 72 rem; `.prose` is 46 rem (736 px at the default root size).
-Body is 17 px / 1.8. H1 caps at 48 px; H2 is 30.4 px; H3 is 22.4 px;
-code is 14.4 px / 1.65. `--toc-width` reserves 16 rem for later article layouts.
-The homepage pairs a reading introduction with four navigation directions, then
-uses section labels beside compact content lists. Source pages and published
-Markdown share the same reading measure. Canonical detail pages have a desktop
-TOC; below 1000 px it is omitted to preserve the reading column.
+The official compass, Sora wordmark, Plus Jakarta Sans and small GitHub/theme icons
+are self-hosted with attribution/license files. The max 1440 px shell, 72 px header,
+hero proportions, warm light / graphite dark colors and editorial rows follow the
+old implementation. Theme defaults dark and persists explicitly; reduced motion
+stops hero motion. Mobile navigation is expandable, focusable and Escape-dismissed.
 
-Dark mode follows `prefers-color-scheme`. Transitions use `--motion: 180ms` and
-are disabled for reduced-motion users. Reading pages need no hydrated React islands. Search alone loads a small browser
-module and lazily imports the local Pagefind API on a query.
+Public product components are Articles/CuratedCard, ProductDirectory, TopicBody and
+ContentDetail. Curated title/read actions lead externally. Topic recommendations
+occupy the leading recommendedCount entries with two-entry pagination. Notes show
+group metadata and four-entry pagination. Post routes remain compatible but hidden
+from primary UX, RSS and Pagefind.
+
+Note reading uses 752 px + 256 px TOC, 17 px / 1.9 body, restrained H2/H3, Shiki
+light/dark code with language/copy controls, scrollable code/tables, safe images,
+footnotes and same-group previous/next links. Below 1100 px the TOC is inline.
+Curated rationale and Topic guides use the same parser without forced TOCs.
+
+Seven site-owned /en/ pages translate chrome and static guidance. Authored content
+and canonical detail routes remain unchanged. Giscus uses public configuration,
+lazy Note-only loading, stable note terms and theme messages; the disabled/error
+states never obstruct reading. It is disabled in transient Draft Preview.
 
 ## Admin implementation
 
@@ -117,3 +125,17 @@ bounded job history with safe errors and explicit retry. It never renders config
 Hook URL or arbitrary response properties. Published in CMS remains distinct from
 live build observation. Tables scroll inside named regions; tokens/themes and
 reduced-motion/focus rules are unchanged. No metrics iframe or shared Public/Admin component system.
+
+## P0-5.5 Admin product surfaces
+
+The unchanged Shell exposes 精选文章 / 话题专区 / 学习随笔. Product tables use
+bounded authorized list metadata, with source/rating/Topic/Tag columns for Curated,
+entry/recommendation/order columns for Topic, and group/order columns for Notes.
+Filters/sorts state when they cover loaded rows only.
+
+Curated emphasizes title/summary/rationale and an original-source/curation inspector.
+Topic emphasizes guide plus a wider ordered-list inspector; recommendation and
+ordinary entries form one list with a boundary. Dragging and keyboard move controls
+serialize into the same full Draft snapshot. Notes preserve the large Markdown
+workspace and infer shared groups. All existing save/conflict/workflow controls,
+permissions, source-only editor and local Public Draft Preview remain unchanged.

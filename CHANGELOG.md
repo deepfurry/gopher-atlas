@@ -1,5 +1,19 @@
 # Changelog
 
+## P0-5.5 — Product realignment
+
+- Three product workflows: curated articles, curated-only Topics and grouped Notes;
+  Post stays compatible but leaves normal discovery/creation.
+- Typed group/recommendation metadata, strict Curated enums and closed snapshot v1;
+  no migration or publication architecture replacement.
+- Source-only legacy plan and offline service-based Development apply, exact old
+  paths/dates/reading order, explicit authors and safe immutable image migration.
+- Existing Chinese Admin Shell retained with product-specific lists, source/curation
+  forms, Topic drag/keyboard ordering and inferred Note groups.
+- Legacy Public logo/hero/tokens/product layouts, safe long-form Markdown reading,
+  seven English chrome pages and configurable Note-only giscus.
+- Existing live local generation watcher and transient Draft Preview preserved.
+
 ## Unreleased
 
 - Watch configured Development publication generations and refresh only Public,

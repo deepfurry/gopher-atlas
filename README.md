@@ -1,9 +1,9 @@
 # GopherAtlas
 
-**Technical Journal × Knowledge Atlas** — 面向 Go 开发者的知识地图与多作者
-Markdown 出版平台。
+**Golang or go home?** — 精选文章、话题专区与学习随笔。
+为 Go 开发者整理值得反复阅读的外部文章、策展阅读路径与原创实践。
 
-当前完成 **P0-5：Full Public Astro Site**。
+当前为 **P0-5.5：Product Realignment & Legacy-Ready Rebuild** 验收版本。
 私有 CMS 提供内容表格、Markdown 编辑/安全预览、串行 autosave、审核工作区、
 Revision History、Tags/Authors/Users/Audit 和 Monitor。Publish 仅表示 **已在 CMS 发布**；
 已实现 Assets/R2、原子 generation/outbox、Snapshot v1、Worker/Hook 和公开构建 marker。
@@ -25,7 +25,7 @@ Public 从 snapshot v1 构建完整阅读页面、静态 redirects、RSS/sitemap
 
 | 目录                                 | 当前职责                                                                    |
 | ------------------------------------ | --------------------------------------------------------------------------- |
-| `apps/web`                           | snapshot v1 静态阅读站、四类详情/目录、搜索、RSS/SEO/redirects              |
+| `apps/web`                           | snapshot v1 三条产品线、Post 兼容详情、搜索、RSS/SEO/redirects              |
 | `apps/admin`                         | 按 feature 拆分的 React/Vite 编辑工作台、Base UI、RHF、TanStack Table/Query |
 | `packages/markdown`                  | CommonMark/GFM 安全规则与共享 remark 插件                                   |
 | `packages/api-client`                | OpenAPI 生成类型、同源请求及 CSRF header                                    |
@@ -166,7 +166,7 @@ Admin 生产构建后的 embed 测试和最终 Go 二进制编译。Linux CI 另
 
 ## 设计与工程上下文
 
-Public 采用技术刊物的阅读层级、自托管 Geist/JetBrains Mono、暖纸/石墨主题，
+Public 延续旧站 Logo/视觉与暖纸/石墨主题，自托管 Sora/Plus Jakarta Sans，代码使用系统等宽字体，
 不使用 shadcn；Admin 为紧凑的 Base UI 工作台。见 [设计合同](contracts/design.md)、
 [设计系统](docs/design-system.md)、[AGENTS.md](AGENTS.md)、[架构](.agents/architecture.md)
 及 [ADR](docs/decisions/README.md)。
@@ -227,7 +227,7 @@ preview 或禁止的 editor/primitives 模块进入产物。工程决定见
 素材库复用图片选择器，标签用创建/编辑对话框，成员统一表格与资料表单；发布页先说明
 同步状态，技术字段放入详情抽屉。UI 架构与约束见
 [ADR 0010](docs/decisions/0010-admin-editorial-workspace.md)。本次未改变 Public、API、
-数据库或发布语义，P0-6 导入与切换仍独立进行。
+数据库或发布语义，P0-6 生产导入与切换仍独立进行。
 
 ## Assets 与 Publication
 
@@ -285,13 +285,15 @@ synthetic secret-output scan。生产不配置 fixture fallback；内容桶始�
 ## Public 阅读站与 P0-6 边界
 
 `apps/web/src/lib/publication` 在构建时验证/索引公开实体与引用，模板不读取 Draft 或
-私有 API。四类详情直接使用 snapshot 的 `canonicalPath`；另有首页、六类集合目录、
-Note 分组、Tag、Author、about/contribute/search 和 404 页面。集合以 24 条静态分页，
-不需要运行中的 CMS 或 Node。Curated 仅呈现推荐/来源元数据，不抓取原文。
+私有 API。详情直接使用 snapshot 的 `canonicalPath`；主流程为精选文章、话题专区、
+学习随笔，Post 只保留兼容。文章筛选每页 12 条，Note 分组卡片每页 4 条，辅助集合
+保持 24 条静态分页。另有 Tag、Author、about/contribute/search 和 404 页面。
+Public 不需要运行中的 CMS 或 Node。Curated 展示来源与点评，标题和阅读全文跳转原文。
 
 构建命令一次生成 HTML、`_redirects`、RSS/sitemap/robots、Pagefind 和 build marker。
-历史路径输出直接 301，超过 2,000 条或单行 1,000 字符即失败。Pagefind 仅索引详情与
-两页源码维护的介绍内容，统一中文分词索引兼顾英文词；搜索页才加载浏览器代码。
+历史路径输出直接 301，超过 2,000 条或单行 1,000 字符即失败。Pagefind 索引三类详情与
+中英文 About/Contribute，统一中文分词索引兼顾英文词。Chrome、静态筛选、阅读控件和
+Note 的 giscus 按页面加载浏览器代码；搜索页才加载 Pagefind。
 正文复用共享 GFM/安全检查与 Shiki；SEO 使用覆盖值或 title/summary，语言保持真实。
 
 本地构建后用 `pnpm --filter @gopheratlas/web preview` 查看完整产物（含 Pagefind）。
@@ -299,10 +301,45 @@ Astro preview 不模拟 Cloudflare `_redirects`；其内容由门禁检查，平
 时确认。`node scripts/check-public-build.mjs` 检查核心 fixture 的实际页面与引用、
 redirects/RSS/sitemap/search 索引、marker hash 和输出隐私，已接入 `make check`。
 
-详见 [ADR 0009](docs/decisions/0009-public-static-publication.md)。P0-6 单独负责旧站
-inventory/import、历史路由验证/超限方案、backup/restore drill、第一条真实导入后的
-generation 验收、gopheratlas.com DNS cutover 和旧站下线决策。本阶段不修改生产配置。
+详见 [ADR 0012](docs/decisions/0012-product-realignment-and-legacy-import.md)。P0-5.5
+已实现 Development plan/apply 与旧路由校验。P0-6 单独负责生产导入、历史路由最终比对、
+backup/restore drill、生产 generation 验收、DNS cutover 和旧站下线。本阶段不修改生产配置。
+
+## 三条产品线与 Legacy 导入
+
+- **精选文章**：标题与阅读全文跳转原文；正文是收录理由 / 编辑点评。
+- **话题专区**：只编排精选文章，推荐区与普通区共享一个有序清单。
+- **学习随笔**：原创 Markdown 博客，按分组连续阅读。
+
+Post 保留底层兼容路由/API，不再出现在正常创建菜单、主导航、RSS 和搜索中。
+中文 Admin 保留现有 Shell、权限、自动保存与版本冲突处理。`make dev` 仍一次运行
+CMS/Admin/Public；发布后 watcher 自动刷新 Public，“博客预览”仍复用真实 Public
+renderer，预览不会推进 generation 或写 R2。
+
+本次收紧 pre-cutover snapshot v1。旧快照缺少 Note 分组字段、Topic 推荐数量，或包含
+不符合新约束的内容时会明确拒绝加载；不会静默改写。升级已有 Development 数据时，
+先单独启动 `make dev-cms` / `make dev-admin`，修正内容并通过正常发布生成新快照，
+再运行 `make dev`。也可显式使用 fixture。不要覆盖历史 generation 对象；未来生产
+升级须同时部署匹配的 CMS exporter 与 Web consumer，详见 ADR 0012。
+
+Legacy 导入先 plan 再 apply。必须显式指定当前 CMS 的 Admin owner 与 Note Author
+映射，不猜测作者、不导入转载正文、不放宽图片安全规则。操作步骤、一次性导入边界、
+失败恢复与旧路由统计见 [Legacy 导入运维说明](docs/operations/legacy-import.md)。
+自动测试与浏览器演练使用可丢弃数据库；真实 Development apply 的目标与署名需明确。
+
+Public 的 Logo、首页、配色、文章筛选和 Topic/Notes 结构延续旧 GopherAtlas。
+`/en/` 下的七个站点自有页面提供英文 chrome；内容不自动翻译，旧中文 URL 不变。
+Note 阅读提供 TOC、代码复制、脚注、宽表格滚动与组内上下篇。
+
+Note 评论与 Reactions 使用 giscus。当前仓库尚未启用 GitHub Discussions，公开的
+repo/repoId 已配置。维护者启用 Discussions、安装 giscus App、选择分类后，把公开的
+category/categoryId 写入 `apps/web/src/config/discussion.ts`。分类为空时显示未配置说明；
+这些值不是 Secret。
+映射固定为 `note:<groupSlug>/<slug>`，标题变更不会新建 Discussion。
+
+P0-6 只负责生产备份恢复演练、受控 Legacy apply、路由比对、main 发布快照和最终
+cutover。本阶段不修改生产 DNS，不合并 main，也不触发生产部署。
 
 ## License
 
-[MIT](LICENSE)。组件来源见 [Third-party notices](docs/third-party-notices.md)。
+[MIT](LICENSE)。组件与字体来源见 [Third-party notices](docs/third-party-notices.md)。

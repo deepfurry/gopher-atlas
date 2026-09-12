@@ -20,7 +20,7 @@ function setup(load: () => Promise<SearchAPI>) {
     form: document.querySelector('form')!,
   };
 }
-const hit = (title = 'Go result', url = '/posts/fixture-post/') => ({
+const hit = (title = 'Go result', url = '/articles/fixture-post/') => ({
   data: async () => ({
     url,
     meta: { title },
@@ -99,6 +99,8 @@ it('does not let a slow prior search replace a newer result', async () => {
 it('rejects unsafe result URLs and never creates HTML from search metadata', async () => {
   expect(safeResultURL('https://evil.invalid/')).toBe(false);
   expect(safeResultURL('//evil.invalid/')).toBe(false);
+  expect(safeResultURL('/posts/compatibility/')).toBe(false);
+  expect(safeResultURL('/en/about/')).toBe(true);
   expect(excerptText('&quot;&#60;&#x3e;&amp;')).toBe('"<>&');
   const { input, form } = setup(async () => ({
     search: async () => ({

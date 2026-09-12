@@ -1,0 +1,66 @@
+---
+import PageHero from './PageHero.astro';
+import { words, type Locale } from '../lib/i18n';
+import type { Publication } from '../lib/publication/indexes';
+import NoteGroupCard from './NoteGroupCard.astro';
+interface Props {
+  kind: 'topics' | 'notes';
+  publication: Publication;
+  locale?: Locale;
+}
+const { kind, publication: p, locale = 'zh' } = Astro.props,
+  t = words[locale],
+  topics = p.contentByType.get('topic')!;
+---
+
+<PageHero
+  label={kind === 'topics' ? 'Topics' : 'Notes'}
+  title={t[kind]}
+  description={kind === 'topics' ? t.topicsIntro : t.notesIntro}
+/>
+<section>
+  <div class="section-intro">
+    <span class="eyebrow">Directory</span><h2>
+      {
+        kind === 'topics'
+          ? `${topics.length} ${t.topicCount} - ${p.contentByType.get('curated_article')!.length} ${t.articleCount}`
+          : `${p.groups.length} ${t.group} - ${p.contentByType.get('note')!.length} ${t.noteCount}`
+      }
+    </h2><p>{kind === 'topics' ? t.topicHint : t.noteHint}</p>
+  </div>
+  <div class="topic-grid">
+    {
+      kind === 'topics'
+        ? topics.map((topic) => (
+            <article class="subtle-panel topic-card" lang={topic.language}>
+              <>
+                <div class="small-meta">
+                  <>
+                    <span>{t.topics}</span>
+                    <span>
+                      {topic.topicEntries.length} {t.articleCount}
+                    </span>
+                  </>
+                </div>
+                <h2>
+                  <a href={topic.canonicalPath}>{topic.title}</a>
+                </h2>
+                <p>{topic.summary}</p>
+                <div class="small-meta">
+                  {t.readingOrder} ·{' '}
+                  {topic.type === 'topic' ? topic.payload.recommendedCount : 0}
+                </div>
+                <div class="actions">
+                  <a class="btn" href={topic.canonicalPath}>
+                    {t.enterTopics}
+                  </a>
+                </div>
+              </>
+            </article>
+          ))
+        : p.groups.map((group) => (
+            <NoteGroupCard group={group} publication={p} locale={locale} />
+          ))
+    }
+  </div>
+</section>

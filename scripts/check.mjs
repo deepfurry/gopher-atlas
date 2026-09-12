@@ -90,5 +90,5 @@ const rss = readFileSync('apps/web/dist/rss.xml', 'utf8');
 if (!rss.includes('<rss') || !rss.includes('GopherAtlas'))
   throw new Error('Invalid publication RSS');
 console.log(
-  'All P0-5 checks passed. No production services or credentials used.',
+  'All P0-5.5 checks passed. No production services or credentials used.',
 );

@@ -2,11 +2,8 @@ import { memo, useMemo } from 'react';
 import { useDebounced } from '@/hooks/use-debounced';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import {
-  isControlledImage,
-  isSafeLink,
-  validateMarkdown,
-} from '@gopheratlas/markdown';
+import { isSafeLink } from '@gopheratlas/markdown';
+import { isControlledImage, validateMarkdown } from './asset-policy';
 export const MarkdownPreview = memo(function MarkdownPreview({
   source,
 }: {
@@ -37,7 +34,7 @@ export const MarkdownPreview = memo(function MarkdownPreview({
               />
             ) : (
               <span className="markdown-warning" role="note">
-                已拦截图片：仅允许附有替代文本的 assets.gopheratlas.com 图片。
+                已拦截图片：仅允许附有替代文本的当前素材库图片。
               </span>
             ),
           a: ({ href, children }) =>

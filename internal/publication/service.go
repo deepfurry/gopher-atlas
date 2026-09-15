@@ -39,7 +39,12 @@ func New(db *sql.DB, cfg config.Publication, store storage.ObjectStore, fence *o
 	if logger == nil {
 		logger = zap.NewNop()
 	}
-	return &Service{db: db, q: dbsqlc.New(db), cfg: cfg, store: store, fence: fence, logger: logger, now: time.Now, export: (&Exporter{DB: db}).Export, hook: newHook(cfg.HookURL), marker: newMarkerFetcher(cfg.PublicSiteURL)}
+	s := &Service{db: db, q: dbsqlc.New(db), cfg: cfg, store: store, fence: fence, logger: logger, now: time.Now, export: (&Exporter{DB: db, AssetPolicy: cfg.AssetPolicy()}).Export, hook: newHook(cfg.HookURL), marker: newMarkerFetcher(cfg.PublicSiteURL)}
+	if cfg.Mode == "local" {
+		s.hook = func(context.Context) error { return nil }
+		s.marker = nil
+	}
+	return s
 }
 func (s *Service) Configured() bool { return s.cfg.Configured() && s.store != nil }
 
@@ -62,11 +67,13 @@ type JobPage struct {
 	NextCursor *int64 `json:"nextCursor"`
 }
 type Status struct {
-	DesiredGeneration  int64   `json:"desiredGeneration"`
-	PipelineConfigured bool    `json:"pipelineConfigured"`
-	LatestJob          *Job    `json:"latestJob"`
-	PublicMarker       *Marker `json:"publicMarker"`
-	ComputedState      string  `json:"computedState"`
+	Mode                    string  `json:"mode,omitempty"`
+	LocalSnapshotGeneration *int64  `json:"localSnapshotGeneration,omitempty"`
+	DesiredGeneration       int64   `json:"desiredGeneration"`
+	PipelineConfigured      bool    `json:"pipelineConfigured"`
+	LatestJob               *Job    `json:"latestJob"`
+	PublicMarker            *Marker `json:"publicMarker"`
+	ComputedState           string  `json:"computedState"`
 }
 
 func intPointer(n sql.NullInt64) *int64 {
@@ -129,6 +136,13 @@ func (s *Service) Status(ctx context.Context, actor auth.Principal) (Status, err
 		return result, err
 	}
 	// Optional status I/O is outside the transaction and never part of readiness.
+	if s.cfg.Mode == "local" {
+		result.Mode = "local"
+		if s.Configured() {
+			s.localStatus(ctx, &result)
+		}
+		return result, nil
+	}
 	if s.Configured() {
 		if marker, err := s.marker(ctx); err == nil {
 			result.PublicMarker = marker

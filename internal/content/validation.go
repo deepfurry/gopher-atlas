@@ -145,7 +145,11 @@ func initialPayload(kind string) json.RawMessage {
 	data, _ := CanonicalPayload(kind, []byte("{}"), false)
 	return data
 }
-func validateFields(kind string, fields *Fields, complete bool) error {
+func validateFields(kind string, fields *Fields, complete bool, policies ...markdown.Policy) error {
+	policy := markdown.Policy{}
+	if len(policies) > 0 {
+		policy = policies[0]
+	}
 	if !bounded(fields.Title, 200) || !bounded(fields.Summary, 4000) || !bounded(fields.SEOTitle, 120) || !bounded(fields.SEODescription, 320) ||
 		fields.BylineUserID <= 0 || len(fields.Language) > 32 || (fields.Language != "" && !languagePattern.MatchString(fields.Language)) ||
 		(fields.Slug != "" && !validSlug(fields.Slug)) {
@@ -154,7 +158,7 @@ func validateFields(kind string, fields *Fields, complete bool) error {
 	if complete && (strings.TrimSpace(fields.Title) == "" || !validSlug(fields.Slug) || fields.Language == "") {
 		return fault.Validation
 	}
-	if len(fields.BodyMarkdown) > MarkdownLimit || !utf8.ValidString(fields.BodyMarkdown) || !markdown.Valid(fields.BodyMarkdown) {
+	if len(fields.BodyMarkdown) > MarkdownLimit || !utf8.ValidString(fields.BodyMarkdown) || !policy.Valid(fields.BodyMarkdown) {
 		return fault.Markdown
 	}
 	data, err := CanonicalPayload(kind, fields.Payload, complete)
@@ -164,8 +168,12 @@ func validateFields(kind string, fields *Fields, complete bool) error {
 	fields.Payload = data
 	return nil
 }
-func validateComment(s string, required bool) error {
-	if len(s) > ReviewCommentLimit || !utf8.ValidString(s) || !markdown.Valid(s) || (required && strings.TrimSpace(s) == "") {
+func validateComment(s string, required bool, policies ...markdown.Policy) error {
+	policy := markdown.Policy{}
+	if len(policies) > 0 {
+		policy = policies[0]
+	}
+	if len(s) > ReviewCommentLimit || !utf8.ValidString(s) || !policy.Valid(s) || (required && strings.TrimSpace(s) == "") {
 		return fault.Markdown
 	}
 	return nil
@@ -193,8 +201,8 @@ func candidatePath(kind string, f Fields) (string, error) {
 
 // PublishedPath reuses the domain's complete-field validation for the public
 // exporter without exposing mutable Draft state or introducing another grammar.
-func PublishedPath(kind string, fields Fields) (string, error) {
-	if err := validateFields(kind, &fields, true); err != nil {
+func PublishedPath(kind string, fields Fields, policies ...markdown.Policy) (string, error) {
+	if err := validateFields(kind, &fields, true, policies...); err != nil {
 		return "", err
 	}
 	return candidatePath(kind, fields)

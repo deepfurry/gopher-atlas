@@ -3,10 +3,18 @@ import { resolve } from 'node:path';
 import { developmentEnv, publicToolEnv, repositoryRoot } from './dev-env.mjs';
 import { packageCLI, supervise } from './dev-processes.mjs';
 import { prepareDevelopmentWeb, preparationMessage } from './dev-web.mjs';
+import { localDevelopment } from './dev-storage.mjs';
 
 async function dev() {
   const root = repositoryRoot;
   const env = developmentEnv();
+  let local;
+  try {
+    local = localDevelopment(env);
+  } catch (error) {
+    console.error(preparationMessage(error));
+    return 1;
+  }
   if ((env.APP_ENV || 'development') !== 'development') {
     console.error('make dev requires APP_ENV=development.');
     return 1;
@@ -40,7 +48,7 @@ async function dev() {
   }
   const admin = resolve(root, 'apps/admin');
   console.log(
-    'Development: CMS 127.0.0.1:46217 (or CMS_LISTEN_ADDR), Admin http://127.0.0.1:5173, Public http://127.0.0.1:4321. Ctrl+C stops all.',
+    `Development: CMS http://${env.CMS_LISTEN_ADDR || '127.0.0.1:46217'}, Admin http://127.0.0.1:5173, Public http://127.0.0.1:4321.\nDatabase: ${local.databasePath}\nStorage: ${local.storageRoot}\nPublication: local snapshot; no R2 or Cloudflare. Ctrl+C stops services and preserves data.`,
   );
   return supervise(
     [

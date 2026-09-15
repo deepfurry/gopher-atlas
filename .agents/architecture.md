@@ -8,7 +8,7 @@ Private CMS → SQLite generation/job → private R2 snapshot/latest → Hook �
 
 P0-4 provides immutable assets, snapshot v1 and durable publication. P0-5 adds
 static reader routes/search/SEO over that input, preserving the generation marker.
-Development uses dev and local fixtures; Production uses main and private R2.
+Development uses dev, persistent local SQLite and FileStore; Production uses main and private R2.
 The manually installed CMS uses systemd and Tailscale Serve; see operations docs.
 P0-5.5 adds Development legacy import and product realignment; Production migration and DNS cutover remain P0-6.
 
@@ -24,7 +24,8 @@ Dependency direction:
   search and creation; `components/ui` wraps Base UI with Phosphor icons; feature
   pages share presentation mappings and layered styles. Theme/sidebar preferences
   alone persist in browser storage. Search/counts remain bounded existing reads.
-- `cmd` constructs config, one logger, SQLite pool, OAuth/auth, R2 adapter and a joined publication worker.
+- `cmd` constructs config, one logger, SQLite pool, OAuth/auth, the environment's
+  FileStore or R2 adapter, and a joined publication worker. Both use the same services.
 - `internal/app` assembles HTTP middleware; `internal/http` translates transport;
   `internal/auth` owns identity/session transactions and calls sqlc directly.
 - `internal/content` owns Draft/Revision/Review/Tag/Route transactions and bounded
@@ -80,15 +81,15 @@ BEGIN; worker acquires it around latest/Hook without a DB transaction.
 Asset upload validates/uploads before a short reauthorized row/Audit transaction.
 The Web loader keeps RO credentials in Node; Astro env loading is disabled.
 
-Development-only scripts load root .env with process precedence. dev-web resolves
-explicit fixture paths from root, or fills missing CONTENT_R2_* from CMS R2_* only
-under Development. The shared Production preparation defaults and build entry do
-not enable fallback or dotenv. Private config is removed before launching Astro.
+Development-only scripts load root .env with process precedence. dev-web reads
+local storage/content/latest.json; fixture input is rejected, external storage
+credentials are ignored. Production preparation still uses independent RO R2
+input and never enables local fallback or dotenv. Private config is removed before launching Astro.
 The make dev supervisor builds an unembedded CMS, prepares Public input, then owns
 the three direct service processes and cleans their descendants on exit/signal.
 ADR 0011 adds a serialized generation watcher and named Public-only restarts;
-old inputs survive failed refreshes. No separate content bucket is required.
-An empty bucket starts an explicitly empty Development publication and waits.
+old inputs survive failed refreshes. ADR 0013 changes the watcher source to files.
+No local snapshot starts an explicitly empty Development publication and waits.
 The dev-only preview route receives an ephemeral POST projection from Admin after
 autosave and uses the actual Public renderer. It has no CMS/storage dependency,
 no persisted preview data, and is absent from Production builds.

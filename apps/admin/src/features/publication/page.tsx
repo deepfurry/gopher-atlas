@@ -29,18 +29,32 @@ import {
   LoadingState,
   EmptyState,
 } from '@/components/ui/workspace';
-function JobDetails({ job }: { job: Schema<'PublicationJob'> }) {
+function JobDetails({
+  job,
+  local,
+}: {
+  local: boolean;
+  job: Schema<'PublicationJob'>;
+}) {
   return (
     <dl className="technical-details">
       {[
         ['发布版本', job.generation],
-        ['任务状态', jobStates[job.state]],
+        [
+          '任务状态',
+          local && job.state === 'build_triggered'
+            ? '本地快照已就绪'
+            : jobStates[job.state],
+        ],
         ['快照路径', job.snapshotKey],
         ['SHA-256', job.snapshotSha256],
         ['尝试次数', job.attempts],
         ['错误分类', job.lastError],
         ['下次重试', job.nextAttemptAt ? date(job.nextAttemptAt) : null],
-        ['请求构建时间', job.triggeredAt ? date(job.triggeredAt) : null],
+        [
+          local ? '快照完成时间' : '请求构建时间',
+          job.triggeredAt ? date(job.triggeredAt) : null,
+        ],
         ['创建时间', date(job.createdAt)],
         ['更新时间', date(job.updatedAt)],
       ].map(([label, value]) => (
@@ -94,6 +108,7 @@ export default function Publication() {
   });
   if (!enabled) return <NoAccess />;
   const data = status.data;
+  const local = data?.mode === 'local';
   const problem =
     data?.latestJob?.state === 'failed' || data?.computedState === 'behind';
   const StatusIcon =
@@ -106,7 +121,11 @@ export default function Publication() {
     <>
       <PageHeader
         title="发布状态"
-        description="查看 CMS 内容版本与公开站点的实际同步进度。"
+        description={
+          local
+            ? '本地发布已启用：快照写入磁盘，Public 自动读取。'
+            : '查看 CMS 内容版本与公开站点的实际同步进度。'
+        }
         actions={
           <Button variant="outline" onClick={() => void refresh()}>
             <ArrowClockwise />
@@ -127,13 +146,17 @@ export default function Publication() {
                   : publicationStates[data.computedState]}
               </h2>
               <p className="caption">
-                {data.computedState === 'live'
-                  ? '公开站点已构建当前 CMS 发布版本。'
-                  : data.computedState === 'behind'
-                    ? '公开站点版本高于 CMS，请核对当前环境与数据库。'
-                    : data.computedState === 'unknown'
-                      ? '暂时无法读取有效的公开站点构建标记。'
-                      : '内容已在 CMS 发布，等待公开站点完成构建。'}
+                {local
+                  ? data.computedState === 'live'
+                    ? '最新本地快照已就绪，Public 会自动刷新。'
+                    : '等待有效的本地快照；无需 R2 或 Cloudflare。'
+                  : data.computedState === 'live'
+                    ? '公开站点已构建当前 CMS 发布版本。'
+                    : data.computedState === 'behind'
+                      ? '公开站点版本高于 CMS，请核对当前环境与数据库。'
+                      : data.computedState === 'unknown'
+                        ? '暂时无法读取有效的公开站点构建标记。'
+                        : '内容已在 CMS 发布，等待公开站点完成构建。'}
               </p>
             </div>
           </div>
@@ -144,21 +167,37 @@ export default function Publication() {
             </div>
             <ArrowRight />
             <div>
-              <span className="caption">公开站点版本</span>
-              <strong>{data.publicMarker?.generation ?? '—'}</strong>
+              <span className="caption">
+                {local ? '本地快照版本' : '公开站点版本'}
+              </span>
+              <strong>
+                {(local
+                  ? data.localSnapshotGeneration
+                  : data.publicMarker?.generation) ?? '—'}
+              </strong>
             </div>
             <div>
-              <span className="caption">公开站点最近构建</span>
+              <span className="caption">
+                {local ? '本地快照最近完成' : '公开站点最近构建'}
+              </span>
               <span>
-                {data.publicMarker
-                  ? new Date(data.publicMarker.builtAt).toLocaleString('zh-CN')
-                  : '暂无法确认'}
+                {local
+                  ? data.latestJob?.triggeredAt
+                    ? date(data.latestJob.triggeredAt)
+                    : '尚未完成'
+                  : data.publicMarker
+                    ? new Date(data.publicMarker.builtAt).toLocaleString(
+                        'zh-CN',
+                      )
+                    : '暂无法确认'}
               </span>
               <Badge
                 tone={data.latestJob?.state === 'failed' ? 'danger' : 'neutral'}
               >
                 {data.latestJob
-                  ? jobStates[data.latestJob.state]
+                  ? local && data.latestJob.state === 'build_triggered'
+                    ? '本地快照已就绪'
+                    : jobStates[data.latestJob.state]
                   : '暂无发布任务'}
               </Badge>
             </div>
@@ -173,7 +212,9 @@ export default function Publication() {
       <div className="section-heading">
         <h2>发布记录</h2>
         <span className="caption">
-          构建请求已受理，不代表公开站点已完成更新。
+          {local
+            ? '发布记录持久化在本地数据库，重启不会清空。'
+            : '构建请求已受理，不代表公开站点已完成更新。'}
         </span>
       </div>
       {jobs.isPending ? (
@@ -190,7 +231,7 @@ export default function Publication() {
               <th>发布版本</th>
               <th>任务状态</th>
               <th>创建时间</th>
-              <th>请求构建</th>
+              <th>{local ? '快照完成' : '请求构建'}</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -210,7 +251,9 @@ export default function Publication() {
                           : 'neutral'
                     }
                   >
-                    {jobStates[job.state]}
+                    {local && job.state === 'build_triggered'
+                      ? '本地快照已就绪'
+                      : jobStates[job.state]}
                   </Badge>
                 </td>
                 <td>{date(job.createdAt)}</td>
@@ -254,7 +297,7 @@ export default function Publication() {
         title={`发布版本 ${detail?.generation ?? ''}`}
         description="任务技术详情，仅展示安全元数据。"
       >
-        {detail && <JobDetails job={detail} />}
+        {detail && <JobDetails job={detail} local={local} />}
       </Sheet>
     </>
   );

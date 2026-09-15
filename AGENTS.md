@@ -49,14 +49,14 @@ architecture and current scope are summarized in `docs/implementation-status.md`
 - State/Session/CSRF persist hashes only. No raw provider errors, callback query,
   credentials, body, cookies or untrusted request IDs in logs. Follow the exact
   guard → app-wide Monitor → Recover order in `internal/app`.
-- `make dev-cms` explicitly loads optional `.env` without replacing process env;
-  dev-web/dev use the same precedence. Only Development Web entry points may
-  fill missing CONTENT_R2_* from corresponding CMS R2_*; explicit fixture wins.
-  Build/Production never load root .env or use fallback. Tests use synthetic env
-  files only. `make dev` owns/cleans all child trees; it never migrates the DB.
-- ADR 0011: Development watches the configured content bucket; only changed,
-  validated generations restart Public. CMS/Admin survive controlled restarts.
-  Explicit fixtures disable watching. The local Draft preview POST route is
+- Development entry points load optional root `.env` with process precedence.
+  ADR 0013: Development always uses persistent FileStore beside DATABASE_PATH;
+  R2/CONTENT_R2/Hook are ignored. dev/dev-web reject CONTENT_SNAPSHOT_FILE.
+  Build/Production never load root .env or fall back to local; fixtures are test/CI
+  inputs only. `make dev` owns/cleans child trees, never DB/storage data or schema.
+- Development watches local content/latest.json; only changed, validated
+  generations restart Public. CMS/Admin survive controlled restarts. Missing
+  initial snapshot starts empty and keeps watching. The local Draft preview POST route is
   injected only by Astro dev, reuses Public rendering and never persists data,
   advances generation or performs storage I/O. Production excludes the capability.
 - Preserve migrations 00001–00003 and schema version 3. No auto migration.
@@ -72,8 +72,10 @@ architecture and current scope are summarized in `docs/implementation-status.md`
   publication fence BEFORE their transaction; see ADR 0008. One active writer only.
 - Cover belongs to the full Draft snapshot; assets/generation snapshots are
   immutable and only latest.json is mutable. Never physically delete assets.
-- Snapshot v1 exports selected published Revisions only. Web requires explicit
-  fixture or private R2 read-only input, no silent fallback or browser credentials.
+- Snapshot v1 exports selected published Revisions only. Production Web requires
+  private R2 read-only input; tests explicitly select fixtures. Development uses
+  local full snapshots. Default image policy stays exact Production HTTPS; only
+  explicit Development policy allows the configured loopback asset base.
 - UI says Published in CMS with independent marker status. P0-5 builds Public
   routes/search/SEO from snapshot v1 only. P0-5.5 imports Development legacy content; P0-6 Production migration/cutover remains deferred.
 

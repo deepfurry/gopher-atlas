@@ -1,5 +1,16 @@
 # Changelog
 
+## Development — Local persistent storage
+
+- Normal dev/dev-web now use persistent SQLite and sibling FileStore assets/full
+  snapshots. Ignore remote credentials, reject fixture input, and poll local latest.
+- Reuse existing Asset/Publication services and durable jobs; local completion does
+  not invoke a Hook or remote marker. Production R2/build credentials stay separate.
+- Add root-contained immutable file writes and a Development-only loopback image
+  route, with explicit Go/TS image policies for Admin, snapshot and Draft Preview.
+- Preserve data across shutdown/restart; no automatic migrations, seed or reset.
+  The previous Public visuals, motion, breakpoints and locale aliases are unchanged.
+
 ## P0-5.5 — Public visual fidelity follow-up
 
 - Restore legacy header subtitle/underline/glow, homepage stagger, page/card rise,

@@ -58,7 +58,13 @@ func run() error {
 	}
 	service := auth.New(pool, cfg, provider)
 	var objects storage.ObjectStore
-	if cfg.Publication.Configured() {
+	if cfg.Publication.Mode == "local" {
+		objects, err = storage.NewFile(cfg.Publication.LocalRoot)
+		if err != nil {
+			return err
+		}
+		logger.Info("Development storage: local filesystem; publication: local snapshot; assets: local")
+	} else if cfg.Publication.Configured() {
 		objects = storage.NewR2(cfg.Publication.Endpoint, cfg.Publication.AccessKeyID, cfg.Publication.SecretAccessKey)
 	}
 	pipeline := publication.New(pool, cfg.Publication, objects, service.PublicationFence(), logger)

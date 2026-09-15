@@ -138,6 +138,13 @@ projection. Draft never supplies an exported field.
 R2 snapshots are not database backups. Production backup/restore must preserve
 private data and WAL consistency; see operations documentation.
 
+ADR 0013: Development persists the same schema 3 data and jobs in local SQLite,
+with assets/full snapshots in sibling `storage/assets` and `storage/content`.
+Treat DB and storage as one backup set. Startup never resets/seeds data, rewrites
+immutable revisions, migrates schema or retrieves old remote objects. Local
+latest.json is written only by that DB's existing publication worker, separately
+from Production. No new tables or persistence service.
+
 ## Publication persistence
 
 00003 adds assets, nullable Draft/Revision cover_asset_id, singleton site_state

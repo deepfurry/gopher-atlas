@@ -6,7 +6,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"regexp"
 	"sort"
 	"time"
 
@@ -78,12 +77,11 @@ type Exported struct {
 	SHA256   string
 }
 type Exporter struct {
+	AssetPolicy      markdown.Policy
 	DB               *sql.DB
 	MaxBytes         int
 	afterReadStarted func()
 }
-
-var assetURLPattern = regexp.MustCompile(`^https://assets\.gopheratlas\.com/media/sha256/[a-f0-9]{2}/[a-f0-9]{64}\.(png|jpg|webp|gif)$`)
 
 func (e *Exporter) Export(ctx context.Context, generation int64) (Exported, error) {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
@@ -142,14 +140,14 @@ func (e *Exporter) Export(ctx context.Context, generation int64) (Exported, erro
 			return Exported{}, fault.SnapshotInvalid
 		}
 		for _, r := range rows {
-			if r.PayloadSchemaVersion != 1 || !r.FirstPublishedAt.Valid || !r.LastPublishedAt.Valid || !markdown.Valid(r.BodyMarkdown) {
+			if r.PayloadSchemaVersion != 1 || !r.FirstPublishedAt.Valid || !r.LastPublishedAt.Valid || !e.AssetPolicy.Valid(r.BodyMarkdown) {
 				return Exported{}, fault.SnapshotInvalid
 			}
 			payload, err := content.CanonicalPayload(r.Type, []byte(r.PayloadJson), true)
 			if err != nil {
 				return Exported{}, fault.SnapshotInvalid
 			}
-			path, err := content.PublishedPath(r.Type, content.Fields{Title: r.Title, Slug: r.Slug, Summary: r.Summary, BodyMarkdown: r.BodyMarkdown, BylineUserID: r.BylineUserID, Language: r.Language, Featured: r.Featured == 1, SEOTitle: r.SeoTitle, SEODescription: r.SeoDescription, Payload: payload})
+			path, err := content.PublishedPath(r.Type, content.Fields{Title: r.Title, Slug: r.Slug, Summary: r.Summary, BodyMarkdown: r.BodyMarkdown, BylineUserID: r.BylineUserID, Language: r.Language, Featured: r.Featured == 1, SEOTitle: r.SeoTitle, SEODescription: r.SeoDescription, Payload: payload}, e.AssetPolicy)
 			if err != nil || path != r.CanonicalPath {
 				return Exported{}, fault.SnapshotInvalid
 			}
@@ -171,7 +169,7 @@ func (e *Exporter) Export(ctx context.Context, generation int64) (Exported, erro
 					return Exported{}, fault.SnapshotInvalid
 				}
 				author := Author{a.UserID, a.Slug, a.DisplayName, a.BioMarkdown, a.AvatarUrl, a.WebsiteUrl}
-				if !fits(author) || !markdown.Valid(author.BioMarkdown) {
+				if !fits(author) || !e.AssetPolicy.Valid(author.BioMarkdown) {
 					return Exported{}, fault.SnapshotInvalid
 				}
 				result.Authors = append(result.Authors, author)
@@ -185,7 +183,7 @@ func (e *Exporter) Export(ctx context.Context, generation int64) (Exported, erro
 					if err != nil {
 						return Exported{}, fault.SnapshotInvalid
 					}
-					public := assets.Public(a)
+					public := assets.Public(a, e.AssetPolicy)
 					if !fits(public) {
 						return Exported{}, fault.SnapshotInvalid
 					}
@@ -241,7 +239,7 @@ func (e *Exporter) Export(ctx context.Context, generation int64) (Exported, erro
 	sort.Slice(result.Authors, func(i, j int) bool { return result.Authors[i].ID < result.Authors[j].ID })
 	sort.Slice(result.Assets, func(i, j int) bool { return result.Assets[i].ID < result.Assets[j].ID })
 	sort.Slice(result.Tags, func(i, j int) bool { return result.Tags[i].ID < result.Tags[j].ID })
-	if err := validateGraph(result); err != nil {
+	if err := validateGraph(result, e.AssetPolicy); err != nil {
 		return Exported{}, err
 	}
 	data, err := json.Marshal(result)
@@ -264,7 +262,11 @@ func (e *Exporter) Export(ctx context.Context, generation int64) (Exported, erro
 	return Exported{result, data, storage.Digest(data)}, nil
 }
 
-func validateGraph(s Snapshot) error {
+func validateGraph(s Snapshot, policies ...markdown.Policy) error {
+	policy := markdown.Policy{}
+	if len(policies) > 0 {
+		policy = policies[0]
+	}
 	if len(s.Content) > 10000 || len(s.Authors) > 10000 || len(s.Assets) > 10000 || len(s.Tags) > 100000 || len(s.Routes) > 100000 {
 		return fault.SnapshotInvalid
 	}
@@ -280,7 +282,7 @@ func validateGraph(s Snapshot) error {
 		authors[a.ID] = true
 	}
 	for _, a := range s.Assets {
-		if a.ID <= 0 || covers[a.ID] || !assetURLPattern.MatchString(a.URL) {
+		if a.ID <= 0 || covers[a.ID] || !policy.AssetURL(a.URL) {
 			return fault.SnapshotInvalid
 		}
 		covers[a.ID] = true

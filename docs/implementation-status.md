@@ -396,3 +396,39 @@ keyboard focus, source actions, Note group navigation, language aliases and page
 entry. Topic grid was also measured at 800/900/1024/1280 px. Automated validation
 does not substitute for the user's final A-grade visual signoff. No Production
 credentials, R2 writes, deployment, DNS change or main merge is part of this work.
+
+## Development local persistence
+
+Started on clean synchronized dev at `783b3d62f77576d13f84e73ac787d9e6a19c6a6d`.
+The complete Development Local Persistence Simplification document supersedes
+Development R2/fallback/fixture guidance. ADR 0013 records the adopted boundary.
+
+Development now uses File ObjectStore beside DATABASE_PATH, logical assets/content
+directories, and the existing Asset/Content/Publication services and worker. It
+ignores R2/Hook/CONTENT_R2 config. No migrations, seed, reset, new backend/service or
+Production publication change. Existing schema 3 and Public visual files remain.
+Local asset URLs are projected through explicit Go/TS policies and served only on
+loopback in Development. Production defaults still reject local images. The local
+worker writes full immutable snapshots/latest and completes without a Hook; status
+verifies local pointer/hash without claiming an external build marker.
+
+Normal make dev rejects CONTENT_SNAPSHOT_FILE. Missing local latest starts an empty
+Public site and watches every 750ms; valid changes restart only Public. Startup and
+shutdown preserve the database and storage files. The existing Draft preview uses
+the same renderer and the local image policy without any publication mutation.
+
+Executed: make generate, Admin/Web typecheck, focused storage/config/domain/worker/
+HTTP/Markdown/watch/preview tests, make build-cms and make check (178 tests passed,
+one pre-existing platform skip). Linux Go 1.26.8 `go test -race -tags=adminembed
+./...` passed in the existing WSL environment using cached dependencies with
+network module lookup disabled. Production fixture artifact checks and synthetic
+secret-output scans passed. Real-file integration tests create Curated/Topic/long
+Note/image data, reopen SQLite and FileStore, publish N+1 and preserve old bytes;
+the external-call counter remains zero.
+
+Windows make dev was started against the existing data/gopheratlas.db without
+clearing its four existing content items. The obsolete fixture assignment was
+explicitly cleared from the ignored local .env; other configuration was retained.
+The initial empty-site/local watcher and three services run normally. Authenticated
+browser creation/upload/publication/restart acceptance is pending the operator's
+GitHub login; service tests are not presented as that browser acceptance.

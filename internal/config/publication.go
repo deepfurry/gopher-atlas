@@ -3,20 +3,50 @@ package config
 import (
 	"errors"
 	"net/url"
+	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/deepfurry/gopher-atlas/internal/markdown"
 )
 
 type Publication struct {
+	Mode, LocalRoot                              string
 	Endpoint, AccessKeyID, SecretAccessKey       string
 	AssetsBucket, ContentBucket, AssetsPublicURL string
 	HookURL, PublicSiteURL                       string
 }
 
-func (p Publication) Configured() bool { return p.Endpoint != "" }
+func (p Publication) Configured() bool {
+	return (p.Mode == "local" && p.LocalRoot != "") || p.Endpoint != ""
+}
+
+func (p Publication) AssetPolicy() markdown.Policy {
+	if p.Mode == "local" {
+		policy, err := markdown.DevelopmentPolicy(p.AssetsPublicURL)
+		if err == nil {
+			return policy
+		}
+	}
+	return markdown.Policy{}
+}
 
 func publicationConfig(getenv func(string) string, production bool) (Publication, error) {
-	p := Publication{}
+	if !production {
+		db, addr := getenv("DATABASE_PATH"), getenv("CMS_LISTEN_ADDR")
+		if db == "" {
+			db = "./data/gopheratlas.db"
+		}
+		if addr == "" {
+			addr = "127.0.0.1:46217"
+		}
+		base := "http://" + addr + "/__dev/assets"
+		if _, err := markdown.DevelopmentPolicy(base); err != nil {
+			return Publication{}, err
+		}
+		return Publication{Mode: "local", LocalRoot: filepath.Join(filepath.Dir(db), "storage"), AssetsBucket: "assets", ContentBucket: "content", AssetsPublicURL: base}, nil
+	}
+	p := Publication{Mode: "r2"}
 	values := []struct {
 		key    string
 		target *string
@@ -32,9 +62,6 @@ func publicationConfig(getenv func(string) string, production bool) (Publication
 		if *v.target != "" {
 			count++
 		}
-	}
-	if count == 0 && !production {
-		return p, nil
 	}
 	invalid := errors.New("publication configuration must be complete and use valid endpoints, buckets and controlled asset origin")
 	if count != len(values) {

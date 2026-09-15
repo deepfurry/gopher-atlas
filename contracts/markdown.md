@@ -11,9 +11,12 @@ Never enable `rehype-raw` or an executable content pipeline.
 `packages/markdown` exports a validator and a shared remark plugin list. Links allow
 HTTP(S), mailto, anchors and root-relative paths; protocol-relative URLs, control
 characters, backslashes, credential-bearing URLs and unsafe schemes are rejected.
-Images, including references, require the exact HTTPS origin
-`https://assets.gopheratlas.com` and nonblank alt text. Other image hosts and data
-URLs are rejected. Alt text belongs to usage, not the global asset record.
+Images, including references, default to the exact Production HTTPS origin
+`https://assets.gopheratlas.com` and require nonblank alt text. ADR 0013 introduces
+an explicit immutable Development policy for only the configured loopback HTTP
+`/__dev/assets` base and validated SHA image keys. No package-global policy mutation,
+arbitrary host allowance or Production localhost fallback. Go/TS agree on both
+policies. Other image hosts and data URLs are rejected. Alt belongs to usage.
 
 The shared fixture suite checks the syntax/safety boundary. Astro uses
 the shared plugins and Shiki configuration. P0-3 Admin previews use react-markdown

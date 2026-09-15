@@ -11,7 +11,7 @@ const result = (generation: number) => {
     data = Buffer.from(JSON.stringify(snapshot));
   return { snapshot, data, hash: sha256(data) };
 };
-const env = { CONTENT_R2_BUCKET: 'configured-content' };
+const env = { contentRoot: 'local/content' };
 it('does nothing when generation is unchanged, including concurrent polls', async () => {
   const latest = vi.fn(async () => ({ generation: 1 })),
     prepare = vi.fn(),
@@ -76,18 +76,18 @@ it('retains the current input when the new public graph is invalid', async () =>
   }).poll();
   expect(update).not.toHaveBeenCalled();
 });
-it('does not start a watcher for explicit fixtures and cancels pending refreshes', async () => {
+it('rejects explicit fixtures and cancels pending refreshes', async () => {
   const latest = vi.fn(),
     prepare = vi.fn(),
     update = vi.fn();
-  expect(
+  expect(() =>
     createSnapshotWatcher(
       { ...env, CONTENT_SNAPSHOT_FILE: 'fixture.json' },
       1,
       update,
       { latest, prepare },
     ),
-  ).toBeNull();
+  ).toThrow('test-only');
   const controller = new AbortController();
   controller.abort();
   const watcher = createSnapshotWatcher(env, 1, update, { latest, prepare });

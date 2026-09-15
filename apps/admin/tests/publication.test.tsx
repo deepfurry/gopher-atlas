@@ -27,6 +27,35 @@ const asset: Schema<'Asset'> = {
   deletedAt: null,
   actions: { delete: true, restore: false },
 };
+
+it('describes a local snapshot without claiming a Cloudflare build or unconfigured pipeline', async () => {
+  backend(content('note', true), me('admin'));
+  const original = globalThis.fetch;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL) => {
+      const path = new URL((input as Request).url).pathname;
+      if (path.endsWith('/publication/status'))
+        return Response.json({
+          mode: 'local',
+          localSnapshotGeneration: 3,
+          desiredGeneration: 3,
+          pipelineConfigured: true,
+          publicMarker: null,
+          latestJob: null,
+          computedState: 'live',
+        });
+      if (path.endsWith('/publication/jobs'))
+        return Response.json({ items: [], nextCursor: null });
+      return original(input);
+    }),
+  );
+  mount('/publication');
+  await screen.findByText('最新本地快照已就绪，Public 会自动刷新。');
+  expect(screen.getByText('本地快照版本')).toBeTruthy();
+  expect(screen.queryByText('公开站点已构建当前 CMS 发布版本。')).toBeNull();
+  expect(screen.queryByText(/当前环境未启用发布流水线/)).toBeNull();
+});
 function fakeAssets(role: Schema<'User'>['role'] = 'editor') {
   const state = backend(content('post', role === 'admin'), me(role)),
     original = globalThis.fetch;

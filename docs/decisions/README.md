@@ -19,6 +19,7 @@ silently rewriting history. Routine implementation choices do not need an ADR.
 | [0011](0011-local-live-public-and-draft-preview.md)     | Local snapshot watching, isolated Public restarts and transient Draft preview | Accepted                             |
 
 | [0012](0012-product-realignment-and-legacy-import.md) | Three product lines, legacy import and Public identity | Accepted |
+| [0013](0013-development-local-persistence.md) | Persistent local Development FileStore and environment-specific image policy | Accepted |
 
 New records include date, status, context, decision, alternatives, consequences
 and implementation scope. Earlier ADR phase boundaries describe their original

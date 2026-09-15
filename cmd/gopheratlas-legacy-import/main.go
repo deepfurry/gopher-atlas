@@ -73,11 +73,11 @@ func run() error {
 		return err
 	}
 	defer revoke()
-	var objects storage.ObjectStore
-	if cfg.Publication.Configured() {
-		objects = storage.NewR2(cfg.Publication.Endpoint, cfg.Publication.AccessKeyID, cfg.Publication.SecretAccessKey)
+	objects, err := storage.NewFile(cfg.Publication.LocalRoot)
+	if err != nil {
+		return err
 	}
-	importer := legacy.Importer{DB: db, Content: content.New(db), Assets: assets.New(db, objects, cfg.Publication.AssetsBucket), Download: legacy.DownloadImage}
+	importer := legacy.Importer{DB: db, Content: content.NewWithPolicy(db, cfg.Publication.AssetPolicy()), Assets: assets.New(db, objects, cfg.Publication.AssetsBucket, cfg.Publication.AssetPolicy()), Download: legacy.DownloadImage}
 	result, err := importer.Apply(ctx, principal, plan)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Partial import: tags=%d assets=%d content=%d. Review the Development DB before another apply.\n", result.Tags, result.Assets, result.Content)

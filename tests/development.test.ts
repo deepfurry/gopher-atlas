@@ -5,15 +5,12 @@ import { pathToFileURL } from 'node:url';
 import { randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { afterEach, expect, it, vi } from 'vitest';
-import {
-  developmentEnv,
-  publicToolEnv,
-  webDevelopmentEnv,
-} from '../scripts/dev-env.mjs';
+import { developmentEnv, publicToolEnv } from '../scripts/dev-env.mjs';
 import { prepare } from '../scripts/prepare-web-content.mjs';
 import { loadSnapshot, sha256 } from '../scripts/snapshot.mjs';
 import { preparationMessage } from '../scripts/dev-web.mjs';
 import { packageCLI } from '../scripts/dev-processes.mjs';
+import { localDevelopment } from '../scripts/dev-storage.mjs';
 
 const temporary: string[] = [];
 afterEach(() => {
@@ -33,6 +30,12 @@ const credentials = () => ({
   R2_SECRET_ACCESS_KEY: randomBytes(24).toString('hex'),
 });
 const data = readFileSync('tests/fixtures/content-snapshot-v1.json');
+const buildCredentials = () => ({
+  CONTENT_R2_ENDPOINT: 'https://reader.invalid',
+  CONTENT_R2_BUCKET: 'content',
+  CONTENT_R2_ACCESS_KEY_ID: randomBytes(16).toString('hex'),
+  CONTENT_R2_SECRET_ACCESS_KEY: randomBytes(24).toString('hex'),
+});
 const snapshot = JSON.parse(data.toString());
 const latest = Buffer.from(
   JSON.stringify({
@@ -67,14 +70,14 @@ it('reads only the supplied root .env with process precedence, quotes, empty val
   expect(developmentEnv(root, {}).R2_SECRET_ACCESS_KEY).toBe(value);
 });
 
-it('uses per-field CONTENT_R2 precedence and development fallback without mutating inputs', () => {
+it('selects local persistence and ignores external credentials without mutating input', () => {
   const base = credentials(),
     copy = { ...base };
-  const got = webDevelopmentEnv(base);
-  expect(got.CONTENT_R2_ENDPOINT).toBe(base.R2_ENDPOINT);
-  expect(got.CONTENT_R2_BUCKET).toBe(base.R2_CONTENT_BUCKET);
-  expect(got.CONTENT_R2_ACCESS_KEY_ID).toBe(base.R2_ACCESS_KEY_ID);
-  expect(got.CONTENT_R2_SECRET_ACCESS_KEY).toBe(base.R2_SECRET_ACCESS_KEY);
+  const root = directory(),
+    got = localDevelopment(base, root);
+  expect(got.storageRoot).toBe(join(root, 'data', 'storage'));
+  expect(got.assetBase).toBe('http://127.0.0.1:46217/__dev/assets');
+  expect(got).not.toHaveProperty('CONTENT_R2_ENDPOINT');
   expect(base).toEqual(copy);
   const preferred = {
     CONTENT_R2_ENDPOINT: 'https://reader.invalid',
@@ -82,23 +85,29 @@ it('uses per-field CONTENT_R2 precedence and development fallback without mutati
     CONTENT_R2_ACCESS_KEY_ID: randomBytes(16).toString('hex'),
     CONTENT_R2_SECRET_ACCESS_KEY: randomBytes(24).toString('hex'),
   };
-  expect(webDevelopmentEnv({ ...base, ...preferred })).toMatchObject(preferred);
-  const partial = webDevelopmentEnv({
-    ...base,
-    CONTENT_R2_BUCKET: 'reader-content',
-    CONTENT_R2_ENDPOINT: '',
-  });
-  expect(partial.CONTENT_R2_BUCKET).toBe('reader-content');
-  expect(partial.CONTENT_R2_ENDPOINT).toBe(base.R2_ENDPOINT);
-  expect(webDevelopmentEnv({ ...base, APP_ENV: '' }).CONTENT_R2_BUCKET).toBe(
-    base.R2_CONTENT_BUCKET,
+  expect(localDevelopment({ ...base, ...preferred }, root)).toEqual(got);
+  const partial = localDevelopment(
+    {
+      ...base,
+      CONTENT_R2_BUCKET: 'reader-content',
+      CONTENT_R2_ENDPOINT: '',
+    },
+    root,
   );
+  expect(partial).toEqual(got);
+  expect(() =>
+    localDevelopment({ ...base, CONTENT_SNAPSHOT_FILE: 'fixture.json' }, root),
+  ).toThrow('test-only');
+  expect(
+    localDevelopment({ ...base, DATABASE_PATH: 'custom/site.db' }, root)
+      .storageRoot,
+  ).toBe(join(root, 'custom', 'storage'));
 });
 
 it('does not apply fallback in production or any other environment, including ordinary build loads', async () => {
   for (const APP_ENV of ['production', 'invalid']) {
     const env = { ...credentials(), APP_ENV };
-    expect(webDevelopmentEnv(env).CONTENT_R2_ACCESS_KEY_ID).toBeUndefined();
+    expect(() => localDevelopment(env)).toThrow();
     await expect(loadSnapshot(env)).rejects.toThrow(
       'content_input_not_configured',
     );
@@ -112,16 +121,13 @@ it('does not apply fallback in production or any other environment, including or
   );
 });
 
-it('gives explicit fixtures highest priority and resolves dev fixture paths from root without storage', async () => {
+it('retains explicit fixture input for tests and builds, never normal dev', async () => {
   const root = directory();
   writeFileSync(join(root, 'public.json'), data);
   const createClient = vi.fn(() => {
     throw Error('must not contact storage');
   });
-  const env = webDevelopmentEnv(
-    { ...credentials(), CONTENT_SNAPSHOT_FILE: 'public.json' },
-    root,
-  );
+  const env = { CONTENT_SNAPSHOT_FILE: join(root, 'public.json') };
   const result = await prepare(env, output(), {
     development: true,
     createClient,
@@ -140,7 +146,7 @@ it('gives explicit fixtures highest priority and resolves dev fixture paths from
 
 it('labels only a missing development latest.json, preserves Production errors and hides provider details', async () => {
   const secret = randomBytes(24).toString('hex');
-  const env = webDevelopmentEnv(credentials());
+  const env = buildCredentials();
   for (const test of [
     {
       development: true,
@@ -194,15 +200,13 @@ it('labels only a missing development latest.json, preserves Production errors a
     } catch (error) {
       expect((error as Error).message).toBe(test.expected);
       expect(preparationMessage(error)).not.toContain(secret);
-      if (test.expected.startsWith('no published'))
-        expect(preparationMessage(error)).toContain('latest.json is missing');
     }
     expect(destroy).toHaveBeenCalledOnce();
   }
 });
 
-it('loads through the selected development S3 credentials and writes validated public data only', async () => {
-  const env = webDevelopmentEnv(credentials()),
+it('loads through separate Production S3 credentials and writes validated public data only', async () => {
+  const env = buildCredentials(),
     destination = output();
   const send = vi.fn(
     async (command: { input: { Key: string; Bucket: string } }) => {

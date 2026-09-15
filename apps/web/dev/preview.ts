@@ -1,7 +1,12 @@
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import schema from '../../../contracts/content-snapshot.schema.json';
-import { isSafeLink, validateMarkdown } from '@gopheratlas/markdown';
+import {
+  isSafeLink,
+  isAssetURL,
+  validateMarkdown,
+  type AssetPolicy,
+} from '@gopheratlas/markdown';
 import type { Author, Asset, Tag, Content } from '../src/lib/publication/types';
 import type { Publication } from '../src/lib/publication/indexes';
 
@@ -47,7 +52,11 @@ interface Input {
   targets: { id: number; title: string }[];
 }
 export const previewLimit = 3 * 1024 * 1024;
-export function parsePreview(value: unknown, base: Publication) {
+export function parsePreview(
+  value: unknown,
+  base: Publication,
+  assetPolicy?: AssetPolicy,
+) {
   if (!validate(value)) throw new Error('preview_invalid');
   const input = value as Input,
     { item, author, cover, tags, targets } = input;
@@ -58,8 +67,9 @@ export function parsePreview(value: unknown, base: Publication) {
     throw new Error('preview_invalid');
   if (
     new TextEncoder().encode(item.bodyMarkdown).length > 524288 ||
-    validateMarkdown(item.bodyMarkdown).length ||
-    validateMarkdown(author.bioMarkdown).length ||
+    validateMarkdown(item.bodyMarkdown, assetPolicy).length ||
+    validateMarkdown(author.bioMarkdown, assetPolicy).length ||
+    (cover && !isAssetURL(cover.url, assetPolicy)) ||
     item.authorId !== author.id ||
     item.coverAssetId !== (cover?.id ?? null) ||
     item.tagIds.length !== tags.length ||

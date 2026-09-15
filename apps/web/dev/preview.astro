@@ -2,6 +2,7 @@
 import ContentDetail from '../src/components/ContentDetail.astro';
 import { publication } from '../src/lib/publication/snapshot';
 import { readPreviewRequest, parsePreview } from './preview';
+import { assetPolicy } from '../src/lib/publication/asset-policy';
 export const prerender = false;
 Astro.response.headers.set('Cache-Control', 'private, no-store');
 Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
@@ -18,6 +19,7 @@ try {
       process.env.GOPHERATLAS_DEV_ADMIN_ORIGIN || 'http://127.0.0.1:5173',
     ),
     publication,
+    assetPolicy,
   );
 } catch {
   return new Response(

@@ -1502,6 +1502,13 @@ export interface components {
             buildId: string;
         };
         PublicationStatus: {
+            /**
+             * @description Present only in Development. The same worker writes local snapshots without a Hook.
+             * @constant
+             */
+            mode?: "local";
+            /** @description Present only when the local latest pointer and immutable snapshot digest verify. Not a remote build marker. */
+            localSnapshotGeneration?: number;
             /** Format: int64 */
             desiredGeneration: number;
             pipelineConfigured: boolean;

@@ -4,7 +4,12 @@ import {
   type RehypePlugins,
   type AstroMarkdownOptions,
 } from '@astrojs/markdown-remark';
-import { remarkPlugins, validateMarkdown } from '@gopheratlas/markdown';
+import {
+  remarkPlugins,
+  markdownPlugins,
+  validateMarkdown,
+} from '@gopheratlas/markdown';
+import { assetPolicy } from './asset-policy';
 import { readingEnhancements } from './reading';
 
 export const markdownOptions = {
@@ -27,10 +32,13 @@ export const markdownOptions = {
     ],
   },
 } satisfies AstroMarkdownOptions;
-const processor = createMarkdownProcessor(markdownOptions);
+const processor = createMarkdownProcessor({
+  ...markdownOptions,
+  remarkPlugins: markdownPlugins(assetPolicy) as RemarkPlugins,
+});
 export async function renderMarkdown(source: string) {
   // Validate before Astro's processor; invalid content never reaches HTML handling.
-  if (validateMarkdown(source).length)
+  if (validateMarkdown(source, assetPolicy).length)
     throw new Error('public_markdown_invalid');
   // No fileURL/image service config: controlled URLs remain ordinary img elements,
   // with authored alt text. Rendering never fetches an image or an external source.

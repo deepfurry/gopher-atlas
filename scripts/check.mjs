@@ -31,6 +31,7 @@ for (const key of [
   'CLOUDFLARE_DEPLOY_HOOK_URL',
   'CMS_BASE_URL',
   'GITHUB_OAUTH_REDIRECT_URI',
+  'GOPHERATLAS_DEV_ASSET_BASE',
 ])
   process.env[key] = canary;
 process.env.CONTENT_SNAPSHOT_FILE = resolve(

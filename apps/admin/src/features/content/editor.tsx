@@ -20,7 +20,7 @@ import { Textarea } from '@/components/ui/input';
 import { FormProvider, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { validateMarkdown } from '@gopheratlas/markdown';
+import { validateMarkdown } from '@/shared/asset-policy';
 import { APIError, ErrorNotice } from '@/shared/api';
 import { ContentStatus, date, types } from '@/shared/status';
 import { MarkdownPreview } from '@/shared/markdown';

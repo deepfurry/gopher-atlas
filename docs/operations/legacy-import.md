@@ -23,8 +23,8 @@ not inserted as ordinary Content. Keep detailed plans in ignored `.cache`, never
 in an Audit event. Errors identify source file/field/classification, not secrets.
 
 Apply loads root `.env` with process precedence and supports `--database` as an
-explicit Development override. It uses the current R2 asset configuration; no new
-bucket/environment is required. A disposable DB and fake storage are used by
+explicit Development override. It uses persistent FileStore beside that DB; no
+R2 configuration is used. A disposable DB and fake storage are used by
 automated tests. Any requested real Development apply must name its author mapping
 and target DB; it is distinct from the fake-storage verification rehearsal.
 
@@ -39,7 +39,7 @@ commands. It publishes direct revisions without fake approvals. Historical
 Content/publication dates are restored transactionally; Audit and Revision dates
 show the actual import. The ordinary generation/jobs remain durable. Apply never
 uploads snapshots or calls the Hook. On the next CMS start, the normal worker
-coalesces and exports them. Review the configured Hook before starting that worker.
+coalesces and exports them to local storage; Development never invokes a Hook.
 
 Do not run apply twice: content identities, routes and Tag conflicts stop a repeat.
 Note group metadata is checked against both the plan and existing published Notes

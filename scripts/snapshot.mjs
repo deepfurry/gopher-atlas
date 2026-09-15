@@ -6,6 +6,7 @@ import snapshotSchema from '../contracts/content-snapshot.schema.json' with { ty
 import {
   isSafeLink,
   validateMarkdown,
+  isAssetURL,
 } from '../packages/markdown/src/index.ts';
 
 export const maxSnapshotBytes = 128 * 1024 * 1024;
@@ -21,7 +22,7 @@ const unique = (rows, key = 'id') => {
   if (values.size !== rows.length) invalid();
   return values;
 };
-export function validateSnapshot(data) {
+export function validateSnapshot(data, { assetPolicy } = {}) {
   if (!Buffer.isBuffer(data) || data.length > maxSnapshotBytes) invalid();
   let snapshot;
   try {
@@ -79,7 +80,7 @@ export function validateSnapshot(data) {
     usedAuthors.add(item.authorId);
     if (
       Buffer.byteLength(item.bodyMarkdown) > 524288 ||
-      validateMarkdown(item.bodyMarkdown).length
+      validateMarkdown(item.bodyMarkdown, assetPolicy).length
     )
       invalid();
     if (item.coverAssetId !== null) {
@@ -110,7 +111,7 @@ export function validateSnapshot(data) {
   for (const author of snapshot.authors) {
     if (
       Buffer.byteLength(author.bioMarkdown) > 10000 ||
-      validateMarkdown(author.bioMarkdown).length ||
+      validateMarkdown(author.bioMarkdown, assetPolicy).length ||
       [author.avatarUrl, author.websiteUrl].some(
         (url) => url && !isSafeLink(url),
       )
@@ -120,8 +121,7 @@ export function validateSnapshot(data) {
   for (const asset of snapshot.assets)
     if (
       asset.width * asset.height > 100000000 ||
-      new URL(asset.url).pathname.split('/')[3] !==
-        new URL(asset.url).pathname.split('/')[4].slice(0, 2)
+      !isAssetURL(asset.url, assetPolicy)
     )
       invalid();
   if (

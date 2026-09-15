@@ -121,7 +121,8 @@
         "url": {
           "type": "string",
           "maxLength": 2048,
-          "pattern": "^https://assets\\.gopheratlas\\.com/media/sha256/[a-f0-9]{2}/[a-f0-9]{64}\\.(png|jpg|webp|gif)$"
+          "pattern": "^https?://[^\\s]+/media/sha256/[a-f0-9]{2}/[a-f0-9]{64}\\.(png|jpg|webp|gif)$",
+          "description": "Structured URL and immutable key; runtime policy requires exact Production assets origin or explicitly configured Development loopback asset base."
         },
         "mimeType": {
           "enum": ["image/png", "image/jpeg", "image/webp", "image/gif"]

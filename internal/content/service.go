@@ -12,21 +12,27 @@ import (
 	"github.com/deepfurry/gopher-atlas/internal/auth"
 	dbsqlc "github.com/deepfurry/gopher-atlas/internal/database/sqlc"
 	"github.com/deepfurry/gopher-atlas/internal/fault"
+	"github.com/deepfurry/gopher-atlas/internal/markdown"
 	"github.com/deepfurry/gopher-atlas/internal/outbox"
 	"github.com/deepfurry/gopher-atlas/internal/policy"
 )
 
 type Service struct {
-	db    *sql.DB
-	fence *outbox.Fence
+	assetPolicy markdown.Policy
+	db          *sql.DB
+	fence       *outbox.Fence
 }
 
 func New(db *sql.DB, fences ...*outbox.Fence) *Service {
+	return NewWithPolicy(db, markdown.Policy{}, fences...)
+}
+
+func NewWithPolicy(db *sql.DB, assetPolicy markdown.Policy, fences ...*outbox.Fence) *Service {
 	fence := &outbox.Fence{}
 	if len(fences) > 0 && fences[0] != nil {
 		fence = fences[0]
 	}
-	return &Service{db: db, fence: fence}
+	return &Service{db: db, fence: fence, assetPolicy: assetPolicy}
 }
 func dbError(err error) error {
 	if errors.Is(err, sql.ErrNoRows) {
@@ -88,7 +94,7 @@ func (s *Service) Create(ctx context.Context, actor auth.Principal, kind string)
 		if err := appendEvent(ctx, q, u, c.ID, 0, "content.created", now); err != nil {
 			return err
 		}
-		result, err = detail(ctx, q, u, c)
+		result, err = s.detail(ctx, q, u, c)
 		return err
 	})
 	return result, err
@@ -116,7 +122,7 @@ func (s *Service) Save(ctx context.Context, actor auth.Principal, id int64, inpu
 		if !policy.CanSetByline(u, input.BylineUserID) || !policy.CanSetFeatured(u, d.Featured == 1, input.Featured) {
 			return fault.Permission
 		}
-		if err := validateFields(c.Type, &input.Fields, false); err != nil {
+		if err := validateFields(c.Type, &input.Fields, false, s.assetPolicy); err != nil {
 			return err
 		}
 		if err := validateRelations(ctx, q, c, input.Fields, input.Relations); err != nil {
@@ -128,7 +134,7 @@ func (s *Service) Save(ctx context.Context, actor auth.Principal, id int64, inpu
 		if err := q.MarkDraftEdited(ctx, dbsqlc.MarkDraftEditedParams{ID: id, UpdatedAt: now}); err != nil {
 			return dbError(err)
 		}
-		result, err = loadDraft(ctx, q, id)
+		result, err = s.loadDraft(ctx, q, id)
 		if err != nil {
 			return err
 		}
@@ -220,15 +226,15 @@ func save(ctx context.Context, q *dbsqlc.Queries, u dbsqlc.User, id int64, in Dr
 	}
 	return nil
 }
-func snapshot(ctx context.Context, q *dbsqlc.Queries, u dbsqlc.User, c dbsqlc.ContentItem, version, now int64) (dbsqlc.ContentRevision, error) {
-	d, err := loadDraft(ctx, q, c.ID)
+func (s *Service) snapshot(ctx context.Context, q *dbsqlc.Queries, u dbsqlc.User, c dbsqlc.ContentItem, version, now int64) (dbsqlc.ContentRevision, error) {
+	d, err := s.loadDraft(ctx, q, c.ID)
 	if err != nil {
 		return dbsqlc.ContentRevision{}, err
 	}
 	if d.Version != version {
 		return dbsqlc.ContentRevision{}, fault.ContentVersion
 	}
-	if err := validateFields(c.Type, &d.Fields, true); err != nil {
+	if err := validateFields(c.Type, &d.Fields, true, s.assetPolicy); err != nil {
 		return dbsqlc.ContentRevision{}, err
 	}
 	if err := validateRelations(ctx, q, c, d.Fields, d.Relations); err != nil {

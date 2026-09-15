@@ -11,7 +11,7 @@ import {
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router';
 import { toast } from 'sonner';
-import { validateMarkdown } from '@gopheratlas/markdown';
+import { validateMarkdown } from '@/shared/asset-policy';
 import { useMe } from '@/app/context';
 import { client, unwrap, ErrorNotice, NoAccess, APIError } from '@/shared/api';
 import { useEditorialRefresh } from '@/shared/query';

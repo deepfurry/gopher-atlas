@@ -1,5 +1,5 @@
 import { setTimeout as delay } from 'node:timers/promises';
-import { readLatest, readPrepared } from './prepare-web-content.mjs';
+import { readLocalLatest, readLocalPrepared } from './dev-storage.mjs';
 import { createPublication } from '../apps/web/src/lib/publication/indexes.ts';
 import { publicPages } from '../apps/web/src/lib/publication/routes.ts';
 
@@ -13,13 +13,16 @@ export function createSnapshotWatcher(
   initialGeneration,
   update,
   {
-    latest = readLatest,
-    prepare = readPrepared,
-    intervalMs = 2000,
+    latest = readLocalLatest,
+    prepare = readLocalPrepared,
+    intervalMs = 750,
     report = (message) => console.log(message),
   } = {},
 ) {
-  if (env.CONTENT_SNAPSHOT_FILE) return null;
+  if (env.CONTENT_SNAPSHOT_FILE)
+    throw new Error(
+      'CONTENT_SNAPSHOT_FILE is test-only; remove it for normal development.',
+    );
   let generation = initialGeneration,
     polling = false,
     failed = false;
@@ -27,7 +30,7 @@ export function createSnapshotWatcher(
     if (polling || signal?.aborted) return;
     polling = true;
     try {
-      const options = { development: true, signal, timeoutMs: 5000 };
+      const options = { signal };
       const pointer = await latest(env, options);
       if (pointer.generation !== generation) {
         const result = validateDevelopmentPublication(
@@ -39,8 +42,12 @@ export function createSnapshotWatcher(
         report(`Public Web refreshed to generation ${generation}.`);
       }
       failed = false;
-    } catch {
-      if (!signal?.aborted && !failed)
+    } catch (error) {
+      if (
+        !signal?.aborted &&
+        !failed &&
+        error.message !== 'local_snapshot_missing'
+      )
         report(
           'Public Web snapshot refresh unavailable; keeping the current content and retrying.',
         );

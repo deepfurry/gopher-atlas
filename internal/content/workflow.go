@@ -26,11 +26,11 @@ func routeAvailable(ctx context.Context, q *dbsqlc.Queries, id int64, path strin
 	}
 	return nil
 }
-func claimRoute(ctx context.Context, q *dbsqlc.Queries, c dbsqlc.ContentItem, r dbsqlc.ContentRevision, now int64) error {
+func (s *Service) claimRoute(ctx context.Context, q *dbsqlc.Queries, c dbsqlc.ContentItem, r dbsqlc.ContentRevision, now int64) error {
 	// Revalidate immutable pending material against the current product contract.
 	// Historic revisions remain untouched; an incompatible one must be restored/edited.
 	fields := revisionFields(r)
-	if err := validateFields(c.Type, &fields, true); err != nil {
+	if err := validateFields(c.Type, &fields, true, s.assetPolicy); err != nil {
 		return err
 	}
 	if c.Type == "note" {
@@ -89,7 +89,7 @@ func (s *Service) Submit(ctx context.Context, actor auth.Principal, id, version 
 		if c.EditorialState != "draft" && c.EditorialState != "changes_requested" {
 			return fault.EditorialState
 		}
-		r, err := snapshot(ctx, q, u, c, version, now)
+		r, err := s.snapshot(ctx, q, u, c, version, now)
 		if err != nil {
 			return err
 		}
@@ -124,7 +124,7 @@ func (s *Service) mutate(ctx context.Context, actor auth.Principal, id int64, fn
 			return dbError(err)
 		}
 		if policy.CanViewContent(u, c) {
-			result, err = detail(ctx, q, u, c)
+			result, err = s.detail(ctx, q, u, c)
 			return err
 		}
 		result = Detail{Summary: summary(c, ""), Routes: []Route{}}
@@ -166,7 +166,7 @@ func (s *Service) RequestChanges(ctx context.Context, actor auth.Principal, id, 
 		if err := reviewAllowed(u, c, r); err != nil {
 			return err
 		}
-		if err := validateComment(comment, true); err != nil {
+		if err := validateComment(comment, true, s.assetPolicy); err != nil {
 			return err
 		}
 		if _, err := q.CreateReview(ctx, dbsqlc.CreateReviewParams{ContentID: id, RevisionID: rid, ReviewerUserID: u.ID, Decision: "changes_requested", CommentMarkdown: comment, CreatedAt: now}); err != nil {
@@ -206,10 +206,10 @@ func (s *Service) PublishReviewed(ctx context.Context, actor auth.Principal, id,
 		if err := reviewAllowed(u, c, r); err != nil {
 			return err
 		}
-		if err := validateComment(comment, false); err != nil {
+		if err := validateComment(comment, false, s.assetPolicy); err != nil {
 			return err
 		}
-		if err := claimRoute(ctx, q, c, r, now); err != nil {
+		if err := s.claimRoute(ctx, q, c, r, now); err != nil {
 			return err
 		}
 		if _, err := q.CreateReview(ctx, dbsqlc.CreateReviewParams{ContentID: id, RevisionID: rid, ReviewerUserID: u.ID, Decision: "approved", CommentMarkdown: comment, CreatedAt: now}); err != nil {
@@ -240,11 +240,11 @@ func (s *Service) publishDirect(ctx context.Context, actor auth.Principal, id, v
 		if c.EditorialState != "draft" && c.EditorialState != "changes_requested" {
 			return fault.EditorialState
 		}
-		r, err := snapshot(ctx, q, u, c, version, now)
+		r, err := s.snapshot(ctx, q, u, c, version, now)
 		if err != nil {
 			return err
 		}
-		if err := claimRoute(ctx, q, c, r, now); err != nil {
+		if err := s.claimRoute(ctx, q, c, r, now); err != nil {
 			return err
 		}
 		if err := q.PublishRevision(ctx, dbsqlc.PublishRevisionParams{ID: id, RevisionID: stamp(r.ID), Now: stamp(now)}); err != nil {
@@ -338,7 +338,7 @@ func (s *Service) RestoreRevision(ctx context.Context, actor auth.Principal, id,
 		if err != nil {
 			return dbError(err)
 		}
-		rev, err := loadRevision(ctx, q, c, r)
+		rev, err := s.loadRevision(ctx, q, c, r)
 		if err != nil {
 			return err
 		}

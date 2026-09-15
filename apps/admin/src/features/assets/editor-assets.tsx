@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
-import { isControlledImage } from '@gopheratlas/markdown';
+import { isControlledImage } from '@/shared/asset-policy';
 import { ImageSquare, X } from '@phosphor-icons/react';
 import type { Schema } from '@/shared/api';
 import type { FormValues } from '@/features/content/form';

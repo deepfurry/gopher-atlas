@@ -44,5 +44,10 @@ For P0-5.5 use ADR 0012 and operations/legacy-import.md. Preserve migrations 1â€
 Compare Public A-grade surfaces against the actual old site, not a generic style.
 Use real legacy content in disposable Development verification before fixture-only
 polish. Automated gates remain fake/offline. A separately authorized real apply
-uses explicit local author/DB mappings and current R2 config; it is not a Production
-cutover. Never report a fake-storage rehearsal as an actual R2 upload.
+uses explicit local author/DB mappings and persistent FileStore; it is not a Production
+cutover. Never report a fake-storage rehearsal as a persistent local upload.
+
+ADR 0013 local persistence checks must exercise real disk objects, runtime origin
+policy, full local publication, restart recovery and watcher isolation. Normal dev
+rejects fixture input and never uses R2/Hook. Existing OAuth remains; a new login
+needs GitHub while an authenticated persistent session can work offline.

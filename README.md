@@ -77,7 +77,9 @@ make dev
 ```
 
 该命令先编译开发 CMS、准备 Public 快照，再启动 CMS / Admin / Public。
-Public 检测到新 generation 时只重启 Astro，CMS/Admin 保持运行。
+Development 使用本地 SQLite 和 File ObjectStore，不连接 R2 或 Cloudflare。
+Public 读取本地 `data/storage/content/latest.json`，检测到新 generation 时只重启 Astro，CMS/Admin 保持运行。
+上传文件、内容和发布历史跨重启保留；启动不 seed 内容、不清理数据。
 非预期的服务退出或启动失败会停止其余服务，`Ctrl+C` 统一退出；Linux/macOS 先发送终止信号，
 超时后强制清理进程组，Windows 按本次启动的 PID 清理完整子进程树。
 Windows 的子进程输出通过管道转发到当前终端，避免 PowerShell/Windows Terminal
@@ -234,6 +236,12 @@ preview 或禁止的 editor/primitives 模块进入产物。工程决定见
 图片按 bytes/header 检测 PNG/JPEG/WebP/GIF，最大 10 MiB、16384 px/边、100M 像素。
 SHA-256 决定永久 key，同 bytes 去重、缓存一年 immutable，不保存原始本地文件名。
 不剥离 EXIF/二进制 metadata。Admin soft delete 停止新选择，不删除 R2 对象。
+
+Development 同样使用真实图片验证与 SHA 去重，文件写入本地 `storage/assets`。
+CMS 的 `/__dev/assets/*` 仅在 Development 向 loopback 提供受控图片，Production 没有该路由。
+Admin、封面、Markdown、博客预览与 Public 共用配置好的本地图片地址；生产仍仅接受正式素材域名。
+新的 GitHub 登录仍需网络；已有有效持久 Session 后，编辑、上传、发布和本地 Public 可离线运行。
+详见 [本地持久化决定](docs/decisions/0013-development-local-persistence.md)。
 封面与 Markdown 插入均进入原有 autosave，历史 Revision/已发布封面保持不变。
 
 Publish/Unpublish、原本已发布内容的 Archive、公开内容使用的 Author/Tag 更新，在
@@ -241,34 +249,34 @@ Publish/Unpublish、原本已发布内容的 Archive、公开内容使用的 Aut
 `snapshots/generation-N.json`，再写 `latest.json`，再 POST Hook。Hook 为至少一次投递；
 失败退避，六次自动尝试后保留 failed，由 Reviewer/Admin Retry。只支持一个 active CMS writer。
 
-development 的八个 P0-4 变量全部留空时，Worker disabled，公开 mutation 仍排队，
-上传返回稳定 unavailable。部分配置会启动失败，production 必须配全。参见
+Development 总是启用本地 FileStore 与 snapshot worker，忽略旧 R2/Hook 配置；
+Production 仍必须配全八个 P0-4 变量，缺失时不能 fallback 到本地。参见
 [部署与恢复](docs/operations/deployment.md) 和 [Production 构建说明](docs/operations/cloudflare.md)。
 
 本地 `make dev-web` / `make dev` 自动读取根 `.env`，不需要手工导出或映射环境变量。
-输入优先级如下：
+正常开发只有一条输入链路：本地 Admin → CMS → SQLite → 本地 full snapshot → Public。
+默认目录如下，storage 总是位于 `DATABASE_PATH` 同目录：
 
-1. 显式 `CONTENT_SNAPSHOT_FILE` 最高优先；开发入口的相对路径统一从仓库根目录解析。
-2. 使用 `CONTENT_R2_ENDPOINT / CONTENT_R2_BUCKET / CONTENT_R2_ACCESS_KEY_ID / CONTENT_R2_SECRET_ACCESS_KEY`。
-3. 仅 Development（APP_ENV 未设或为 development）允许缺失字段分别 fallback 到
-   `R2_ENDPOINT / R2_CONTENT_BUCKET / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY`。
-
-如只想体验示例阅读站，在根 `.env` 填入：
-
-```dotenv
-CONTENT_SNAPSHOT_FILE=tests/fixtures/content-snapshot-v1.json
+```text
+data/
+├── gopheratlas.db             # 及 WAL/SHM
+└── storage/
+    ├── assets/media/sha256/   # 真实上传的不可变图片
+    └── content/
+        ├── latest.json
+        └── snapshots/generation-N.json
 ```
 
-然后直接 `make dev-web`；fixture 模式不访问或轮询 R2。若希望联调真实发布，把该字段留空，
-直接复用根 `.env` 现有的 `R2_*` / `R2_CONTENT_BUCKET`，无需新建 bucket 或凭据；
-已有 `CONTENT_R2_*` 仍可显式覆盖。配置使用哪个 bucket/Hook 就使用哪个，不额外分类或阻止。
-CMS 发布仍执行原有 R2 + Deploy Hook pipeline，watcher 只读取结果。
+无需 R2、Hook 或 `CONTENT_R2_*`。旧值即使留在 `.env` 里也不会被 Development 使用。
+若存在非空 `CONTENT_SNAPSHOT_FILE`，启动会明确拒绝并提示移除；该变量仅保留给测试/CI build。
+发布仍走 Draft → immutable Revision → published pointer → generation/job → Exporter；
+同一个 worker 写入 FileStore，并以现有终态完成任务，不请求外部 Hook。
 
-`make dev` / `make dev-web` 每两秒检查 `latest.json`，generation 未变时不下载快照或重启。
+`make dev` / `make dev-web` 每 750ms 检查本地 `latest.json`，generation 未变时不读完整快照或重启。
 新 generation 通过原有 hash/schema/引用图/路由校验后，替换 `.generated` 输入并仅重启
 Astro，更新 `getStaticPaths`；已打开的 Public 页面通过 Vite 重连刷新。保留三个服务运行，
 在 Admin 发布后几秒内即可看到新页面与新路由，无需手工重启。轮询失败保留当前内容并重试。
-初次 bucket 尚无 `latest.json` 时明确显示等待状态，Public 使用空站点并继续等待首次发布；
+初次本地目录尚无 `latest.json` 时明确显示等待状态，Public 使用空站点并继续等待首次发布；
 这不是 fixture fallback。Production 缺失/损坏输入仍然 fail-closed。
 Astro dev 不生成 Pagefind 索引，完整搜索应使用 fixture build 后的 preview。
 
@@ -319,7 +327,7 @@ renderer，预览不会推进 generation 或写 R2。
 本次收紧 pre-cutover snapshot v1。旧快照缺少 Note 分组字段、Topic 推荐数量，或包含
 不符合新约束的内容时会明确拒绝加载；不会静默改写。升级已有 Development 数据时，
 先单独启动 `make dev-cms` / `make dev-admin`，修正内容并通过正常发布生成新快照，
-再运行 `make dev`。也可显式使用 fixture。不要覆盖历史 generation 对象；未来生产
+再运行 `make dev`。不要覆盖历史 generation 对象；未来生产
 升级须同时部署匹配的 CMS exporter 与 Web consumer，详见 ADR 0012。
 
 Legacy 导入先 plan 再 apply。必须显式指定当前 CMS 的 Admin owner 与 Note Author

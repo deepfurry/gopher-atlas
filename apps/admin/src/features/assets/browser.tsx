@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { isControlledImage } from '@gopheratlas/markdown';
+import { isControlledImage } from '@/shared/asset-policy';
 import { toast } from 'sonner';
 import {
   UploadSimple,

@@ -1,8 +1,8 @@
 .DEFAULT_GOAL := help
-.PHONY: help install check generate dev dev-web dev-admin dev-cms build-cms db-status db-up
+.PHONY: help install check generate dev dev-web dev-admin dev-cms build-cms db-status db-up prod-update prod-backup
 
 help:
-	@node -e "console.log('make install | check | generate | dev | dev-web | dev-admin | dev-cms | build-cms | db-status | db-up')"
+	@node -e "console.log('make install | check | generate | dev | dev-web | dev-admin | dev-cms | build-cms | db-status | db-up | prod-update | prod-backup')"
 
 install:
 	pnpm install --frozen-lockfile
@@ -28,6 +28,12 @@ dev-cms:
 
 build-cms:
 	node scripts/build-cms.mjs
+
+prod-update:
+	bash scripts/production.sh update
+
+prod-backup:
+	bash scripts/production.sh backup
 
 db-status:
 	node scripts/db.mjs status

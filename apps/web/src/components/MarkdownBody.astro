@@ -1,0 +1,9 @@
+---
+import { renderMarkdown } from '../lib/publication/markdown';
+interface Props {
+  source: string;
+}
+const rendered = await renderMarkdown(Astro.props.source);
+---
+
+<div class="markdown" set:html={rendered.code} />

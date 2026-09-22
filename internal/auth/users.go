@@ -109,7 +109,7 @@ func (s *Service) UpdateAuthorProfile(ctx context.Context, actor Principal, id i
 	defer s.fence.Unlock()
 	var result dbsqlc.AuthorProfile
 	input.DisplayName = strings.TrimSpace(input.DisplayName)
-	if input.DisplayName == "" || !utf8.ValidString(input.DisplayName) || utf8.RuneCountInString(input.DisplayName) > 100 || len(input.BioMarkdown) > 10000 || !utf8.ValidString(input.BioMarkdown) || !markdown.Valid(input.BioMarkdown) || (input.WebsiteURL != "" && !safeWebURL(input.WebsiteURL, false)) {
+	if input.DisplayName == "" || !utf8.ValidString(input.DisplayName) || utf8.RuneCountInString(input.DisplayName) > 100 || len(input.BioMarkdown) > 10000 || !utf8.ValidString(input.BioMarkdown) || !s.cfg.Publication.AssetPolicy().Valid(input.BioMarkdown) || (input.WebsiteURL != "" && !safeWebURL(input.WebsiteURL, false)) {
 		return result, fault.Validation
 	}
 	err := s.withActor(ctx, actor, func(q *dbsqlc.Queries, current Principal) error {

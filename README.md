@@ -1,13 +1,15 @@
 # GopherAtlas
 
-**Technical Journal × Knowledge Atlas** — 面向 Go 开发者的知识地图与多作者
-Markdown 出版平台。
+**Golang or go home?** — 精选文章、话题专区与学习随笔。
+为 Go 开发者整理值得反复阅读的外部文章、策展阅读路径与原创实践。
 
-当前完成 **P0-4：Assets & Publication Pipeline**。
+当前为 **P0-5.5：Product Realignment & Legacy-Ready Rebuild** 验收版本。
 私有 CMS 提供内容表格、Markdown 编辑/安全预览、串行 autosave、审核工作区、
 Revision History、Tags/Authors/Users/Audit 和 Monitor。Publish 仅表示 **已在 CMS 发布**；
 已实现 Assets/R2、原子 generation/outbox、Snapshot v1、Worker/Hook 和公开构建 marker。
-尚未执行真实 staging；完整 Public 内容界面留给 P0-5。
+Public 从 snapshot v1 构建完整阅读页面、静态 redirects、RSS/sitemap/SEO 与 Pagefind 搜索。
+人工 Production CMS 已部署并验证登录和 Asset 上传。
+真实 generation → snapshot → Hook → marker 尚未人工验收。
 详见 [阶段范围](docs/implementation-status.md)。
 
 ## 架构
@@ -23,7 +25,7 @@ Revision History、Tags/Authors/Users/Audit 和 Monitor。Publish 仅表示 **�
 
 | 目录                                 | 当前职责                                                                    |
 | ------------------------------------ | --------------------------------------------------------------------------- |
-| `apps/web`                           | Astro 静态首页/about/contribute、空 RSS、sitemap、Pagefind 索引             |
+| `apps/web`                           | snapshot v1 三条产品线、Post 兼容详情、搜索、RSS/SEO/redirects              |
 | `apps/admin`                         | 按 feature 拆分的 React/Vite 编辑工作台、Base UI、RHF、TanStack Table/Query |
 | `packages/markdown`                  | CommonMark/GFM 安全规则与共享 remark 插件                                   |
 | `packages/api-client`                | OpenAPI 生成类型、同源请求及 CSRF header                                    |
@@ -37,7 +39,7 @@ Revision History、Tags/Authors/Users/Audit 和 Monitor。Publish 仅表示 **�
 ## 分支模型
 
 初期集中开发按用户授权直接在 clean、已同步的 `dev` 提交和 push。
-`main` 仅保存未来发布快照，不直接开发，也不由本阶段同步。
+环境仅 Development / Production；`main` 保存生产发布快照，不直接开发，也不由本阶段同步。
 CI 检查 push 与 PR 的 `dev`、`main`；仓库默认分支和 Ruleset 由维护者管理。
 
 ## 本地开始
@@ -68,17 +70,32 @@ make 命令。迁移脚本不隐式加载 `.env`；CMS 启动和 `/readyz` 也�
 已有数据库需显式运行 `make db-up` 至 `00003_publication.sql`。00001/00002 保持不变，
 readiness 要求 schema version 3、cover 列、assets/jobs 和 site_state singleton。
 
-分三个终端启动：
+配置好根 `.env` 后，可在一个终端启动全部开发服务（Windows PowerShell、Linux/macOS 相同）：
+
+```sh
+make dev
+```
+
+该命令先编译开发 CMS、准备 Public 快照，再启动 CMS / Admin / Public。
+Development 使用本地 SQLite 和 File ObjectStore，不连接 R2 或 Cloudflare。
+Public 读取本地 `data/storage/content/latest.json`，检测到新 generation 时只重启 Astro，CMS/Admin 保持运行。
+上传文件、内容和发布历史跨重启保留；启动不 seed 内容、不清理数据。
+非预期的服务退出或启动失败会停止其余服务，`Ctrl+C` 统一退出；Linux/macOS 先发送终止信号，
+超时后强制清理进程组，Windows 按本次启动的 PID 清理完整子进程树。
+Windows 的子进程输出通过管道转发到当前终端，避免 PowerShell/Windows Terminal
+中分离进程继承控制台句柄后静默退出；`Ctrl+C` 仍由启动器统一处理。
+数据库仍需提前显式迁移，不会自动建业务 Schema。也可以分三个终端单独启动：
 
 ```sh
 make dev-cms     # CMS: 127.0.0.1:46217
 make dev-admin   # 浏览器: http://127.0.0.1:5173
-CONTENT_SNAPSHOT_FILE=../../tests/fixtures/content-snapshot-v1.json make dev-web
-# Public: http://127.0.0.1:4321；路径相对于 apps/web
+make dev-web     # Public: http://127.0.0.1:4321；自动读取根 .env
 ```
 
-`make dev-cms` 通过 Node 的 `--env-file-if-exists=.env` 读取根 `.env`，已有进程变量
-优先，缺失文件无妨。直接运行 Go 二进制只读 process env。检查和测试不加载 `.env`，
+`make dev-cms` 保持通过 Node 的 `--env-file-if-exists=.env` 读取根 `.env`；
+`make dev-web` 和 `make dev` 采用相同的进程变量优先规则，缺失文件无妨。
+`make dev` 使用与 `go run` 相同的无内嵌 SPA 开发 CMS，Admin 由 Vite 提供。
+直接运行 Go 二进制只读 process env。检查和测试不加载仓库的真实 `.env`，
 所有测试数据库都位于临时目录。不要把真实配置、token、cookie 或 OAuth 参数写入
 日志、fixture、提交或报告。
 
@@ -93,8 +110,8 @@ Admin Vite 将 `/api`、`/ops`、`/healthz`、`/readyz` 同源代理到 `CMS_LIS
 `http://127.0.0.1:5173`，回调应为该 origin 下的 `/api/auth/github/callback`，并匹配
 GitHub OAuth App 注册设置。`CMS_BASE_URL` 必须与浏览器 origin 一致。
 
-生产设置 `APP_ENV=production`、`CMS_BASE_URL=https://blog.go-furry.com`，回调为
-`https://blog.go-furry.com/api/auth/github/callback`。生产必须提供完整 OAuth 配置和
+生产设置 `APP_ENV=production`、`CMS_BASE_URL=https://<private-tailnet-host>.ts.net`，回调为
+`https://<private-tailnet-host>.ts.net/api/auth/github/callback`。生产必须提供完整 OAuth 配置和
 正整数 bootstrap ID，并通过 Tailscale HTTPS 访问。OAuth token 仅用于 `/user`
 身份解析，之后丢弃，不入库。测试只连接本地 fake provider。
 
@@ -135,7 +152,7 @@ Admin 能打开；一个 app-wide Monitor 包裹业务请求，Recover 在其后
 `./logs/cms.jsonl`，100 MB / 10 份 / 30 天 / 压缩；`LOG_*` 可配置。contrib Zap 只记
 `latency/status/method/path/request_id`，不记 query、body、IP、UA、cookie、Authorization
 或错误原文。health/readiness/Monitor 不写 access log。反向代理也必须避免记录
-OAuth query。生产部署和代理配置尚未执行。
+OAuth query。生产 CMS 已由 systemd 管理，通过 Tailscale Serve 暴露私有 HTTPS；详见运维文档。
 
 ## 验证与生成
 
@@ -151,7 +168,7 @@ Admin 生产构建后的 embed 测试和最终 Go 二进制编译。Linux CI 另
 
 ## 设计与工程上下文
 
-Public 采用技术刊物的阅读层级、自托管 Geist/JetBrains Mono、暖纸/石墨主题，
+Public 延续旧站 Logo/视觉与暖纸/石墨主题，自托管 Sora/Plus Jakarta Sans，代码使用系统等宽字体，
 不使用 shadcn；Admin 为紧凑的 Base UI 工作台。见 [设计合同](contracts/design.md)、
 [设计系统](docs/design-system.md)、[AGENTS.md](AGENTS.md)、[架构](.agents/architecture.md)
 及 [ADR](docs/decisions/README.md)。
@@ -181,6 +198,17 @@ P0-4 publication 网络步骤独立于 SQLite 事务；旧站导入和生产切�
 
 ## 编辑工作台
 
+- 后台只使用简体中文，不引入 i18n。208px 左侧导航可收起为图标栏，顶部提供面包屑、
+  搜索、新建、主题与账户菜单；窄屏使用抽屉导航。Phosphor 图标与 Base UI 控件统一交互。
+- Development 编辑器提供“博客预览”：先 flush 当前自动保存队列，再以 Public 的真实
+  ContentDetail/Layout/Markdown 样式打开当前 Draft。预览不要求发布，不推进 generation，
+  不写 R2 或预览文件；冲突/保存失败时停止。修改后再次点击即可预览最新保存内容。
+  预览数据只通过一次 POST 传递，不放 URL/浏览器存储。未填标题、路径或语言使用展示
+  占位值；专题条目优先使用本地已发布快照，没有快照的条目标注待发布。
+  样式/模板热更新可重载当前预览；直接打开预览 URL 不含 Draft 数据，需从后台进入。
+  Production 构建没有此入口。
+- 导航按工作台、内容、内容资源、编辑流程、成员、发布与运维分组，入口与动作仍由
+  server permissions/actions 控制。搜索和摘要使用现有有界 API，明确标注已加载范围。
 - Content 下四个类型入口复用同一张可筛选、cursor 分页的表格。创建后直接进入编辑器；
   Topic 仅 Admin 可创建，Tags 在独立管理页面创建/更新。
 - Source / Preview / Split 使用 UIW source 输入和 react-markdown/GFM 安全预览。
@@ -190,18 +218,30 @@ P0-4 publication 网络步骤独立于 SQLite 事务；旧站导入和生产切�
   Copy、Inspect 和显式 Reload；离开未保存页面会提示。Draft 从不写浏览器存储。
 - 审核始终显示 exact immutable Revision；反馈、resubmit、历史查看/恢复、归档和
   直接发布均沿用 P0-2 服务。编辑下一版不改变已发布 pointer。
-- System / Light / Dark 仅持久化主题偏好。360px 下侧栏折叠、metadata 堆叠。
+- 跟随系统 / 浅色 / 深色与侧栏收起偏好可持久化。360px 下抽屉导航、内容属性堆叠。
   Monitor 是普通 Admin 链接；Assets 对 active roles 开放，Publication 仅 Reviewer/Admin。
 
 生产构建包含所有 lazy chunks，仍由单个 Go 二进制提供。Vite 构建门禁拒绝 raw HTML
 preview 或禁止的 editor/primitives 模块进入产物。工程决定见
 [ADR 0007](docs/decisions/0007-admin-editorial-ux.md)。
 
+新布局将正文置于视觉中心，右侧按基础/类型/搜索展示组织属性；版本与路径单独查看。
+素材库复用图片选择器，标签用创建/编辑对话框，成员统一表格与资料表单；发布页先说明
+同步状态，技术字段放入详情抽屉。UI 架构与约束见
+[ADR 0010](docs/decisions/0010-admin-editorial-workspace.md)。本次未改变 Public、API、
+数据库或发布语义，P0-6 生产导入与切换仍独立进行。
+
 ## Assets 与 Publication
 
 图片按 bytes/header 检测 PNG/JPEG/WebP/GIF，最大 10 MiB、16384 px/边、100M 像素。
 SHA-256 决定永久 key，同 bytes 去重、缓存一年 immutable，不保存原始本地文件名。
 不剥离 EXIF/二进制 metadata。Admin soft delete 停止新选择，不删除 R2 对象。
+
+Development 同样使用真实图片验证与 SHA 去重，文件写入本地 `storage/assets`。
+CMS 的 `/__dev/assets/*` 仅在 Development 向 loopback 提供受控图片，Production 没有该路由。
+Admin、封面、Markdown、博客预览与 Public 共用配置好的本地图片地址；生产仍仅接受正式素材域名。
+新的 GitHub 登录仍需网络；已有有效持久 Session 后，编辑、上传、发布和本地 Public 可离线运行。
+详见 [本地持久化决定](docs/decisions/0013-development-local-persistence.md)。
 封面与 Markdown 插入均进入原有 autosave，历史 Revision/已发布封面保持不变。
 
 Publish/Unpublish、原本已发布内容的 Archive、公开内容使用的 Author/Tag 更新，在
@@ -209,23 +249,107 @@ Publish/Unpublish、原本已发布内容的 Archive、公开内容使用的 Aut
 `snapshots/generation-N.json`，再写 `latest.json`，再 POST Hook。Hook 为至少一次投递；
 失败退避，六次自动尝试后保留 failed，由 Reviewer/Admin Retry。只支持一个 active CMS writer。
 
-development 的八个 P0-4 变量全部留空时，Worker disabled，公开 mutation 仍排队，
-上传返回稳定 unavailable。部分配置会启动失败，production 必须配全。参见
-[部署与恢复](docs/operations/deployment.md) 和 [首次 staging 清单](docs/operations/cloudflare.md)。
+Development 总是启用本地 FileStore 与 snapshot worker，忽略旧 R2/Hook 配置；
+Production 仍必须配全八个 P0-4 变量，缺失时不能 fallback 到本地。参见
+[部署与恢复](docs/operations/deployment.md) 和 [Production 构建说明](docs/operations/cloudflare.md)。
 
-Web 显式使用 `CONTENT_SNAPSHOT_FILE` 或完整 `CONTENT_R2_*` 只读配置，缺少输入即失败。
-PowerShell 从根目录选择 fixture 后可运行构建或 `make dev-web`，不读取 `.env`：
+本地 `make dev-web` / `make dev` 自动读取根 `.env`，不需要手工导出或映射环境变量。
+正常开发只有一条输入链路：本地 Admin → CMS → SQLite → 本地 full snapshot → Public。
+默认目录如下，storage 总是位于 `DATABASE_PATH` 同目录：
 
-```powershell
-$env:CONTENT_SNAPSHOT_FILE = (Resolve-Path tests/fixtures/content-snapshot-v1.json).Path
-pnpm --filter @gopheratlas/web build
+```text
+data/
+├── gopheratlas.db             # 及 WAL/SHM
+└── storage/
+    ├── assets/media/sha256/   # 真实上传的不可变图片
+    └── content/
+        ├── latest.json
+        └── snapshots/generation-N.json
 ```
+
+无需 R2、Hook 或 `CONTENT_R2_*`。旧值即使留在 `.env` 里也不会被 Development 使用。
+若存在非空 `CONTENT_SNAPSHOT_FILE`，启动会明确拒绝并提示移除；该变量仅保留给测试/CI build。
+发布仍走 Draft → immutable Revision → published pointer → generation/job → Exporter；
+同一个 worker 写入 FileStore，并以现有终态完成任务，不请求外部 Hook。
+
+`make dev` / `make dev-web` 每 750ms 检查本地 `latest.json`，generation 未变时不读完整快照或重启。
+新 generation 通过原有 hash/schema/引用图/路由校验后，替换 `.generated` 输入并仅重启
+Astro，更新 `getStaticPaths`；已打开的 Public 页面通过 Vite 重连刷新。保留三个服务运行，
+在 Admin 发布后几秒内即可看到新页面与新路由，无需手工重启。轮询失败保留当前内容并重试。
+初次本地目录尚无 `latest.json` 时明确显示等待状态，Public 使用空站点并继续等待首次发布；
+这不是 fixture fallback。Production 缺失/损坏输入仍然 fail-closed。
+Astro dev 不生成 Pagefind 索引，完整搜索应使用 fixture build 后的 preview。
+
+Production / Cloudflare 的 `pnpm --filter @gopheratlas/web build` 行为不变：不读取根 `.env`、
+不使用 CMS `R2_*` fallback，必须单独提供 `CONTENT_R2_*` read-only credential。
+本地验证完整产物可运行 `make check`，它显式选择 fixture 并完成 build；随后运行
+`pnpm --filter @gopheratlas/web preview`。不要为运行检查配置真实凭证。
 
 构建校验 latest、SHA-256、Schema v1、Markdown 和引用图，输出忽略的 `.generated`
 快照及 `/.well-known/gopheratlas-build.json`。`make check` 固定显式 fixture 并进行
 synthetic secret-output scan。生产不配置 fixture fallback；内容桶始终私有，CMS RW
-与 Web RO 凭据分离。本阶段未使用真实 R2/Hook 或修改 Cloudflare/DNS。
+与 Web RO 凭据分离。实现与验证未使用真实 R2/Hook 或修改 Cloudflare/DNS。
+
+## Public 阅读站与 P0-6 边界
+
+`apps/web/src/lib/publication` 在构建时验证/索引公开实体与引用，模板不读取 Draft 或
+私有 API。详情直接使用 snapshot 的 `canonicalPath`；主流程为精选文章、话题专区、
+学习随笔，Post 只保留兼容。文章筛选每页 12 条，Note 分组卡片每页 4 条，辅助集合
+保持 24 条静态分页。另有 Tag、Author、about/contribute/search 和 404 页面。
+Public 不需要运行中的 CMS 或 Node。Curated 展示来源与点评，标题和阅读全文跳转原文。
+
+构建命令一次生成 HTML、`_redirects`、RSS/sitemap/robots、Pagefind 和 build marker。
+历史路径输出直接 301，超过 2,000 条或单行 1,000 字符即失败。Pagefind 索引三类详情与
+中英文 About/Contribute，统一中文分词索引兼顾英文词。Chrome、静态筛选、阅读控件和
+Note 的 giscus 按页面加载浏览器代码；搜索页才加载 Pagefind。
+正文复用共享 GFM/安全检查与 Shiki；SEO 使用覆盖值或 title/summary，语言保持真实。
+
+本地构建后用 `pnpm --filter @gopheratlas/web preview` 查看完整产物（含 Pagefind）。
+Astro preview 不模拟 Cloudflare `_redirects`；其内容由门禁检查，平台行为在发布验收
+时确认。`node scripts/check-public-build.mjs` 检查核心 fixture 的实际页面与引用、
+redirects/RSS/sitemap/search 索引、marker hash 和输出隐私，已接入 `make check`。
+
+详见 [ADR 0012](docs/decisions/0012-product-realignment-and-legacy-import.md)。P0-5.5
+已实现 Development plan/apply 与旧路由校验。P0-6 单独负责生产导入、历史路由最终比对、
+backup/restore drill、生产 generation 验收、DNS cutover 和旧站下线。本阶段不修改生产配置。
+
+## 三条产品线与 Legacy 导入
+
+- **精选文章**：标题与阅读全文跳转原文；正文是收录理由 / 编辑点评。
+- **话题专区**：只编排精选文章，推荐区与普通区共享一个有序清单。
+- **学习随笔**：原创 Markdown 博客，按分组连续阅读。
+
+Post 保留底层兼容路由/API，不再出现在正常创建菜单、主导航、RSS 和搜索中。
+中文 Admin 保留现有 Shell、权限、自动保存与版本冲突处理。`make dev` 仍一次运行
+CMS/Admin/Public；发布后 watcher 自动刷新 Public，“博客预览”仍复用真实 Public
+renderer，预览不会推进 generation 或写 R2。
+
+本次收紧 pre-cutover snapshot v1。旧快照缺少 Note 分组字段、Topic 推荐数量，或包含
+不符合新约束的内容时会明确拒绝加载；不会静默改写。升级已有 Development 数据时，
+先单独启动 `make dev-cms` / `make dev-admin`，修正内容并通过正常发布生成新快照，
+再运行 `make dev`。不要覆盖历史 generation 对象；未来生产
+升级须同时部署匹配的 CMS exporter 与 Web consumer，详见 ADR 0012。
+
+Legacy 导入先 plan 再 apply。必须显式指定当前 CMS 的 Admin owner 与 Note Author
+映射，不猜测作者、不导入转载正文、不放宽图片安全规则。操作步骤、一次性导入边界、
+失败恢复与旧路由统计见 [Legacy 导入运维说明](docs/operations/legacy-import.md)。
+自动测试与浏览器演练使用可丢弃数据库；真实 Development apply 的目标与署名需明确。
+
+Public 的 Logo、首页、配色、文章筛选和 Topic/Notes 结构延续旧 GopherAtlas。
+`/en/` 覆盖站点自有页面与全部内容、话题、随笔、标签、作者及分页的 chrome 别名。
+语言切换保留当前页面、筛选条件与锚点；内容不自动翻译。详情别名共用原 canonical，
+不重复进入 sitemap/Pagefind，SQLite 中的旧 URL 不变。Public 交互和断点以旧站为准。
+Note 阅读提供 TOC、代码复制、脚注、宽表格滚动与组内上下篇。
+
+Note 评论与 Reactions 使用 giscus。当前仓库尚未启用 GitHub Discussions，公开的
+repo/repoId 已配置。维护者启用 Discussions、安装 giscus App、选择分类后，把公开的
+category/categoryId 写入 `apps/web/src/config/discussion.ts`。分类为空时显示未配置说明；
+这些值不是 Secret。
+映射固定为 `note:<groupSlug>/<slug>`，标题变更不会新建 Discussion。
+
+P0-6 只负责生产备份恢复演练、受控 Legacy apply、路由比对、main 发布快照和最终
+cutover。本阶段不修改生产 DNS，不合并 main，也不触发生产部署。
 
 ## License
 
-[MIT](LICENSE)。组件来源见 [Third-party notices](docs/third-party-notices.md)。
+[MIT](LICENSE)。组件与字体来源见 [Third-party notices](docs/third-party-notices.md)。

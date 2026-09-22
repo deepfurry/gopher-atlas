@@ -87,7 +87,7 @@ func (r *rig) prepared(t *testing.T, p auth.Principal, kind, slug string) Detail
 	case "note":
 		in.Payload = json.RawMessage(`{"group":"Runtime","groupSlug":"runtime","order":10}`)
 	case "curated_article":
-		in.Payload = json.RawMessage(`{"sourceUrl":"https://example.com/source"}`)
+		in.Payload = json.RawMessage(`{"sourceUrl":"https://example.com/source","rating":"A","difficulty":"beginner"}`)
 	}
 	_, err := r.s.Save(ctx, p, d.ID, in)
 	must(t, err)
@@ -350,8 +350,8 @@ func TestTopicSnapshotsAndPublicationTargets(t *testing.T) {
 		_, err := r.s.Create(ctx, p, "topic")
 		wantError(t, err, fault.Permission)
 	}
-	a := r.prepared(t, r.admin, "post", "target-a")
-	b := r.prepared(t, r.admin, "post", "target-b")
+	a := r.prepared(t, r.admin, "curated_article", "target-a")
+	b := r.prepared(t, r.admin, "curated_article", "target-b")
 	topic := r.prepared(t, r.admin, "topic", "learning")
 	for _, entries := range [][]TopicEntry{{{topic.ID}}, {{a.ID}, {a.ID}}} {
 		in := topic.Draft.DraftInput

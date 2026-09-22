@@ -47,7 +47,7 @@ func New(deps Dependencies) *fiber.App {
 	if deps.Publication == nil {
 		deps.Publication = publication.New(deps.DB, deps.Config.Publication, deps.Store, deps.Auth.PublicationFence(), deps.Logger)
 	}
-	handler := &httptransport.Handler{Publication: deps.Publication, Config: deps.Config, DB: deps.DB, Auth: deps.Auth, Assets: assets.New(deps.DB, deps.Store, deps.Config.Publication.AssetsBucket), Content: content.New(deps.DB, deps.Auth.PublicationFence())}
+	handler := &httptransport.Handler{Publication: deps.Publication, Config: deps.Config, DB: deps.DB, Auth: deps.Auth, Assets: assets.New(deps.DB, deps.Store, deps.Config.Publication.AssetsBucket, deps.Config.Publication.AssetPolicy()), Content: content.NewWithPolicy(deps.DB, deps.Config.Publication.AssetPolicy(), deps.Auth.PublicationFence())}
 	// Supplied request IDs could carry sensitive data into logs.
 	server.Use(func(c fiber.Ctx) error { c.Request().Header.Del(fiber.HeaderXRequestID); return c.Next() })
 	server.Use(requestid.New(requestid.Config{Generator: utils.UUIDv4}))
@@ -69,6 +69,7 @@ func New(deps Dependencies) *fiber.App {
 	server.Use(monitor.New(monitor.Config{Title: "GopherAtlas CMS", EnableGCPauseMetrics: false, Next: func(c fiber.Ctx) bool { return c.Path() != "/ops/monitor" }}))
 	server.Use(recover.New())
 	server.Use(httptransport.BodyLimits)
+	registerLocalAssets(server, deps)
 	handler.Register(server)
 	server.Use(adminui.Handler())
 	// Reject ordinary oversized requests from their headers before buffering a

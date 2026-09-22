@@ -1,0 +1,30 @@
+---
+import { publication } from '../lib/publication/snapshot';
+import type { PublicPage } from '../lib/publication/routes';
+import type { Locale } from '../lib/i18n';
+import ContentDetail from './ContentDetail.astro';
+import Collection from './Collection.astro';
+import SitePage from './SitePage.astro';
+interface Props {
+  page: PublicPage;
+  locale?: Locale;
+}
+const { page, locale = 'zh' } = Astro.props;
+---
+
+{
+  page.path === '/articles/' || page.path === '/topics/' ? (
+    <SitePage
+      page={page.path === '/articles/' ? 'articles' : 'topics'}
+      locale={locale}
+    />
+  ) : page.kind === 'detail' ? (
+    <ContentDetail
+      content={page.content}
+      publication={publication}
+      locale={locale}
+    />
+  ) : (
+    <Collection page={page} publication={publication} locale={locale} />
+  )
+}

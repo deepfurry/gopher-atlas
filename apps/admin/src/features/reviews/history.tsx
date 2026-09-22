@@ -9,7 +9,14 @@ import {
 } from '@/shared/api';
 import { usePages } from '@/shared/query';
 import { LoadMore } from '@/shared/pagination';
-import { date, name } from '@/shared/status';
+import { date, name, decisions } from '@/shared/status';
+import {
+  PageHeader,
+  Table,
+  EmptyState,
+  LoadingState,
+  Badge,
+} from '@/components/ui/workspace';
 export default function History() {
   const me = useMe();
   const list = usePages<Schema<'Review'>>(
@@ -28,34 +35,46 @@ export default function History() {
   if (!me.permissions.review) return <NoAccess />;
   return (
     <>
-      <p className="caption">REVIEWS</p>
-      <h1>Review history</h1>
+      <PageHeader
+        title="审核历史"
+        description="回顾审核决定与对应的固定版本。"
+      />
       <ErrorNotice error={list.error} />
-      <div
-        className="table-scroll"
-        tabIndex={0}
-        role="region"
-        aria-label="Review history"
-      >
-        <table>
+      {list.isPending ? (
+        <LoadingState />
+      ) : !list.items.length ? (
+        <EmptyState
+          title="暂无审核记录"
+          description="完成审核后，审核决定会永久保留在这里。"
+        />
+      ) : (
+        <Table label="审核历史列表">
           <thead>
             <tr>
-              <th>Decision</th>
-              <th>Content</th>
-              <th>Revision</th>
-              <th>Reviewer</th>
-              <th>Time</th>
-              <th>Comment excerpt</th>
+              <th>审核结果</th>
+              <th>内容</th>
+              <th>版本</th>
+              <th>审核人</th>
+              <th>时间</th>
+              <th>意见摘要</th>
             </tr>
           </thead>
           <tbody>
             {list.items.map((r) => (
               <tr key={r.id}>
-                <td>{r.decision}</td>
                 <td>
-                  <Link to={`/reviews/history/${r.id}`}>{r.title}</Link>
+                  <Badge
+                    tone={r.decision === 'approved' ? 'success' : 'warning'}
+                  >
+                    {decisions[r.decision]}
+                  </Badge>
                 </td>
-                <td>{r.revisionNo}</td>
+                <td>
+                  <Link to={`/reviews/history/${r.id}`}>
+                    {r.title || '未命名内容'}
+                  </Link>
+                </td>
+                <td>v{r.revisionNo}</td>
                 <td>{name(r.reviewer)}</td>
                 <td>{date(r.createdAt)}</td>
                 <td className="excerpt">
@@ -64,10 +83,12 @@ export default function History() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </Table>
+      )}
+      <div className="pagination">
+        <span>已加载 {list.items.length} 条</span>
+        <LoadMore {...list} />
       </div>
-      {!list.isPending && !list.items.length && <p>No review decisions yet.</p>}
-      <LoadMore {...list} />
     </>
   );
 }

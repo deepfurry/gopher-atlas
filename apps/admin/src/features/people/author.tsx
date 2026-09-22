@@ -1,78 +1,14 @@
-import { useState } from 'react';
 import { useParams, Link } from 'react-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
 import { useMe } from '@/app/context';
-import { client, unwrap, ErrorNotice, type Schema } from '@/shared/api';
-import { MarkdownPreview, MarkdownFeedback } from '@/shared/markdown';
+import { client, unwrap, ErrorNotice } from '@/shared/api';
+import { MarkdownPreview } from '@/shared/markdown';
 import { isSafeLink } from '@gopheratlas/markdown';
-import { Button } from '@/components/ui/button';
-function AuthorEdit({ author }: { author: Schema<'AuthorDetail'> }) {
-  const cache = useQueryClient();
-  const [displayName, setName] = useState(author.displayName);
-  const [bioMarkdown, setBio] = useState(author.bioMarkdown);
-  const [websiteUrl, setWebsite] = useState(author.websiteUrl);
-  const save = useMutation({
-    mutationFn: async () =>
-      unwrap(
-        await client.PUT('/api/admin/v1/authors/{id}/profile', {
-          params: { path: { id: author.userId } },
-          body: { displayName, bioMarkdown, websiteUrl },
-        }),
-      ),
-    onSuccess: () => {
-      void cache.invalidateQueries({ queryKey: ['authors'] });
-      void cache.invalidateQueries({ queryKey: ['me'] });
-      toast.success('Author profile saved.');
-    },
-  });
-  return (
-    <form
-      className="compact-form"
-      onSubmit={(e) => {
-        e.preventDefault();
-        save.mutate();
-      }}
-    >
-      <h2>Edit author profile</h2>
-      <label>
-        Display name
-        <input
-          required
-          maxLength={100}
-          value={displayName}
-          onChange={(e) => setName(e.target.value)}
-        />
-      </label>
-      <label>
-        Website
-        <input
-          type="url"
-          maxLength={2048}
-          value={websiteUrl}
-          onChange={(e) => setWebsite(e.target.value)}
-        />
-      </label>
-      <label>
-        Bio Markdown
-        <textarea
-          rows={6}
-          maxLength={10000}
-          value={bioMarkdown}
-          onChange={(e) => setBio(e.target.value)}
-        />
-      </label>
-      <MarkdownFeedback source={bioMarkdown} />
-      <ErrorNotice error={save.error} />
-      <Button type="submit" disabled={save.isPending}>
-        Save author profile
-      </Button>
-    </form>
-  );
-}
+import { PageHeader, Avatar, LoadingState } from '@/components/ui/workspace';
+import { ProfileForm } from './profile';
 export default function Author() {
-  const id = Number(useParams().id);
-  const me = useMe();
+  const id = Number(useParams().id),
+    me = useMe();
   const query = useQuery({
     queryKey: ['authors', id],
     queryFn: async ({ signal }) =>
@@ -84,30 +20,50 @@ export default function Author() {
       ),
     retry: false,
   });
+  const author = query.data;
   return (
     <>
       <ErrorNotice error={query.error} />
-      {query.data && (
+      {query.isPending && <LoadingState label="正在加载作者资料…" />}
+      {author && (
         <>
-          <p className="caption">AUTHOR PROFILE · {query.data.slug}</p>
-          <h1>{query.data.displayName}</h1>
-          <MarkdownPreview source={query.data.bioMarkdown} />
-          {query.data.websiteUrl && isSafeLink(query.data.websiteUrl) && (
-            <a
-              href={query.data.websiteUrl}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              Author website
-            </a>
-          )}
-          {me.permissions.manageAuthorProfiles ? (
-            <AuthorEdit key={id} author={query.data} />
-          ) : me.user.id === id ? (
-            <p>
-              <Link to="/profile">Edit My Profile</Link>
-            </p>
-          ) : null}
+          <PageHeader
+            title="作者资料"
+            actions={<Link to="/authors">返回作者列表</Link>}
+          />
+          <div className="profile-layout">
+            <aside className="profile-identity">
+              <Avatar
+                name={author.displayName}
+                url={author.avatarUrl}
+                size={64}
+              />
+              <h2>{author.displayName}</h2>
+              <p className="caption">{author.slug}</p>
+              {author.websiteUrl && isSafeLink(author.websiteUrl) && (
+                <a
+                  href={author.websiteUrl}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  访问个人网站 ↗
+                </a>
+              )}
+            </aside>
+            <div>
+              {me.permissions.manageAuthorProfiles ? (
+                <ProfileForm key={id} profile={author} authorId={id} />
+              ) : (
+                <>
+                  <MarkdownPreview source={author.bioMarkdown} />
+                  {!author.bioMarkdown && (
+                    <p className="caption">作者尚未填写简介。</p>
+                  )}
+                  {me.user.id === id && <Link to="/profile">编辑个人资料</Link>}
+                </>
+              )}
+            </div>
+          </div>
         </>
       )}
     </>

@@ -4,7 +4,7 @@
    scope in `docs/implementation-status.md`, then affected code, contracts and ADRs.
    For authorized early development, switch to dev, pull --ff-only, require a
    clean tree and record HEAD. Work/commit/push on dev as requested; main records
-   future release snapshots. Do not change repository administration settings implicitly.
+   Production release snapshots. Do not change repository administration settings implicitly.
 2. Use narrow existing checks to establish a baseline. `pnpm install --frozen-lockfile`
    and the pinned Go toolchain reproduce dependency inputs without secrets.
 3. Change authoritative inputs first: SQL, OpenAPI, schema or tokens. Run
@@ -30,6 +30,24 @@
    for notable changes. Commit only coherent, authorized work.
 7. Report what actually ran, what passed, and what remains outside the phase.
 
+For Public work, run the explicit v1 fixture build and inspect actual dist with
+`node scripts/check-public-build.mjs`. Test canonical/derived routes, reference and
+group conflicts, redirect bounds, Markdown safety and query/result states. Check
+all four content types, search, keyboard focus, light/dark, 360px and reduced motion
+in a local browser. Do not connect to Production to validate implementation.
+
 Run commands from the repository root unless README says otherwise. Tests and
 builds must work without OAuth/R2/Cloudflare secrets and without a running CMS.
 Go tooling fixtures are disposable and must never point at `DATABASE_PATH`.
+
+For P0-5.5 use ADR 0012 and operations/legacy-import.md. Preserve migrations 1–3.
+Compare Public A-grade surfaces against the actual old site, not a generic style.
+Use real legacy content in disposable Development verification before fixture-only
+polish. Automated gates remain fake/offline. A separately authorized real apply
+uses explicit local author/DB mappings and persistent FileStore; it is not a Production
+cutover. Never report a fake-storage rehearsal as a persistent local upload.
+
+ADR 0013 local persistence checks must exercise real disk objects, runtime origin
+policy, full local publication, restart recovery and watcher isolation. Normal dev
+rejects fixture input and never uses R2/Hook. Existing OAuth remains; a new login
+needs GitHub while an authenticated persistent session can work offline.

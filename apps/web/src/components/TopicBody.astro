@@ -1,0 +1,108 @@
+---
+import MarkdownBody from './MarkdownBody.astro';
+import CuratedCard from './CuratedCard.astro';
+import PageHero from './PageHero.astro';
+import type { Content } from '../lib/publication/types';
+import type { Publication } from '../lib/publication/indexes';
+import { words, localized, type Locale } from '../lib/i18n';
+interface Props {
+  item: Extract<Content, { type: 'topic' }>;
+  publication: Publication;
+  entries?: { position: number; title: string; content?: Content }[];
+  locale?: Locale;
+}
+const {
+  item,
+  publication: p,
+  entries: previewEntries,
+  locale = 'zh',
+} = Astro.props;
+const t = words[locale];
+const entries = previewEntries ?? p.topicTargets.get(item.id) ?? [];
+const recommended = entries.slice(0, item.payload.recommendedCount);
+---
+
+<PageHero label="Topic" title={item.title} description={item.summary}
+  ><a
+    class="btn primary"
+    href={localized(`/articles/?topic=${item.slug}`, locale)}
+    >{t.viewArticles}</a
+  ><button data-copy-link>{t.copyTopic}</button></PageHero
+>
+<div class="topic-layout">
+  <article class="panel content-detail" lang={item.language}>
+    <h2 class="panel-heading">{t.topicGuide}</h2><MarkdownBody
+      source={item.bodyMarkdown}
+    />
+  </article>
+  {
+    recommended.length > 0 && (
+      <aside class="panel" data-paged="2">
+        <>
+          <div class="panel-heading">
+            <h2>
+              {t.readingOrder} - {recommended.length}
+            </h2>
+            {recommended.length > 2 && (
+              <div class="paged-controls">
+                <button data-prev>{t.previous}</button>
+                <span data-page-label />
+                <button data-next>{t.next}</button>
+              </div>
+            )}
+          </div>
+          <div class="reading-links">
+            {recommended.map((entry) => (
+              <div data-page-item>
+                {entry.content?.type === 'curated_article' ? (
+                  <a
+                    class="reading-link"
+                    href={entry.content.payload.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <strong>{entry.content.title}</strong>
+                    <small>
+                      {entry.content.payload.rating} ·{' '}
+                      {entry.content.payload.sourceLanguage} ·{' '}
+                      {entry.content.payload.sourceAuthor} ·{' '}
+                      {entry.content.payload.sourceName}
+                    </small>
+                  </a>
+                ) : (
+                  <p class="notice">
+                    {'title' in entry ? entry.title : '未发布条目'} ·
+                    {t.unpublishedEntry}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      </aside>
+    )
+  }
+</div>
+<section class="topic-entries">
+  <div class="section-intro">
+    <span class="eyebrow">{t.topicArticles}</span><h2>
+      {entries.length}
+      {t.articleCount}
+    </h2>
+  </div>{
+    entries.map((entry, order) =>
+      entry.content?.type === 'curated_article' ? (
+        <CuratedCard
+          item={entry.content}
+          publication={p}
+          locale={locale}
+          order={order}
+        />
+      ) : (
+        <p class="notice">
+          {'title' in entry ? entry.title : ''} · {t.unpublishedEntry}
+        </p>
+      ),
+    )
+  }
+</section>

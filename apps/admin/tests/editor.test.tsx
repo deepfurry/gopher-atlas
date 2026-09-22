@@ -12,17 +12,22 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
-const title = () => screen.findByLabelText('Title', {}, { timeout: 4000 });
+const title = () => screen.findByLabelText('标题', {}, { timeout: 4000 });
 it.each(['editor', 'reviewer', 'admin'] as const)(
   'creates allowed types for %s and navigates immediately to the editor',
   async (role) => {
     const state = backend(content('post', role === 'admin'), me(role));
     mount('/content');
-    const select = await screen.findByLabelText('New content type');
+    fireEvent.click(
+      (await screen.findAllByRole('button', { name: '新建内容' }))[0],
+    );
+    const menu = await screen.findByRole('menu');
     expect(
-      within(select).queryByRole('option', { name: 'Topic' }) !== null,
+      within(menu).queryByRole('menuitem', { name: '新建话题专区' }) !== null,
     ).toBe(role === 'admin');
-    fireEvent.click(screen.getByRole('button', { name: 'Create content' }));
+    fireEvent.click(
+      within(menu).getByRole('menuitem', { name: '新建学习随笔' }),
+    );
     await title();
     expect(
       state.requests.some(
@@ -43,34 +48,48 @@ it.each(['post', 'note', 'curated_article', 'topic'] as const)(
     mount();
     await title();
     expect(screen.queryByLabelText(/raw json/i)).toBeNull();
-    expect(screen.queryByLabelText('Featured') !== null).toBe(type === 'topic');
+    expect(
+      screen.queryByRole('switch', { name: '首页推荐', hidden: true }) !== null,
+    ).toBe(type === 'topic');
+    if (type !== 'post')
+      fireEvent.click(
+        screen.getByRole('tab', {
+          name: (
+            {
+              note: '分组',
+              curated_article: '原文与策展',
+              topic: '文章编排',
+            } as const
+          )[type as 'note' | 'curated_article' | 'topic'],
+        }),
+      );
     if (type === 'note') {
-      expect(screen.getByLabelText('Group')).toBeTruthy();
-      expect(screen.getByLabelText('Group slug')).toBeTruthy();
-      expect(screen.getByLabelText('Candidate route').textContent).toContain(
+      expect(screen.getByLabelText('分组名称')).toBeTruthy();
+      expect(screen.getByLabelText('分组路径标识')).toBeTruthy();
+      expect(screen.getByLabelText('预览路径').textContent).toContain(
         '/notes/runtime/useful-post/',
       );
     }
     if (type === 'curated_article') {
       expect(
-        (screen.getByLabelText('Difficulty') as HTMLInputElement).value,
-      ).toBe('custom-difficulty');
-      fireEvent.click(screen.getByRole('button', { name: 'Add related link' }));
-      expect(screen.getByLabelText('Link 1 URL')).toBeTruthy();
+        screen.getByRole('combobox', { name: '难度' }).textContent,
+      ).toContain('进阶');
+      fireEvent.click(screen.getByRole('button', { name: '添加相关链接' }));
+      expect(screen.getByLabelText('链接 1 URL')).toBeTruthy();
     }
     if (type === 'topic') {
-      expect(screen.queryByRole('group', { name: 'Tags' })).toBeNull();
-      expect(
-        screen.getByRole('group', { name: 'Ordered content entries' }),
-      ).toBeTruthy();
+      expect(screen.queryByRole('group', { name: '标签' })).toBeNull();
+      expect(screen.getByRole('group', { name: '精选文章编排' })).toBeTruthy();
       expect(
         screen.queryByRole('option', { name: 'A useful post' }),
       ).toBeNull();
     } else {
       expect(
-        (screen.getByLabelText('Byline') as HTMLInputElement).readOnly,
+        (screen.getByLabelText('署名作者') as HTMLInputElement).readOnly,
       ).toBe(true);
-      expect(screen.getByRole('group', { name: 'Tags' })).toBeTruthy();
+      expect(
+        screen.getByRole('group', { name: /标签/, hidden: true }),
+      ).toBeTruthy();
     }
   },
 );
@@ -91,8 +110,8 @@ it('flushes pending save before submit and switches to exact immutable read-only
   const state = backend();
   mount();
   fireEvent.change(await title(), { target: { value: 'Latest title' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Submit for review' }));
-  await screen.findByRole('heading', { name: /Revision 1 · Latest title/ });
+  fireEvent.click(screen.getByRole('button', { name: '提交审核' }));
+  await screen.findByRole('heading', { name: /版本 1 · Latest title/ });
   const writes = state.requests.filter(
     (r) => r.method === 'PUT' || r.method === 'POST',
   );
@@ -101,9 +120,9 @@ it('flushes pending save before submit and switches to exact immutable read-only
     '/api/admin/v1/content/1/actions/submit-review',
   ]);
   expect((await writes[1].clone().json()).version).toBe(6);
-  expect(screen.queryByLabelText('Markdown source')).toBeNull();
-  expect(screen.getByRole('button', { name: 'Withdraw review' })).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Withdraw review' }));
+  expect(screen.queryByLabelText('Markdown 源码')).toBeNull();
+  expect(screen.getByRole('button', { name: '撤回审核' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: '撤回审核' }));
   await title();
 });
 it('blocks submit after save failure and preserves local text', async () => {
@@ -111,12 +130,12 @@ it('blocks submit after save failure and preserves local text', async () => {
   state.saveFailure = 'invalid_payload';
   mount();
   fireEvent.change(await title(), { target: { value: 'Preserved' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Submit for review' }));
-  await screen.findByText(/Save failed · autosave paused/);
+  fireEvent.click(screen.getByRole('button', { name: '提交审核' }));
+  await screen.findByText(/保存失败，自动保存已暂停/);
   expect(state.requests.some((r) => r.url.includes('submit-review'))).toBe(
     false,
   );
-  expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe(
+  expect((screen.getByLabelText('标题') as HTMLInputElement).value).toBe(
     'Preserved',
   );
 });
@@ -125,39 +144,36 @@ it('shows explicit conflict recovery without discarding local Markdown', async (
   state.saveFailure = 'content_version_conflict';
   mount();
   await title();
-  fireEvent.change(screen.getByLabelText('Markdown source'), {
+  fireEvent.change(screen.getByLabelText('Markdown 源码'), {
     target: { value: '## Local unsaved' },
   });
   fireEvent.keyDown(window, { key: 's', ctrlKey: true });
   await screen.findByRole('heading', {
-    name: 'Another session changed this Draft.',
+    name: '另一会话已修改此草稿。',
   });
   expect(
-    (screen.getByLabelText('Markdown source') as HTMLTextAreaElement).value,
+    (screen.getByLabelText('Markdown 源码') as HTMLTextAreaElement).value,
   ).toBe('## Local unsaved');
-  expect(
-    screen.getByRole('button', { name: 'Submit for review' }),
-  ).toHaveProperty('disabled', true);
-  fireEvent.click(
-    screen.getByRole('button', { name: 'Cancel / inspect local content' }),
+  expect(screen.getByRole('button', { name: '提交审核' })).toHaveProperty(
+    'disabled',
+    true,
   );
+  fireEvent.click(screen.getByRole('button', { name: '查看本地内容' }));
   expect(
-    (screen.getByLabelText('Local Markdown to copy') as HTMLTextAreaElement)
+    (screen.getByLabelText('可复制的本地 Markdown') as HTMLTextAreaElement)
       .value,
   ).toBe('## Local unsaved');
   state.saveFailure = '';
   state.content.draft!.version = 9;
   state.content.draft!.bodyMarkdown = '## Server version';
-  fireEvent.click(
-    screen.getByRole('button', { name: 'Reload server version' }),
-  );
+  fireEvent.click(screen.getByRole('button', { name: '重新加载服务器版本' }));
   const dialog = await screen.findByRole('alertdialog');
   fireEvent.click(
-    within(dialog).getByRole('button', { name: 'Reload server version' }),
+    within(dialog).getByRole('button', { name: '重新加载服务器版本' }),
   );
   await waitFor(() =>
     expect(
-      (screen.getByLabelText('Markdown source') as HTMLTextAreaElement).value,
+      (screen.getByLabelText('Markdown 源码') as HTMLTextAreaElement).value,
     ).toBe('## Server version'),
   );
 });
@@ -169,13 +185,8 @@ it('honors server action projection rather than the account role', async () => {
   c.editorialState = 'in_review';
   const state = backend(c, me('admin'));
   mount();
-  await screen.findByRole('heading', { name: /Revision 1/ });
-  for (const label of [
-    /Submit for review/,
-    /Direct publish/,
-    /Withdraw review/,
-    /^Archive$/,
-  ])
+  await screen.findByRole('heading', { name: /版本 1/ });
+  for (const label of [/提交审核/, /更多操作/, /撤回审核/, /^归档$/])
     expect(screen.queryByRole('button', { name: label })).toBeNull();
   fireEvent.keyDown(window, { key: 's', ctrlKey: true });
   expect(state.requests.some((r) => r.method === 'PUT')).toBe(false);
@@ -205,14 +216,14 @@ it('keeps published status separate when editing the next Draft and shows review
   const state = backend(c);
   mount();
   await title();
-  expect(screen.getByText('Published in CMS · Revision 3')).toBeTruthy();
+  expect(screen.getByText('已在 CMS 发布 · v3')).toBeTruthy();
   expect(
     screen.getByRole('heading', { name: 'Clarify the example' }),
   ).toBeTruthy();
   expect(
-    (screen.getByLabelText('Markdown source') as HTMLTextAreaElement).value,
+    (screen.getByLabelText('Markdown 源码') as HTMLTextAreaElement).value,
   ).not.toContain('Clarify');
-  fireEvent.change(screen.getByLabelText('Title'), {
+  fireEvent.change(screen.getByLabelText('标题'), {
     target: { value: 'Next' },
   });
   fireEvent.keyDown(window, { key: 's', ctrlKey: true });
@@ -223,19 +234,27 @@ it('blocks route navigation with unsaved edits and clears the guard after saving
   backend();
   mount();
   fireEvent.change(await title(), { target: { value: 'Unsaved' } });
-  fireEvent.click(screen.getByRole('link', { name: 'Overview' }));
-  const dialog = await screen.findByRole('alertdialog');
-  expect(within(dialog).getByText('Leave unsaved Draft?')).toBeTruthy();
   fireEvent.click(
-    within(dialog).getByRole('button', { name: 'Stay / inspect' }),
+    within(screen.getByRole('navigation', { name: '工作台导航' })).getByRole(
+      'link',
+      { name: '工作台' },
+    ),
   );
-  expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe(
+  const dialog = await screen.findByRole('alertdialog');
+  expect(within(dialog).getByText('草稿尚未保存，确定离开？')).toBeTruthy();
+  fireEvent.click(within(dialog).getByRole('button', { name: '留在此页' }));
+  expect((screen.getByLabelText('标题') as HTMLInputElement).value).toBe(
     'Unsaved',
   );
   fireEvent.keyDown(window, { key: 's', metaKey: true });
-  await screen.findByText(/All changes saved.*version 6/);
-  fireEvent.click(screen.getByRole('link', { name: 'Overview' }));
-  await screen.findByRole('heading', { name: 'Overview' });
+  await screen.findByText(/所有修改已保存.*草稿 v6/);
+  fireEvent.click(
+    within(screen.getByRole('navigation', { name: '工作台导航' })).getByRole(
+      'link',
+      { name: '工作台' },
+    ),
+  );
+  await screen.findByRole('heading', { name: '工作台' });
   expect(screen.queryByRole('alertdialog')).toBeNull();
 });
 it('shows revision badges and restores using current Draft version without automatic conflict retry', async () => {
@@ -261,46 +280,44 @@ it('shows revision badges and restores using current Draft version without autom
   state.restoreFailure = 'content_version_conflict';
   mount();
   await title();
+  fireEvent.click(screen.getByRole('tab', { name: '版本与路径' }));
+  fireEvent.click(await screen.findByRole('button', { name: '查看版本 1' }));
   fireEvent.click(
-    await screen.findByRole('button', { name: 'View Revision 1' }),
-  );
-  fireEvent.click(
-    await screen.findByRole('button', { name: 'Restore Revision 1 to Draft' }),
+    await screen.findByRole('button', { name: '将版本 1 恢复为草稿' }),
   );
   const dialog = await screen.findByRole('alertdialog');
-  fireEvent.click(
-    within(dialog).getByRole('button', { name: 'Restore to Draft' }),
-  );
+  fireEvent.click(within(dialog).getByRole('button', { name: '恢复为草稿' }));
   await screen.findByRole('heading', {
-    name: 'Another session changed this Draft.',
+    name: '另一会话已修改此草稿。',
   });
   expect(
-    screen.getByRole('button', { name: 'Reload server version' }),
+    screen.getByRole('button', { name: '重新加载服务器版本' }),
   ).toBeTruthy();
   const writes = state.requests.filter((r) =>
     r.url.endsWith('/actions/restore'),
   );
   expect(writes).toHaveLength(1);
   expect((await writes[0].clone().json()).version).toBe(5);
-  expect(screen.getAllByText('Published in CMS').length).toBeGreaterThan(0);
+  expect(screen.getAllByText('已在 CMS 发布').length).toBeGreaterThan(0);
 });
 
 it('asks before revoking a session with unsaved work and Cancel preserves the Draft', async () => {
   const state = backend();
   mount();
   fireEvent.change(await title(), { target: { value: 'Keep my work' } });
-  fireEvent.click(screen.getByRole('button', { name: '退出登录' }));
+  fireEvent.click(screen.getByRole('button', { name: /账户菜单：/ }));
+  fireEvent.click(await screen.findByRole('menuitem', { name: '退出登录' }));
   const dialog = await screen.findByRole('alertdialog');
   expect(
     within(dialog).getByRole('heading', {
-      name: 'Log out with unsaved changes?',
+      name: '仍有未保存内容，确定退出？',
     }),
   ).toBeTruthy();
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+  fireEvent.click(within(dialog).getByRole('button', { name: '取消' }));
   expect(state.requests.some((r) => r.url.endsWith('/api/auth/logout'))).toBe(
     false,
   );
-  expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe(
+  expect((screen.getByLabelText('标题') as HTMLInputElement).value).toBe(
     'Keep my work',
   );
 });
@@ -316,11 +333,11 @@ it('does not silently replace an Admin-assigned byline and offers an explicit se
   const state = backend(c);
   mount();
   await title();
-  expect((screen.getByLabelText('Byline') as HTMLInputElement).value).toBe(
+  expect((screen.getByLabelText('署名作者') as HTMLInputElement).value).toBe(
     'Other author',
   );
   expect(state.requests.some((r) => r.method === 'PUT')).toBe(false);
-  fireEvent.click(screen.getByRole('button', { name: 'Use my byline' }));
+  fireEvent.click(screen.getByRole('button', { name: '使用我的署名' }));
   fireEvent.keyDown(window, { key: 's', ctrlKey: true });
   await waitFor(() => expect(state.content.draft!.bylineUserId).toBe(1));
 });

@@ -1,0 +1,17 @@
+---
+import { publication } from '../lib/publication/snapshot';
+import { publicPages, type PublicPage } from '../lib/publication/routes';
+import PublicationPage from '../components/PublicationPage.astro';
+export function getStaticPaths() {
+  return publicPages(publication).map((page) => ({
+    params: { path: page.path.slice(1, -1) },
+    props: { page },
+  }));
+}
+interface Props {
+  page: PublicPage;
+}
+const { page } = Astro.props;
+---
+
+<PublicationPage page={page} />

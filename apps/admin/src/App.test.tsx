@@ -128,7 +128,13 @@ function mount(path = '/profile') {
 it('shows a real GitHub login entry for logged-out visitors', async () => {
   mount();
   expect(
-    await screen.findByRole('link', { name: '使用 GitHub 登录' }),
+    // Cold lazy-route imports contend with the full parallel workspace suite.
+    // Wait for the actual login entry, not a fixed delay or a loading placeholder.
+    await screen.findByRole(
+      'link',
+      { name: '使用 GitHub 登录' },
+      { timeout: 4000 },
+    ),
   ).toHaveProperty('pathname', '/api/auth/github');
   expect(screen.queryByLabelText('密码')).toBeNull();
 });
@@ -167,10 +173,13 @@ it('drives navigation from server capabilities and approves pending users', asyn
     '/ops/monitor',
   );
   const row = (await screen.findByText('newcomer')).closest('tr')!;
-  fireEvent.change(within(row).getByRole('combobox'), {
-    target: { value: 'reviewer' },
-  });
-  fireEvent.click(within(row).getByRole('button', { name: '批准账户' }));
+  fireEvent.click(within(row).getByRole('button', { name: '审批账户' }));
+  const dialog = await screen.findByRole('dialog');
+  fireEvent.click(within(dialog).getByRole('combobox'));
+  const reviewer = await screen.findByRole('option', { name: '审核员' });
+  fireEvent.pointerDown(reviewer, { pointerType: 'mouse' });
+  fireEvent.click(reviewer);
+  fireEvent.click(within(dialog).getByRole('button', { name: '批准账户' }));
   await waitFor(() =>
     expect(
       requests.some((r) => r.url.endsWith('/users/2/actions/approve')),
@@ -185,7 +194,10 @@ it('renders last-Admin errors without hiding them', async () => {
   current = adminAccount();
   failure = 'last_admin_required';
   mount('/users');
-  fireEvent.click(await screen.findByRole('button', { name: '停用' }));
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'newcomer 的操作' }),
+  );
+  fireEvent.click(await screen.findByRole('menuitem', { name: '停用账户' }));
   fireEvent.click(await screen.findByRole('button', { name: '确认更改' }));
   expect(await screen.findByRole('alert')).toHaveProperty(
     'textContent',
@@ -197,7 +209,8 @@ it('attaches the current CSRF cookie on logout and renders API failures', async 
   const token = crypto.randomUUID();
   document.cookie = `gopheratlas_dev_csrf=${token}; Path=/`;
   mount();
-  fireEvent.click(await screen.findByRole('button', { name: '退出登录' }));
+  fireEvent.click(await screen.findByRole('button', { name: /账户菜单：/ }));
+  fireEvent.click(await screen.findByRole('menuitem', { name: '退出登录' }));
   await screen.findByRole('alert');
   const request = requests.find((r) => r.url.endsWith('/api/auth/logout'))!;
   expect(request.credentials).toBe('same-origin');

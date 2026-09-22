@@ -18,6 +18,7 @@ import (
 	"github.com/deepfurry/gopher-atlas/internal/auth"
 	dbsqlc "github.com/deepfurry/gopher-atlas/internal/database/sqlc"
 	"github.com/deepfurry/gopher-atlas/internal/fault"
+	"github.com/deepfurry/gopher-atlas/internal/markdown"
 	"github.com/deepfurry/gopher-atlas/internal/policy"
 	"github.com/deepfurry/gopher-atlas/internal/storage"
 	_ "golang.org/x/image/webp"
@@ -52,17 +53,21 @@ type Page struct {
 	NextCursor *int64  `json:"nextCursor"`
 }
 
-func Public(a dbsqlc.Asset) Summary {
-	return Summary{a.ID, PublicOrigin + "/" + a.ObjectKey, a.MimeType, a.Width, a.Height, a.ByteSize}
+func Public(a dbsqlc.Asset, policies ...markdown.Policy) Summary {
+	policy := markdown.Policy{}
+	if len(policies) > 0 {
+		policy = policies[0]
+	}
+	return Summary{a.ID, policy.AssetBaseURL() + "/" + a.ObjectKey, a.MimeType, a.Width, a.Height, a.ByteSize}
 }
-func dto(a dbsqlc.Asset, u dbsqlc.User) Asset {
+func (s *Service) dto(a dbsqlc.Asset, u dbsqlc.User) Asset {
 	var deleted *int64
 	if a.DeletedAt.Valid {
 		deleted = &a.DeletedAt.Int64
 	}
-	return Asset{Public(a), a.Sha256, a.CreatedAt, deleted, Actions{policy.CanManageAssets(u) && deleted == nil, policy.CanManageAssets(u) && deleted != nil}}
+	return Asset{Public(a, s.policy), a.Sha256, a.CreatedAt, deleted, Actions{policy.CanManageAssets(u) && deleted == nil, policy.CanManageAssets(u) && deleted != nil}}
 }
-func Cover(ctx context.Context, q *dbsqlc.Queries, id *int64) (*Summary, error) {
+func Cover(ctx context.Context, q *dbsqlc.Queries, id *int64, policies ...markdown.Policy) (*Summary, error) {
 	if id == nil {
 		return nil, nil
 	}
@@ -70,7 +75,7 @@ func Cover(ctx context.Context, q *dbsqlc.Queries, id *int64) (*Summary, error) 
 	if err != nil {
 		return nil, fault.Unavailable
 	}
-	summary := Public(a)
+	summary := Public(a, policies...)
 	return &summary, nil
 }
 func ValidateCover(ctx context.Context, q *dbsqlc.Queries, id *int64) error {
@@ -126,13 +131,18 @@ func Inspect(data []byte) (ImageInfo, error) {
 }
 
 type Service struct {
+	policy markdown.Policy
 	db     *sql.DB
 	store  storage.ObjectStore
 	bucket string
 }
 
-func New(db *sql.DB, store storage.ObjectStore, bucket string) *Service {
-	return &Service{db, store, bucket}
+func New(db *sql.DB, store storage.ObjectStore, bucket string, policies ...markdown.Policy) *Service {
+	p := markdown.Policy{}
+	if len(policies) > 0 {
+		p = policies[0]
+	}
+	return &Service{db: db, store: store, bucket: bucket, policy: p}
 }
 func (s *Service) transact(ctx context.Context, p auth.Principal, fn func(*dbsqlc.Queries, dbsqlc.User, int64) error) error {
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -171,7 +181,7 @@ func (s *Service) List(ctx context.Context, p auth.Principal, after int64, delet
 			return fault.Unavailable
 		}
 		for _, r := range rows {
-			result.Items = append(result.Items, dto(r, u))
+			result.Items = append(result.Items, s.dto(r, u))
 		}
 		if len(rows) == 100 {
 			result.NextCursor = &rows[len(rows)-1].ID
@@ -206,7 +216,7 @@ func (s *Service) Upload(ctx context.Context, p auth.Principal, data []byte) (As
 			if a.DeletedAt.Valid {
 				return fault.AssetDeleted
 			}
-			result = dto(a, u)
+			result = s.dto(a, u)
 			return nil
 		}
 		if !errors.Is(err, sql.ErrNoRows) {
@@ -216,7 +226,7 @@ func (s *Service) Upload(ctx context.Context, p auth.Principal, data []byte) (As
 		if err != nil {
 			return fault.Unavailable
 		}
-		result = dto(a, u)
+		result = s.dto(a, u)
 		return audit.Append(ctx, q, audit.Event{ActorID: u.ID, Action: "asset.uploaded", EntityType: "asset", EntityID: a.ID}, now)
 	})
 	return result, err
@@ -235,14 +245,14 @@ func (s *Service) SetDeleted(ctx context.Context, p auth.Principal, id int64, de
 			return fault.Unavailable
 		}
 		if a.DeletedAt.Valid == deleted {
-			result = dto(a, u)
+			result = s.dto(a, u)
 			return nil
 		}
 		a, err = q.SetAssetDeleted(ctx, dbsqlc.SetAssetDeletedParams{ID: id, DeletedAt: sql.NullInt64{Int64: now, Valid: deleted}})
 		if err != nil {
 			return fault.Unavailable
 		}
-		result = dto(a, u)
+		result = s.dto(a, u)
 		action := "asset.restored"
 		if deleted {
 			action = "asset.deleted"

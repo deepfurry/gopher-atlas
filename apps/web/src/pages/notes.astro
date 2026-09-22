@@ -1,0 +1,9 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ProductDirectory from '../components/ProductDirectory.astro';
+import { publication } from '../lib/publication/snapshot';
+---
+
+<Layout title="学习随笔" description="使用 Golang 时遇到的问题与学习心得。"
+  ><ProductDirectory kind="notes" publication={publication} /></Layout
+>

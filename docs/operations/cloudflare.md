@@ -1,57 +1,57 @@
-# First staging: Cloudflare Workers Builds (manual, not executed by P0-4)
+# Production Cloudflare Workers Builds
 
-Keep `apps/web/wrangler.jsonc` name **gopheratlas-web**. Build context is repository
-root; initial staging may build **dev** by explicit user request. Future release
-snapshots use main. This phase does not synchronize main or change production DNS.
+Environments are Development and Production. Development uses `dev`, local
+fixtures and fake dependencies. Production builds **main**; non-production builds
+are disabled. These are user-reported deployed facts (2026-09-11), not settings
+changed by the implementation agent.
 
-## Manual configuration checklist
+- Worker: **gopheratlas-web**, unchanged in `apps/web/wrangler.jsonc`.
+- `gopheratlas-content`: private R2, no public domain or browser access.
+- `gopheratlas-assets`: `https://assets.gopheratlas.com`.
+- Web Build: separate content-bucket **read-only** credential.
+- CMS: assets/content **read/write** credential and Production Deploy Hook.
 
-1. Review this implementation and back up the private SQLite database. Apply
-   migration 00003 explicitly before starting the matching CMS/Admin binary.
-2. Prepare separate assets/content R2 buckets. Content remains private: no public
-   domain, r2.dev or broad CORS. Configure the controlled assets origin
-   `https://assets.gopheratlas.com` separately; do not repoint gopheratlas.com.
-   CMS image validation intentionally allows only this controlled assets origin.
-3. Issue a bucket-scoped CMS RW S3 credential for both buckets. Put only on the
-   private CMS host: R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
-   R2_ASSETS_BUCKET, R2_CONTENT_BUCKET, R2_ASSETS_PUBLIC_URL,
-   CLOUDFLARE_DEPLOY_HOOK_URL and PUBLIC_SITE_URL. The last value is the staging
-   Worker URL. All eight are required in production, alongside identity settings.
-4. Connect Workers Builds to the repository/dev. Use pinned Node 24.15.0 and pnpm
-   12.3.4. Build command from repository root:
-   `pnpm install --frozen-lockfile && pnpm --filter @gopheratlas/web build`.
-   Configure the Workers deployment command to use the existing Wrangler config:
-   `pnpm exec wrangler deploy --config apps/web/wrangler.jsonc` in the Cloudflare
-   environment where Wrangler is supplied. Do not add a runtime CMS dependency.
-5. Issue a separate **read-only content-bucket** credential for Web builds. Build
-   Secrets: CONTENT_R2_ACCESS_KEY_ID, CONTENT_R2_SECRET_ACCESS_KEY. Build Variables:
-   CONTENT_R2_ENDPOINT, CONTENT_R2_BUCKET=gopheratlas-content. Never configure
-   CONTENT_SNAPSHOT_FILE there; no silent fixture fallback exists. CMS RW keys
-   must never be copied into build/browser environment. Do not prefix secrets
-   VITE_/PUBLIC_. Hook URL is a CMS-only secret.
-6. Create the staging Deploy Hook and store it only in CMS process configuration.
-   Initial builds before the first valid latest.json intentionally fail. Once
-   configured, a CMS public mutation creates the first generation; the worker
-   uploads snapshot/latest before triggering a build. If earlier offline jobs
-   exist, starting a configured worker coalesces and processes the newest one.
-7. In private Admin, upload a harmless image, choose a cover/insert with alt, and
-   publish a small staging Post. Check job transitions, immutable objects and
-   metadata/cache policy. The first published snapshot may contain content but
-   P0-4 public pages still show the bootstrap interface (P0-5 renders content).
-8. Confirm `/.well-known/gopheratlas-build.json` on the staging Worker: generation
-   and snapshotSha256 match latest.json and the CMS desired generation. Hook 2xx
-   only means accepted. Check Publication status and a second mutation/rebuild.
-9. Test a controlled failure/retry and restart. Never print credentials, Hook URL,
-   raw provider responses, OAuth values or browser cookies in a validation report.
+Repository-root Build command:
 
-No steps above were executed against real Cloudflare/R2 during implementation.
-No dashboard/DNS change or live deployment is implied by passing local checks.
+```sh
+pnpm --filter @gopheratlas/web build
+```
+
+Configured deploy command (operator/Cloudflare only):
+
+```sh
+npx wrangler deploy --config apps/web/wrangler.jsonc
+```
+
+Use pinned Node 24.15.0 and pnpm 12.3.4; installation must preserve the frozen
+lockfile. Build Secrets are CONTENT_R2_ACCESS_KEY_ID and
+CONTENT_R2_SECRET_ACCESS_KEY. Build Variables are CONTENT_R2_ENDPOINT and
+CONTENT_R2_BUCKET=gopheratlas-content. Never set CONTENT_SNAPSHOT_FILE in
+Production, prefix credentials with PUBLIC_/VITE_, or reuse CMS RW credentials.
+The Hook belongs only in the CMS environment file. PUBLIC_SITE_URL points at the
+current Production Worker origin; binding gopheratlas.com is a separate P0-6 task.
+
+## Acceptance still to perform
+
+Real CMS login, health/readiness and immutable Asset upload/read have succeeded.
+The first real generation → snapshot → latest → Hook → build marker has **not**
+yet been manually accepted. A Hook 2xx means accepted, not deployed. In a separately
+authorized Production run, compare the marker generation/hash with the selected
+snapshot and CMS desired generation, then inspect public routes and Publication
+status. Initial builds without valid latest.json fail closed. A configured CMS
+can immediately process existing queued jobs; never use it as a local smoke test.
+
+No implementation check accesses real R2/Hook/OAuth or changes Cloudflare/DNS.
+Legacy import, route preservation, backup/restore drill, first imported generation
+and final gopheratlas.com cutover belong to P0-6.
 
 ## Local build
 
-From root, explicitly choose the committed synthetic fixture with an absolute path
-in CONTENT_SNAPSHOT_FILE, then run `pnpm --filter @gopheratlas/web build`.
-`make check` selects it automatically and scans synthetic secrets in both output
-bundles. The loader writes ignored `apps/web/.generated/published-snapshot.json`
-and verifies full schema v1, graph and hash. The final marker has only schemaVersion,
-generation, snapshotSha256, builtAt, commitSha and buildId.
+From root, set CONTENT_SNAPSHOT_FILE to the absolute path of
+`tests/fixtures/content-snapshot-v1.json`, then run the same Web build command.
+`make check` selects it explicitly and scans synthetic secrets in output.
+The loader validates pointer/hash/schema/graph before writing ignored
+`apps/web/.generated/published-snapshot.json`. Missing or corrupt input fails;
+there is no automatic fixture fallback and no private credential in Astro/browser
+code. The public marker contains only schemaVersion, generation, snapshotSha256,
+builtAt, commitSha and buildId.

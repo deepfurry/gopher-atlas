@@ -1,0 +1,81 @@
+---
+import { displayDate, words, localized, type Locale } from '../lib/i18n';
+import { type Publication } from '../lib/publication/indexes';
+import type { Content } from '../lib/publication/types';
+interface Props {
+  item: Content;
+  group?: Publication['groups'][number];
+  locale: Locale;
+}
+const { item, group, locale } = Astro.props,
+  t = words[locale];
+const notes = group?.content ?? [],
+  index = notes.findIndex((note) => note.id === item.id);
+const previous = notes[index - 1],
+  next = index >= 0 ? notes[index + 1] : undefined;
+const start = Math.max(0, Math.min(index - 1, notes.length - 3));
+const nearby = notes.slice(start, start + 3);
+---
+
+<aside class="note-navigation" data-pagefind-ignore>
+  <div class="note-navigation-bar">
+    <span class="note-group-name">{group?.name}</span>
+    <a class="btn" href={localized('/notes/', locale)}>{t.back}</a>
+    <details class="note-toolbar">
+      <summary aria-label={t.groupContents} title={t.groupContents}>
+        <span class="select-arrow"
+          ><svg
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden="true"
+            ><path
+              d="M3.25 5.75 8 10.5l4.75-4.75"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"></path></svg
+          ></span
+        >
+      </summary>
+      <nav aria-label={t.noteNavigation}>
+        <div class="note-navigation-steps">
+          {
+            previous ? (
+              <a href={localized(previous.canonicalPath, locale)}>
+                {t.previousNote}
+              </a>
+            ) : (
+              <span aria-disabled="true">{t.previousNote}</span>
+            )
+          }
+          <span>{Math.max(1, index + 1)}/{Math.max(1, notes.length)}</span>
+          {
+            next ? (
+              <a href={localized(next.canonicalPath, locale)}>{t.nextNote}</a>
+            ) : (
+              <span aria-disabled="true">{t.nextNote}</span>
+            )
+          }
+        </div>
+        <div class="reading-links">
+          {
+            nearby.map((note) => (
+              <a
+                class="reading-link"
+                href={localized(note.canonicalPath, locale)}
+                aria-current={note.id === item.id ? 'page' : undefined}
+              >
+                <>
+                  <strong>{note.title}</strong>
+                  <small>{displayDate(note.firstPublishedAt, locale)}</small>
+                </>
+              </a>
+            ))
+          }
+        </div>
+      </nav>
+    </details>
+  </div>
+</aside>

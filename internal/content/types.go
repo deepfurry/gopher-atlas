@@ -54,6 +54,7 @@ type Draft struct {
 	UpdatedAt            int64 `json:"updatedAt"`
 }
 type Summary struct {
+	Product             *ProductSummary       `json:"product,omitempty"`
 	Actions             policy.ContentActions `json:"actions"`
 	Owner               auth.AuthorSummary    `json:"owner"`
 	Byline              auth.AuthorSummary    `json:"byline"`

@@ -1,0 +1,5 @@
+GopherAtlas logo, Sora and Plus Jakarta Sans font files, and the original public
+visual language are carried forward from https://github.com/gofurry/gopher-atlas
+commit e1a623b20389422421a7d808134ee093b28b491d.
+Original project: Copyright (c) 2026 gofurry, MIT License.
+See /licenses/legacy-MIT.txt and the individual font licenses.

@@ -192,6 +192,10 @@ func (s *Service) process(ctx context.Context, job dbsqlc.PublicationJob) error 
 	if err != nil || n != 1 {
 		return fault.Unavailable
 	}
-	s.logger.Info("publication build triggered", zap.Int64("generation", job.Generation), zap.Int64("job_id", job.ID))
+	message := "publication build triggered"
+	if s.cfg.Mode == "local" {
+		message = "local publication snapshot ready"
+	}
+	s.logger.Info(message, zap.Int64("generation", job.Generation), zap.Int64("job_id", job.ID))
 	return nil
 }

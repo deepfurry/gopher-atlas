@@ -6,9 +6,11 @@ The public and control planes have separate availability and trust boundaries:
 Private CMS → SQLite generation/job → private R2 snapshot/latest → Hook → Astro → marker
 ```
 
-P0-4 adds immutable assets, snapshot v1 and durable publication. Public builds
-validated input and a generation marker; full public content rendering, legacy
-import and real staging/deployment remain deferred.
+P0-4 provides immutable assets, snapshot v1 and durable publication. P0-5 adds
+static reader routes/search/SEO over that input, preserving the generation marker.
+Development uses dev, persistent local SQLite and FileStore; Production uses main and private R2.
+The manually installed CMS uses systemd and Tailscale Serve; see operations docs.
+P0-5.5 adds Development legacy import and product realignment; Production migration and DNS cutover remain P0-6.
 
 Dependency direction:
 
@@ -18,7 +20,12 @@ Dependency direction:
   owns server caches; RHF plus one autosave queue owns the in-memory Draft.
   Immutable review endpoints never return a Draft, including for Admin.
   Author/owner/byline/actor labels are batched on the server.
-- `cmd` constructs config, one logger, SQLite pool, OAuth/auth, R2 adapter and a joined publication worker.
+  ADR 0010 defines the Chinese-only workspace: `components/admin` owns navigation,
+  search and creation; `components/ui` wraps Base UI with Phosphor icons; feature
+  pages share presentation mappings and layered styles. Theme/sidebar preferences
+  alone persist in browser storage. Search/counts remain bounded existing reads.
+- `cmd` constructs config, one logger, SQLite pool, OAuth/auth, the environment's
+  FileStore or R2 adapter, and a joined publication worker. Both use the same services.
 - `internal/app` assembles HTTP middleware; `internal/http` translates transport;
   `internal/auth` owns identity/session transactions and calls sqlc directly.
 - `internal/content` owns Draft/Revision/Review/Tag/Route transactions and bounded
@@ -73,3 +80,32 @@ in-process fence closes the stale latest PUT race: services acquire it before
 BEGIN; worker acquires it around latest/Hook without a DB transaction.
 Asset upload validates/uploads before a short reauthorized row/Audit transaction.
 The Web loader keeps RO credentials in Node; Astro env loading is disabled.
+
+Development-only scripts load root .env with process precedence. dev-web reads
+local storage/content/latest.json; fixture input is rejected, external storage
+credentials are ignored. Production preparation still uses independent RO R2
+input and never enables local fallback or dotenv. Private config is removed before launching Astro.
+The make dev supervisor builds an unembedded CMS, prepares Public input, then owns
+the three direct service processes and cleans their descendants on exit/signal.
+ADR 0011 adds a serialized generation watcher and named Public-only restarts;
+old inputs survive failed refreshes. ADR 0013 changes the watcher source to files.
+No local snapshot starts an explicitly empty Development publication and waits.
+The dev-only preview route receives an ephemeral POST projection from Admin after
+autosave and uses the actual Public renderer. It has no CMS/storage dependency,
+no persisted preview data, and is absent from Production builds.
+
+P0-5 Public uses `src/lib/publication` for schema-validated maps, strict references,
+stable sorting, pages and direct redirects. A static catch-all dispatches exact
+canonical/derived paths to Public templates; collections use 24-item static pages.
+Source-owned home/about/contribute/directories/search remain ordinary Astro pages.
+The same shared Markdown/Shiki pipeline renders body and biography, without fetch.
+Browser code handles chrome, static in-page filters/pagination, reading controls and Note-only giscus; search lazily loads Pagefind and uses safe text results.
+RSS, sitemap, redirects and marker are build output. No Public request touches
+CMS/SQLite/private R2. See ADR 0009 and scripts/check-public-build.mjs.
+
+ADR 0012 aligns normal UX to Curated/Topic/Note while preserving Post compatibility.
+The optional Content list product projection batches safe metadata and inverse
+Topics without changing visibility. Importer plan reproduces legacy loader/slug/
+date/order semantics; offline apply uses existing services, not a parallel CMS.
+No migration or generation semantics change. Snapshot v1 is expressly tightened
+before cutover, with matching exporter/build consumer deployment required.

@@ -1,0 +1,92 @@
+.w-md-editor {
+  --color-canvas-default: var(--background);
+  --color-fg-default: var(--foreground);
+  --color-border-default: var(--border);
+  --color-neutral-muted: var(--muted);
+  box-shadow: none !important;
+  border: 1px solid var(--border);
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+}
+.w-md-editor .w-md-editor-toolbar {
+  border-color: var(--border);
+  background: var(--muted);
+}
+.w-md-editor .w-md-editor-toolbar button {
+  min-width: 28px;
+  min-height: 28px;
+  color: var(--foreground);
+}
+.w-md-editor .w-md-editor-text {
+  font:
+    14px/1.65 ui-monospace,
+    monospace;
+}
+.w-md-editor textarea {
+  color: var(--foreground) !important;
+  -webkit-text-fill-color: var(--foreground) !important;
+}
+.markdown-preview {
+  padding: 20px;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  line-height: 1.75;
+}
+.markdown-preview h2 {
+  font-size: 20px;
+  margin: 1.4em 0 0.5em;
+}
+.markdown-preview h3 {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 1.2em 0 0.5em;
+}
+.markdown-preview p {
+  margin: 0.8em 0;
+}
+.markdown-preview ul,
+.markdown-preview ol {
+  padding-left: 1.6em;
+  margin-block: 0.8em;
+}
+.markdown-preview ul {
+  list-style: disc;
+}
+.markdown-preview ol {
+  list-style: decimal;
+}
+.markdown-preview blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 14px;
+  color: var(--muted-foreground);
+}
+.markdown-preview pre {
+  overflow: auto;
+  background: var(--muted);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+.markdown-preview code {
+  font:
+    12px/1.7 ui-monospace,
+    monospace;
+}
+.markdown-preview img {
+  max-width: 100%;
+  height: auto;
+}
+.markdown-preview table {
+  min-width: 0;
+  display: block;
+  overflow: auto;
+}
+.markdown-warning,
+.markdown-feedback {
+  color: var(--error);
+  font-size: 12px;
+}
+.markdown-feedback ul {
+  list-style: disc;
+  margin: 12px 0;
+  padding-left: 18px;
+}

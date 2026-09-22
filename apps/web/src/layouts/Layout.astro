@@ -1,49 +1,244 @@
 ---
 import '../styles/global.css';
+import {
+  words,
+  localeOf,
+  alternateChrome,
+  chromePaths,
+  withoutLocale,
+  type Locale,
+} from '../lib/i18n';
 interface Props {
   title: string;
   description?: string;
+  canonical?: string;
+  lang?: string;
+  locale?: Locale;
+  image?: string;
+  imageAlt?: string;
+  ogType?: 'website' | 'article';
+  searchIndex?: boolean;
+  noindex?: boolean;
+  home?: boolean;
 }
 const {
   title,
-  description = 'GopherAtlas：一份持续生长的 Go 技术刊物与知识地图。',
+  description = '高质量 Go 技术文章精选导航',
+  canonical: path = chromePaths.includes(withoutLocale(Astro.url.pathname))
+    ? Astro.url.pathname
+    : withoutLocale(Astro.url.pathname),
+  locale = localeOf(Astro.url.pathname),
+  lang = locale === 'zh' ? 'zh-CN' : 'en',
+  image,
+  imageAlt = '',
+  ogType = 'website',
+  searchIndex = false,
+  noindex = false,
+  home = false,
 } = Astro.props;
-const canonical = new URL(Astro.url.pathname, Astro.site);
+const t = words[locale],
+  canonical = new URL(path, Astro.site);
+const base = withoutLocale(Astro.url.pathname);
+const links = [
+  ['/', t.home],
+  ['/articles/', t.articles],
+  ['/topics/', t.topics],
+  ['/notes/', t.notes],
+];
+const localized = (href: string) => (locale === 'en' ? `/en${href}` : href);
+const github = 'https://github.com/deepfurry/gopher-atlas';
+const year = new Date().getFullYear();
+const copyrightYears = year > 2026 ? `2026-${year}` : '2026';
 ---
 
 <!doctype html>
-<html lang="zh-CN">
+<html lang={lang} data-locale={locale} data-theme="dark">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content={description} />
-    <title>{title} · GopherAtlas</title>
+    <meta charset="utf-8" /><meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <meta name="description" content={description} /><title>
+      {title} · GopherAtlas
+    </title>
     <link rel="canonical" href={canonical} />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {
+      chromePaths.includes(base) && (
+        <>
+          <>
+            <link
+              rel="alternate"
+              hreflang="zh-CN"
+              href={new URL(base, Astro.site)}
+            />
+            <link
+              rel="alternate"
+              hreflang="en"
+              href={new URL(`/en${base}`, Astro.site)}
+            />
+            <link
+              rel="alternate"
+              hreflang="x-default"
+              href={new URL(base, Astro.site)}
+            />
+          </>
+        </>
+      )
+    }
+    <meta property="og:title" content={title} /><meta
+      property="og:description"
+      content={description}
+    /><meta property="og:url" content={canonical} /><meta
+      property="og:type"
+      content={ogType}
+    /><meta property="og:site_name" content="GopherAtlas" />
+    {
+      image && (
+        <>
+          <>
+            <meta property="og:image" content={image} />
+            <meta property="og:image:alt" content={imageAlt} />
+          </>
+        </>
+      )
+    }
+    {noindex && <meta name="robots" content="noindex, follow" />}
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="icon" href="/images/logo.png" type="image/png" />
     <link
       rel="alternate"
       type="application/rss+xml"
       title="GopherAtlas"
       href="/rss.xml"
     />
+    <script is:inline>
+      try {
+        document.documentElement.dataset.theme =
+          localStorage.getItem('gopheratlas-theme') === 'light'
+            ? 'light'
+            : 'dark';
+      } catch {
+        /* Optional theme preference. */
+      }
+    </script>
   </head>
-  <body>
-    <a class="skip-link" href="#main">跳至正文</a>
-    <div class="shell">
-      <header class="masthead">
-        <a class="brand" href="/"
-          >GopherAtlas<span class="text-accent"> /</span></a
+  <body class:list={{ 'home-page': home }}>
+    <a class="skip-link" href="#main">{t.skip}</a>
+    <header class="site-header">
+      <div class="page-shell header-inner">
+        <a class="brand" href={localized('/')}
+          ><img src="/images/logo.png" width="36" height="36" alt="" /><span
+            ><strong>GopherAtlas</strong><small>{t.subtitle}</small></span
+          ></a
         >
-        <nav aria-label="主导航">
-          <a href="/about/">关于</a><a href="/contribute/">参与贡献</a>
+        <button
+          class="menu-toggle"
+          data-menu-toggle
+          aria-expanded="false"
+          aria-controls="primary-navigation">{t.menu}</button
+        >
+        <nav
+          id="primary-navigation"
+          aria-label={locale === 'zh' ? '主导航' : 'Main navigation'}
+        >
+          {
+            links.map(([href, label]) => (
+              <a
+                href={localized(href)}
+                aria-current={
+                  (href === '/' ? base === '/' : base.startsWith(href))
+                    ? 'page'
+                    : undefined
+                }
+              >
+                {label}
+              </a>
+            ))
+          }
+          <a
+            class="github-link"
+            href={github}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub"
+            ><img
+              class="dark-icon"
+              src="/images/logo-github-light.svg"
+              width="36"
+              height="36"
+              alt=""
+            /><img
+              class="light-icon"
+              src="/images/logo-github-dark.svg"
+              width="36"
+              height="36"
+              alt=""
+            /></a
+          >
+          <button
+            class="theme-toggle"
+            data-theme-toggle
+            aria-label={t.theme}
+            title={t.theme}
+            ><img
+              class="dark-icon"
+              src="/images/sun.svg"
+              width="20"
+              height="20"
+              alt=""
+            /><img
+              class="light-icon"
+              src="/images/moon.svg"
+              width="20"
+              height="20"
+              alt=""
+            /></button
+          >
+          {
+            !noindex && (
+              <a
+                class="language-link"
+                data-language-link
+                href={alternateChrome(
+                  Astro.url.pathname,
+                  locale === 'zh' ? 'en' : 'zh',
+                )}
+                lang={locale === 'zh' ? 'en' : 'zh-CN'}
+              >
+                {locale === 'zh' ? 'EN' : '中'}
+              </a>
+            )
+          }
         </nav>
-      </header>
-      <main id="main" data-pagefind-body><slot /></main>
-      <footer>
-        <span>Technical Journal × Knowledge Atlas</span><a href="/rss.xml"
-          >RSS 订阅</a
+      </div>
+    </header>
+    <main
+      id="main"
+      tabindex="-1"
+      class="page-shell"
+      data-pagefind-body={searchIndex ? '' : undefined}
+      data-pagefind-ignore={searchIndex ? undefined : 'all'}
+    >
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="page-shell footer-inner">
+        <p>Copyright {copyrightYears} DeepFurry</p><nav
+          aria-label={locale === 'zh' ? '页脚导航' : 'Footer'}
         >
-      </footer>
-    </div>
+          <a href={localized('/contribute/')}>{t.contribute}</a><a
+            href={localized('/about/')}>{t.about}</a
+          ><a href={localized('/search/')}>{t.search}</a><a href="/rss.xml"
+            >RSS</a
+          >
+        </nav>
+      </div>
+    </footer>
+    <button class="back-top" data-back-top hidden aria-label={t.top}>↑</button>
+    <p class="public-toast" role="status" aria-live="polite" data-toast></p>
+    <script>
+      import { mountChrome } from '../lib/chrome';
+      mountChrome();
+    </script>
   </body>
 </html>

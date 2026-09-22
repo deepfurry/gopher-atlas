@@ -4,7 +4,7 @@ import { client, unwrap, ErrorNotice, APIError } from '@/shared/api';
 import { usePages, useEditorialRefresh } from '@/shared/query';
 import { LoadMore } from '@/shared/pagination';
 import { useConfirm } from '@/shared/confirm';
-import { date, name } from '@/shared/status';
+import { date, name, decisions } from '@/shared/status';
 import { Button } from '@/components/ui/button';
 import { contentKey, type Content } from './api';
 import { RevisionView } from './revision-view';
@@ -54,10 +54,10 @@ export function RevisionHistory({
       const version = await flush();
       if (
         !(await confirm({
-          title: `Restore Revision ${no} to Draft?`,
+          title: `将版本 ${no} 恢复为草稿？`,
           description:
-            'Copies this immutable snapshot into the current Draft. The published pointer and revision history remain unchanged.',
-          confirm: 'Restore to Draft',
+            '将此固定版本复制到当前草稿。当前发布版本与历史记录保持不变。',
+          confirm: '恢复为草稿',
         }))
       )
         return null;
@@ -84,35 +84,35 @@ export function RevisionHistory({
         cache.setQueryData(contentKey(content.id), result);
         onRestored(result);
         await refresh();
-        toast.success('Revision restored to Draft.');
+        toast.success('历史版本已恢复为草稿。');
       }
     },
   });
   return (
     <section className="workspace-section">
-      <h2>Revision history</h2>
+      <h2>版本历史</h2>
       <ErrorNotice error={list.error} />
       <ul className="revision-list">
         {list.items.map((r) => (
           <li key={r.id}>
             <Button variant="outline" onClick={() => setNo(r.revisionNo)}>
-              View Revision {r.revisionNo}
+              查看版本 {r.revisionNo}
             </Button>
             <span>
               {date(r.createdAt)} · {name(r.creator)} / {name(r.byline)}
             </span>
-            {r.pending && <span className="badge">Pending</span>}
+            {r.pending && <span className="badge">待审核</span>}
             {r.published && (
-              <span className="badge published">Published in CMS</span>
+              <span className="badge published">已在 CMS 发布</span>
             )}
             {r.reviewDecision && (
-              <span className="badge">{r.reviewDecision}</span>
+              <span className="badge">{decisions[r.reviewDecision]}</span>
             )}
           </li>
         ))}
       </ul>
       {!list.isPending && !list.items.length && (
-        <p>No revisions yet. Submit or direct publish creates a snapshot.</p>
+        <p>尚无历史版本。提交审核或直接发布时会创建固定版本。</p>
       )}
       <LoadMore {...list} />
       <ErrorNotice error={view.error} />
@@ -124,7 +124,7 @@ export function RevisionHistory({
               disabled={busy || restore.isPending}
               onClick={() => restore.mutate()}
             >
-              Restore Revision {no} to Draft
+              将版本 {no} 恢复为草稿
             </Button>
           )}
           <ErrorNotice error={restore.error} />
@@ -144,23 +144,21 @@ export function RouteHistory({ id }: { id: number }) {
   );
   return (
     <section className="workspace-section">
-      <h2>Route history</h2>
+      <h2>路径历史</h2>
       <ErrorNotice error={routes.error} />
       <ul className="route-history">
         {routes.items.map((route) => (
           <li key={route.path}>
             <code>{route.path}</code>
             <span className="badge">
-              {route.kind === 'canonical' ? 'Canonical' : 'Redirect'}
+              {route.kind === 'canonical' ? '主路径' : '重定向'}
             </span>
-            <span className="caption">Reserved historical path</span>
+            <span className="caption">永久保留的历史路径</span>
           </li>
         ))}
       </ul>
       {!routes.items.length && (
-        <p className="caption">
-          The first CMS publication reserves a canonical route.
-        </p>
+        <p className="caption">首次在 CMS 发布时会确定主路径。</p>
       )}
       <LoadMore {...routes} />
     </section>

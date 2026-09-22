@@ -5,10 +5,22 @@ import { client, unwrap, APIError, type Schema } from '@/shared/api';
 import { Login, Logout } from '@/app/auth';
 import { MeContext } from '@/app/context';
 import { Shell } from '@/app/shell';
-import { ThemeProvider } from '@/app/theme';
+import { ThemeProvider, useTheme } from '@/app/theme';
 import { ConfirmProvider } from '@/shared/confirm';
 import { Button } from '@/components/ui/button';
 import { LeaveGuardProvider } from '@/shared/leave-guard';
+function Notifications() {
+  const { resolved } = useTheme();
+  return (
+    <Toaster
+      position="bottom-right"
+      theme={resolved as 'light' | 'dark'}
+      containerAriaLabel="通知"
+      closeButton
+      toastOptions={{ closeButtonAriaLabel: '关闭通知' }}
+    />
+  );
+}
 export function App() {
   const cache = useQueryClient();
   const [expired, setExpired] = useState(false);
@@ -81,7 +93,7 @@ export function App() {
             跳至主内容
           </a>
           {body}
-          <Toaster position="bottom-right" richColors />
+          <Notifications />
         </LeaveGuardProvider>
       </ConfirmProvider>
     </ThemeProvider>

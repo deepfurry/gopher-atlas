@@ -12,7 +12,7 @@ import (
 	"github.com/deepfurry/gopher-atlas/internal/policy"
 )
 
-func loadDraft(ctx context.Context, q *dbsqlc.Queries, id int64) (Draft, error) {
+func (s *Service) loadDraft(ctx context.Context, q *dbsqlc.Queries, id int64) (Draft, error) {
 	d, err := q.GetDraft(ctx, id)
 	if err != nil {
 		return Draft{}, dbError(err)
@@ -29,18 +29,18 @@ func loadDraft(ctx context.Context, q *dbsqlc.Queries, id int64) (Draft, error) 
 	for _, e := range entries {
 		topic = append(topic, TopicEntry{e.TargetContentID})
 	}
-	cover, err := assets.Cover(ctx, q, pointer(d.CoverAssetID))
+	cover, err := assets.Cover(ctx, q, pointer(d.CoverAssetID), s.assetPolicy)
 	if err != nil {
 		return Draft{}, err
 	}
 	return Draft{CoverAsset: cover, DraftInput: DraftInput{Version: d.Version, Fields: draftFields(d), Relations: Relations{tags, topic}},
 		PayloadSchemaVersion: d.PayloadSchemaVersion, UpdatedBy: d.UpdatedBy, UpdatedAt: d.UpdatedAt}, nil
 }
-func loadRevision(ctx context.Context, q *dbsqlc.Queries, c dbsqlc.ContentItem, r dbsqlc.ContentRevision) (Revision, error) {
+func (s *Service) loadRevision(ctx context.Context, q *dbsqlc.Queries, c dbsqlc.ContentItem, r dbsqlc.ContentRevision) (Revision, error) {
 	result := Revision{ID: r.ID, ContentID: r.ContentID, RevisionNo: r.RevisionNo, Fields: revisionFields(r), PayloadSchemaVersion: r.PayloadSchemaVersion,
 		CreatedBy: r.CreatedBy, CreatedAt: r.CreatedAt, Pending: c.PendingReviewRevisionID.Valid && c.PendingReviewRevisionID.Int64 == r.ID,
 		Published: c.PublishedRevisionID.Valid && c.PublishedRevisionID.Int64 == r.ID}
-	cover, err := assets.Cover(ctx, q, pointer(r.CoverAssetID))
+	cover, err := assets.Cover(ctx, q, pointer(r.CoverAssetID), s.assetPolicy)
 	if err != nil {
 		return result, err
 	}
@@ -68,13 +68,13 @@ func loadRevision(ctx context.Context, q *dbsqlc.Queries, c dbsqlc.ContentItem, 
 	}
 	return result, nil
 }
-func detail(ctx context.Context, q *dbsqlc.Queries, u dbsqlc.User, c dbsqlc.ContentItem) (Detail, error) {
+func (s *Service) detail(ctx context.Context, q *dbsqlc.Queries, u dbsqlc.User, c dbsqlc.ContentItem) (Detail, error) {
 	result := Detail{Summary: summary(c, ""), Routes: []Route{}}
 	if !policy.CanViewContent(u, c) {
 		return result, fault.Permission
 	}
 	if policy.CanEditDraft(u, c) {
-		d, err := loadDraft(ctx, q, c.ID)
+		d, err := s.loadDraft(ctx, q, c.ID)
 		if err != nil {
 			return result, err
 		}
@@ -86,7 +86,7 @@ func detail(ctx context.Context, q *dbsqlc.Queries, u dbsqlc.User, c dbsqlc.Cont
 		if err != nil {
 			return result, dbError(err)
 		}
-		rev, err := loadRevision(ctx, q, c, r)
+		rev, err := s.loadRevision(ctx, q, c, r)
 		if err != nil {
 			return result, err
 		}
@@ -142,7 +142,7 @@ func (s *Service) Get(ctx context.Context, actor auth.Principal, id int64) (Deta
 		if err != nil {
 			return dbError(err)
 		}
-		result, err = detail(ctx, q, u, c)
+		result, err = s.detail(ctx, q, u, c)
 		return err
 	})
 	return result, err
@@ -186,7 +186,10 @@ func (s *Service) List(ctx context.Context, actor auth.Principal, after int64, a
 		if len(rows) == PageSize {
 			result.NextCursor = &rows[len(rows)-1].ID
 		}
-		return enrichSummaries(ctx, q, result.Items)
+		if err := enrichSummaries(ctx, q, result.Items); err != nil {
+			return err
+		}
+		return enrichProducts(ctx, q, u, result.Items)
 	})
 	return result, err
 }
@@ -251,7 +254,7 @@ func (s *Service) Revision(ctx context.Context, actor auth.Principal, id, no int
 		if !policy.CanEditDraft(u, c) && r.ID != c.PendingReviewRevisionID.Int64 {
 			return fault.Permission
 		}
-		result, err = loadRevision(ctx, q, c, r)
+		result, err = s.loadRevision(ctx, q, c, r)
 		if err != nil {
 			return err
 		}

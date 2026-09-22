@@ -1,10 +1,11 @@
 # GopherAtlas agent entry point
 
 GopherAtlas is a Go knowledge atlas and multi-author Markdown publication.
-This repository implements **P0-4: Assets & Publication Pipeline**, on the existing runtime/editorial UX.
+This repository implements **P0-5.5: Product Realignment & Legacy-Ready Rebuild**, on the existing publication pipeline.
 During early development the user authorizes work on clean, synchronized `dev`;
-commit/push there within task authorization. Never modify `main`, the future
-release snapshot. Real staging/deployment requires a separate request.
+commit/push there within task authorization. Never modify `main`, the Production
+release snapshot. Development and Production are the only environments.
+Production operations require a separate request; use no production credentials.
 
 Read `.agents/architecture.md`, `.agents/playbook.md`, relevant `contracts/*`,
 and the corresponding ADR before changing an area. Inspect implementation and
@@ -30,6 +31,9 @@ architecture and current scope are summarized in `docs/implementation-status.md`
 - Public uses Astro layouts and React islands only when interaction needs them.
   Never import Admin, its API client, or shadcn into Public.
 - Follow `contracts/design.md` and `docs/design-system.md` for both interfaces.
+- Admin is Chinese-only, with Phosphor icons and shared Base UI wrappers. Use
+  centralized presentation mappings and ADR 0010; preserve server permissions,
+  full-snapshot autosave and safe preview. Only theme/sidebar preferences persist.
 - Services call sqlc directly. Immediate SQLite transactions protect bootstrap,
   actor reauthorization, last-active-Admin and editorial invariants; no DAO wrapper.
 - Draft writes require expected version and replace fields/tags/topic entries
@@ -45,9 +49,20 @@ architecture and current scope are summarized in `docs/implementation-status.md`
 - State/Session/CSRF persist hashes only. No raw provider errors, callback query,
   credentials, body, cookies or untrusted request IDs in logs. Follow the exact
   guard → app-wide Monitor → Recover order in `internal/app`.
-- `make dev-cms` explicitly loads optional `.env` without replacing process env;
-  tests/checks/migrations do not load it. Production runs with process env only.
-- Preserve 00001/00002; P0-4 adds only 00003 and schema version 3. No auto migration.
+- Development entry points load optional root `.env` with process precedence.
+  ADR 0013: Development always uses persistent FileStore beside DATABASE_PATH;
+  R2/CONTENT_R2/Hook are ignored. dev/dev-web reject CONTENT_SNAPSHOT_FILE.
+  Build/Production never load root .env or fall back to local; fixtures are test/CI
+  inputs only. `make dev` owns/cleans child trees, never DB/storage data or schema.
+- Development watches local content/latest.json; only changed, validated
+  generations restart Public. CMS/Admin survive controlled restarts. Missing
+  initial snapshot starts empty and keeps watching. The local Draft preview POST route is
+  injected only by Astro dev, reuses Public rendering and never persists data,
+  advances generation or performs storage I/O. Production excludes the capability.
+- Preserve migrations 00001–00003 and schema version 3. No auto migration.
+- Public routes use snapshot canonicalPath. Derived pages/indexes fail on broken
+  references or route/group conflicts. Redirect overflow fails, never truncates.
+  See ADR 0009; no Public runtime CMS/R2/API or backend contract expansion.
 - Admin features consume server action projections. One autosave queue owns full
   snapshots/versions; a conflict requires explicit reload. No browser Draft storage.
 - Preview never creates uncontrolled image elements, even before a save. UIW is
@@ -57,12 +72,21 @@ architecture and current scope are summarized in `docs/implementation-status.md`
   publication fence BEFORE their transaction; see ADR 0008. One active writer only.
 - Cover belongs to the full Draft snapshot; assets/generation snapshots are
   immutable and only latest.json is mutable. Never physically delete assets.
-- Snapshot v1 exports selected published Revisions only. Web requires explicit
-  fixture or private R2 read-only input, no silent fallback or browser credentials.
-- UI says Published in CMS with independent marker status. P0-5 full Public
-  content/SEO/redirects and P0-6 import/cutover remain deferred.
+- Snapshot v1 exports selected published Revisions only. Production Web requires
+  private R2 read-only input; tests explicitly select fixtures. Development uses
+  local full snapshots. Default image policy stays exact Production HTTPS; only
+  explicit Development policy allows the configured loopback asset base.
+- UI says Published in CMS with independent marker status. P0-5 builds Public
+  routes/search/SEO from snapshot v1 only. P0-5.5 imports Development legacy content; P0-6 Production migration/cutover remains deferred.
 
 Completion gate: **`make check`**. Report actual commands and results, inspect the
 complete diff, and preserve local files. Commit/push only within user authorization.
 Run `make generate` for SQL/OpenAPI changes. `make build-cms` builds Admin then
 compiles with `adminembed`; plain Go tooling intentionally has no production SPA.
+
+Product alignment: curated_article / topic / note are the normal workflows; post
+is compatibility-only. Read ADR 0012 before product/import changes. Topic targets
+must be Curated; Note group metadata is payload-derived and consistent. Legacy
+logo/visuals/interactions are acceptance criteria. Import plan is read-only; apply
+uses existing Asset/Content services and explicit author mapping, never raw SQL
+content insertion or relaxed Markdown safety. No migration is needed for P0-5.5.

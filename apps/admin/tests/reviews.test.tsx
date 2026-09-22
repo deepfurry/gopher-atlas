@@ -33,20 +33,18 @@ it('loads only the immutable pending endpoint and confirms the exact Revision', 
       (r) => new URL(r.url).pathname === '/api/admin/v1/content/1',
     ),
   ).toBe(false);
-  expect(screen.queryByLabelText('Markdown source')).toBeNull();
-  fireEvent.click(
-    screen.getByRole('button', { name: 'Approve & Publish in CMS' }),
-  );
+  expect(screen.queryByLabelText('Markdown 源码')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: '通过并发布到 CMS' }));
   const dialog = await screen.findByRole('alertdialog');
   expect(
-    within(dialog).getByRole('heading', { name: 'Approve Revision 1?' }),
+    within(dialog).getByRole('heading', { name: '确认通过版本 1？' }),
   ).toBeTruthy();
   fireEvent.click(
     within(dialog).getByRole('button', {
-      name: 'Approve Revision 1 & Publish in CMS',
+      name: '通过版本 1 并发布到 CMS',
     }),
   );
-  await screen.findByRole('heading', { name: 'Review completed' });
+  await screen.findByRole('heading', { name: '审核已完成' });
   const request = state.requests.find((r) => r.method === 'POST')!;
   expect(await request.clone().json()).toEqual({
     mode: 'reviewed',
@@ -59,20 +57,23 @@ it('requires safe Markdown feedback and sends the exact revision ID', async () =
   const state = review();
   mount('/reviews/pending/1');
   await screen.findByRole('heading', { name: 'IMMUTABLE CANDIDATE' });
-  expect(
-    screen.getByRole('button', { name: 'Request changes' }),
-  ).toHaveProperty('disabled', true);
-  fireEvent.change(screen.getByLabelText('Review comment (required)'), {
+  fireEvent.click(screen.getByRole('button', { name: '要求修改' }));
+  await screen.findByRole('dialog');
+  expect(screen.getByRole('button', { name: '提交修改意见' })).toHaveProperty(
+    'disabled',
+    true,
+  );
+  fireEvent.change(screen.getByLabelText('审核意见（必填）'), {
     target: { value: '# Unsafe' },
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Request changes' }));
+  fireEvent.click(screen.getByRole('button', { name: '提交修改意见' }));
   await screen.findByRole('alert');
   expect(state.requests.some((r) => r.method === 'POST')).toBe(false);
-  fireEvent.change(screen.getByLabelText('Review comment (required)'), {
+  fireEvent.change(screen.getByLabelText('审核意见（必填）'), {
     target: { value: '## Clarify the source' },
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Request changes' }));
-  await screen.findByRole('heading', { name: 'Review completed' });
+  fireEvent.click(screen.getByRole('button', { name: '提交修改意见' }));
+  await screen.findByRole('heading', { name: '审核已完成' });
   const request = state.requests.find((r) => r.method === 'POST')!;
   expect(await request.clone().json()).toEqual({
     revisionId: 42,
@@ -105,15 +106,13 @@ it('opens historical immutable material without a Draft or completed actions', a
       (r) => new URL(r.url).pathname === '/api/admin/v1/content/1',
     ),
   ).toBe(false);
-  expect(
-    screen.queryByRole('button', { name: 'Approve & Publish in CMS' }),
-  ).toBeNull();
+  expect(screen.queryByRole('button', { name: '通过并发布到 CMS' })).toBeNull();
 });
 it('denies Editor review navigation and direct routes without making a review request', async () => {
   const state = backend(content(), me('editor'));
   mount('/reviews/pending/1');
   await screen.findByRole('alert');
-  expect(screen.queryByRole('link', { name: 'Pending' })).toBeNull();
+  expect(screen.queryByRole('link', { name: '待审核' })).toBeNull();
   await waitFor(() =>
     expect(
       state.requests.filter((r) => r.url.includes('/review')),

@@ -3,10 +3,13 @@
 Date: 2026-09-10. Status: Accepted.
 
 The CMS contains drafts, identity, sessions and operational telemetry. It runs as
-a loopback-bound process behind Tailscale-only HTTPS at `blog.go-furry.com`. Public
+a loopback-bound process behind Tailscale-only HTTPS. The original custom-domain
+assumption is superseded by Tailscale Serve at `https://<private-tailnet-host>.ts.net`
+(Production operations update, 2026-09-11). Public
 security groups must not expose its port. A high configurable port avoids common
 service collisions but is not a security boundary. No public Cloudflare proxy is
-required. Private DNS and optional DNS-01 certificates belong to operations.
+required. Tailscale Serve now provides private HTTPS; the earlier custom DNS and
+certificate proposal is superseded by the current operations guide.
 
 GitHub OAuth redirects the user's browser; GitHub does not need an inbound CMS
 connection. Future authentication, fixed roles, session/CSRF and endpoint guards

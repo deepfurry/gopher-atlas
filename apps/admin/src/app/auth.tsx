@@ -1,22 +1,23 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Github, LogOut } from 'lucide-react';
+import { GithubLogo, SignOut, BookOpen } from '@phosphor-icons/react';
+import { ThemeSelect } from './theme';
 import { client, APIError, ErrorNotice } from '@/shared/api';
 import { Button } from '@/components/ui/button';
 import { useLeaveGuard } from '@/shared/leave-guard';
 import { useConfirm } from '@/shared/confirm';
-export function Logout() {
+export function useLogout() {
   const guard = useLeaveGuard();
   const confirm = useConfirm();
   const cache = useQueryClient();
-  const logout = useMutation({
+  return useMutation({
     mutationFn: async () => {
       if (
         guard.hasUnsaved() &&
         !(await confirm({
-          title: 'Log out with unsaved changes?',
+          title: '仍有未保存内容，确定退出？',
           description:
-            'Your local Draft exists only in this tab. Cancel to save or copy it before logging out.',
-          confirm: 'Log out and leave',
+            '未保存的草稿仅保留在当前页面。请先保存或复制，再退出登录。',
+          confirm: '放弃未保存内容并退出',
         }))
       )
         return false;
@@ -32,6 +33,9 @@ export function Logout() {
       window.location.assign('/');
     },
   });
+}
+export function Logout() {
+  const logout = useLogout();
   return (
     <div>
       <Button
@@ -39,7 +43,7 @@ export function Logout() {
         disabled={logout.isPending}
         onClick={() => logout.mutate()}
       >
-        <LogOut aria-hidden="true" />
+        <SignOut aria-hidden="true" />
         退出登录
       </Button>
       <ErrorNotice error={logout.error} />
@@ -49,15 +53,22 @@ export function Logout() {
 export function Login({ error }: { error?: Error }) {
   return (
     <main id="main" className="identity-entry">
-      <p className="caption">PRIVATE CONTROL PLANE</p>
-      <h1>GopherAtlas CMS</h1>
+      <div className="login-brand">
+        <BookOpen weight="duotone" />
+        <span>GopherAtlas</span>
+      </div>
+      <p className="caption">技术出版 · 内容管理</p>
+      <h1>进入编辑工作台</h1>
       <p>使用 GitHub 账户进入私有工作台。</p>
       {error && <ErrorNotice error={error} />}
       <a className="login-action" href="/api/auth/github">
-        <Github size={16} aria-hidden="true" />
+        <GithubLogo size={18} aria-hidden="true" />
         使用 GitHub 登录
       </a>
       <p className="caption">首次登录后，需要管理员审批。</p>
+      <div className="login-theme">
+        <ThemeSelect />
+      </div>
     </main>
   );
 }

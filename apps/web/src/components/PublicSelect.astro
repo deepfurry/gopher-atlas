@@ -1,0 +1,67 @@
+---
+interface Props {
+  name: string;
+  label: string;
+  options: { value: string; label: string }[];
+  value?: string;
+}
+const { name, label, options, value = '' } = Astro.props;
+---
+
+<div>
+  <label class="select-label" id={`label-${name}`}>{label}</label><div
+    class="public-select"
+    data-select
+    data-open="false"
+  >
+    <input type="hidden" name={name} value={value} />
+    <button
+      type="button"
+      aria-haspopup="listbox"
+      aria-expanded="false"
+      aria-labelledby={`label-${name} value-${name}`}
+      aria-controls={`options-${name}`}
+      ><span id={`value-${name}`} data-value
+        >{
+          options.find((option) => option.value === value)?.label ??
+            options[0].label
+        }</span
+      ><span class="select-arrow" aria-hidden="true"
+        ><svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+          ><path
+            d="M3.25 5.75 8 10.5l4.75-4.75"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path></svg
+        ></span
+      ></button
+    >
+    <div
+      role="listbox"
+      id={`options-${name}`}
+      aria-labelledby={`label-${name}`}
+      inert
+      aria-hidden="true"
+    >
+      {
+        options.map((option) => (
+          <button
+            type="button"
+            role="option"
+            data-value={option.value}
+            aria-selected={option.value === value}
+            tabindex="-1"
+          >
+            <>
+              <span data-option-label>{option.label}</span>
+              <span data-option-check aria-hidden="true">
+                ✓
+              </span>
+            </>
+          </button>
+        ))
+      }
+    </div>
+  </div>
+</div>

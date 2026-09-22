@@ -1,6 +1,6 @@
 # Compatibility contract
 
-P0-4 is unreleased. Internal Go/TS APIs are not stable public SDKs.
+Internal Go/TS APIs are not stable public SDKs.
 Future changes to URLs, persisted data, environment keys and published snapshot
 versions still require explicit migration reasoning; do not silently reinterpret
 existing fields. Exact currently executable HTTP shapes live in `openapi.yaml`.
@@ -8,7 +8,7 @@ existing fields. Exact currently executable HTTP shapes live in `openapi.yaml`.
 Public URL families are `/articles/:slug/`, `/posts/:slug/`,
 `/notes/:group/:slug/`, `/topics/:slug/`, `/tags/:slug/`, `/authors/:slug/`,
 plus index/search/about/contribute pages. Astro uses `trailingSlash: always`.
-Posts have no date component. Legacy route verification belongs to P0-6.
+Posts have no date component. Development legacy route verification is implemented in P0-5.5; Production comparison remains P0-6.
 Previously published routes remain reserved forever and redirect with 301 directly
 to the current canonical route, never through chains.
 
@@ -50,4 +50,45 @@ SHA URLs remain stable after soft deletion. Generation is monotonic within a DB
 history; restoring an older DB may report marker>desired (behind), requiring an
 explicit recovery decision rather than silently rewriting the generation counter.
 Unknown snapshot fields/versions, missing build inputs and hash mismatch fail.
-P0-5 public URL rendering and final redirect output remain unimplemented.
+P0-5 renders snapshot canonicalPath and derived Author/Tag/Note-group pages.
+Historical redirects are direct static 301 rules, with platform-limit failures.
+Collections paginate statically at /page/N/ after the first page. No runtime
+CMS/API dependency or snapshot version change. P0-6 owns Production URL verification.
+
+Development commands read optional root .env with process precedence. ADR 0013
+selects local FileStore regardless of R2/Hook variables, replacing ADR 0011's remote
+watcher source. dev/dev-web reject nonempty CONTENT_SNAPSHOT_FILE, which remains
+test/CI-only. Local storage is derived beside DATABASE_PATH; no startup migration,
+seed or cleanup. A 750ms local latest poll restarts only Public after complete
+hash/schema/graph checks. Missing initial input yields an empty site; runtime read
+errors retain the last good input. Production builds retain separate RO R2 input
+and no dotenv/local fallback. The transient Draft preview remains dev-only.
+
+Asset DTO fields are unchanged; URL values use the environment's configured base.
+Snapshot schema validates URL/key shape, and mandatory runtime policy enforces exact
+Production HTTPS assets or the explicit Development loopback base. Publication
+status adds optional local mode/snapshot generation fields; no remote marker is
+fabricated. Existing terminal build_triggered means local snapshot ready in local
+mode. Production semantics and public route/canonical ownership remain unchanged.
+
+P0-5.5 is the authorized pre-cutover tightening of snapshot v1: Note groupDescription/
+groupOrder and Topic recommendedCount are required in snapshots, Curated enums
+are closed, Topic references must be Curated. Old incomplete snapshot files fail
+closed and need regeneration from a compatible CMS; immutable object keys are never
+overwritten. Stored omitted payload fields deserialize to defaults; existing
+incompatible content must be corrected and republished, not silently rewritten.
+
+Public has seven translated /en/ static counterparts with self-canonical/hreflang.
+Content, tag/author/group collections and pagination have build-only /en/ aliases;
+they reuse the exact authored snapshot, point canonical to the original path and
+are excluded from sitemap/Pagefind to prevent duplicate indexing. Language switches
+preserve query/fragment and never fall back to home. Alias collisions with existing
+canonical/redirect reservations fail the build. SQLite routes remain unchanged. Curated browser
+filtering/pagination is 12 per page; Note group cards use 4. Auxiliary collections
+retain 24-item static pagination. Posts retain compatible detail/collection paths
+but are removed from primary discovery and RSS/Pagefind. Legacy category exception
+benchmarking-and-comparisons and all accepted old slugs are preserved explicitly.
+Old Articles query links using category titles, tag names, comma-separated values
+and legacy sort names resolve against the static Topic/Tag projection. No Category
+field or runtime query service is introduced. Recommended sorting keeps featured,
+mustRead, rating and added-date precedence.

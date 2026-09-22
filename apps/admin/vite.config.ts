@@ -24,6 +24,11 @@ export default defineConfig(({ command, mode }) => {
   );
   return {
     envDir: false,
+    define: {
+      __GOPHERATLAS_ASSET_BASE__: JSON.stringify(
+        command === 'serve' ? `${target}/__dev/assets` : '',
+      ),
+    },
     plugins: [
       react(),
       tailwindcss(),

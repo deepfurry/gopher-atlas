@@ -1,28 +1,43 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { isControlledImage } from '@gopheratlas/markdown';
+import { isControlledImage } from '@/shared/asset-policy';
 import { toast } from 'sonner';
+import {
+  UploadSimple,
+  Copy,
+  Trash,
+  ArrowCounterClockwise,
+  ImageSquare,
+  Check,
+} from '@phosphor-icons/react';
 import { useMe } from '@/app/context';
 import { client, unwrap, ErrorNotice, type Schema } from '@/shared/api';
 import { usePages } from '@/shared/query';
 import { LoadMore } from '@/shared/pagination';
 import { useConfirm } from '@/shared/confirm';
 import { date } from '@/shared/status';
-import { Button } from '@/components/ui/button';
-
+import { Button, IconButton } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog } from '@/components/ui/dialog';
+import { EmptyState, LoadingState, Badge } from '@/components/ui/workspace';
 export function AssetImage({ asset }: { asset: Schema<'AssetSummary'> }) {
-  return isControlledImage(asset.url) ? (
+  const [failed, setFailed] = useState(false);
+  return isControlledImage(asset.url) && !failed ? (
     <img
       className="asset-thumbnail"
       src={asset.url}
-      alt={`Asset ${asset.id}`}
+      alt={`素材 ${asset.id}`}
       width={asset.width}
       height={asset.height}
       loading="lazy"
       referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
     />
   ) : (
-    <span role="alert">Unsafe image URL</span>
+    <span className="asset-image-fallback">
+      <ImageSquare />
+      {failed ? '图片暂时无法加载' : '图片 URL 不安全'}
+    </span>
   );
 }
 export async function uploadAsset(file: File) {
@@ -45,9 +60,11 @@ export function AssetBrowser({
   const me = useMe(),
     cache = useQueryClient(),
     confirm = useConfirm();
-  const [includeDeleted, setIncludeDeleted] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
-  const [clipboardError, setClipboardError] = useState<unknown>(null);
+  const [includeDeleted, setIncludeDeleted] = useState(false),
+    [file, setFile] = useState<File | null>(null),
+    [clipboardError, setClipboardError] = useState<unknown>(null),
+    [preview, setPreview] = useState<Schema<'Asset'> | null>(null);
+  const input = useRef<HTMLInputElement>(null);
   const list = usePages(
     ['assets', { includeDeleted }],
     async (after, signal) =>
@@ -67,9 +84,10 @@ export function AssetBrowser({
     mutationFn: uploadAsset,
     onSuccess: async (asset) => {
       setFile(null);
+      if (input.current) input.current.value = '';
       await refresh();
-      toast.success('Immutable asset uploaded.');
-      if (select) select(asset);
+      toast.success('素材已上传。');
+      select?.(asset);
     },
   });
   const change = useMutation({
@@ -77,13 +95,14 @@ export function AssetBrowser({
       const restore = asset.deletedAt !== null;
       if (
         !(await confirm({
-          title: restore ? 'Restore asset?' : 'Delete asset from selection?',
+          title: restore ? '恢复此素材？' : '删除此素材？',
           description:
-            'The immutable object remains available. Existing published covers and Markdown URLs are preserved.',
-          confirm: restore ? 'Restore asset' : 'Delete asset',
+            '删除后不再出现在选择器中。已发布的封面与正文图片仍然可用，原始文件会保留。',
+          confirm: restore ? '恢复素材' : '删除素材',
+          danger: !restore,
         }))
       )
-        return;
+        return null;
       return unwrap(
         await client.POST(
           restore
@@ -93,95 +112,184 @@ export function AssetBrowser({
         ),
       );
     },
-    onSuccess: refresh,
+    onSuccess: async (result) => {
+      if (result) {
+        await refresh();
+        toast.success(result.deletedAt ? '素材已删除。' : '素材已恢复。');
+      }
+    },
   });
+  const copy = (asset: Schema<'Asset'>) => {
+    void navigator.clipboard
+      .writeText(asset.url)
+      .then(() => toast.success('素材 URL 已复制。'))
+      .catch(setClipboardError);
+  };
   return (
     <div className="asset-browser">
-      <div className="toolbar asset-upload">
-        <label>
-          Image file
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif"
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-          />
-        </label>
+      <div
+        className="asset-upload-zone"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          if (!upload.isPending) setFile(e.dataTransfer.files[0] ?? null);
+        }}
+      >
+        <UploadSimple />
+        <div className="asset-upload-copy">
+          <strong>上传图片素材</strong>
+          <p className="caption">
+            拖入文件或选择图片 · PNG / JPEG / WebP / GIF · 最大 10 MiB
+          </p>
+        </div>
+        <input
+          className="sr-only"
+          ref={input}
+          type="file"
+          aria-label="选择图片文件"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          disabled={upload.isPending}
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+        />
         <Button
-          disabled={!file || upload.isPending || file.size > 10485760}
-          onClick={() => file && upload.mutate(file)}
+          variant="outline"
+          disabled={upload.isPending}
+          onClick={() => input.current?.click()}
         >
-          {upload.isPending ? 'Uploading…' : 'Upload image'}
+          选择图片
         </Button>
+        {file && (
+          <>
+            <span className="caption selected-file">{file.name}</span>
+            <Button
+              disabled={upload.isPending || file.size > 10485760}
+              onClick={() => upload.mutate(file)}
+            >
+              <UploadSimple />
+              {upload.isPending ? '正在上传…' : '上传图片'}
+            </Button>
+          </>
+        )}
       </div>
-      <p className="caption">
-        PNG / JPEG / WebP / GIF · ≤10 MiB · ≤16384 px per side · ≤100M pixels.
-        Binary metadata is retained.
+      <p className="caption asset-limits">
+        单边不超过 16,384 像素，总像素不超过 1 亿。保留原始二进制元数据。
       </p>
       {file && file.size > 10485760 && (
-        <p role="alert">Image exceeds 10 MiB.</p>
+        <p role="alert" className="error-message">
+          图片超过 10 MiB 限制。
+        </p>
       )}
-      {!select && me.permissions.manageAssets && (
-        <label className="check-label">
-          <input
-            type="checkbox"
+      <div className="section-heading">
+        <span className="caption">已加载 {list.items.length} 个素材</span>
+        {!select && me.permissions.manageAssets && (
+          <Checkbox
+            label="包含已删除素材"
             checked={includeDeleted}
-            onChange={(e) => setIncludeDeleted(e.target.checked)}
+            onCheckedChange={setIncludeDeleted}
           />
-          Include deleted assets
-        </label>
-      )}
+        )}
+      </div>
       <ErrorNotice
         error={list.error || upload.error || change.error || clipboardError}
       />
-      {list.isPending && <p role="status">Loading assets…</p>}
-      <ul className="asset-grid" aria-label="Asset library">
-        {list.items.map((asset) => (
-          <li key={asset.id}>
-            <AssetImage asset={asset} />
-            <p>
-              <strong>Asset {asset.id}</strong>
-              {asset.deletedAt !== null && (
-                <span className="badge">Deleted</span>
-              )}
-            </p>
-            <p className="caption">
-              {asset.width} × {asset.height} ·{' '}
-              {(asset.byteSize / 1024).toFixed(1)} KiB
-              <br />
-              {asset.mimeType} · {date(asset.createdAt)}
-            </p>
-            <div className="toolbar">
-              {select && asset.deletedAt === null && (
-                <Button onClick={() => select(asset)}>
-                  Select asset {asset.id}
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                onClick={() => {
-                  void navigator.clipboard
-                    .writeText(asset.url)
-                    .then(() => toast.success('Asset URL copied.'))
-                    .catch(setClipboardError);
-                }}
+      {list.isPending ? (
+        <LoadingState label="正在加载素材…" />
+      ) : !list.items.length ? (
+        <EmptyState
+          title="素材库还是空的"
+          description="上传第一张图片，为内容添加封面或正文插图。"
+        />
+      ) : (
+        <ul className="asset-grid" aria-label="素材库">
+          {list.items.map((asset) => (
+            <li
+              key={asset.id}
+              className={asset.deletedAt !== null ? 'asset-deleted' : ''}
+            >
+              <button
+                type="button"
+                className="asset-preview-button"
+                aria-label={`预览素材 ${asset.id}`}
+                onClick={() => setPreview(asset)}
               >
-                Copy URL
-              </Button>
-              {!select && (asset.actions.delete || asset.actions.restore) && (
-                <Button
-                  variant="outline"
-                  disabled={change.isPending}
-                  onClick={() => change.mutate(asset)}
-                >
-                  {asset.actions.restore ? 'Restore' : 'Delete'}
-                </Button>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
-      {!list.items.length && !list.isPending && <p>No assets yet.</p>}
-      <LoadMore {...list} />
+                <AssetImage asset={asset} />
+              </button>
+              <div className="asset-info">
+                <div className="section-heading">
+                  <strong>素材 {asset.id}</strong>
+                  {asset.deletedAt !== null && <Badge>已删除</Badge>}
+                </div>
+                <p className="caption">
+                  {asset.width} × {asset.height} ·{' '}
+                  {(asset.byteSize / 1024).toFixed(1)} KiB
+                </p>
+                <p className="caption">
+                  {asset.mimeType.replace('image/', '').toUpperCase()} ·{' '}
+                  {date(asset.createdAt)}
+                </p>
+                <div className="asset-actions">
+                  {select && asset.deletedAt === null && (
+                    <Button
+                      size="sm"
+                      onClick={() => select(asset)}
+                      aria-label={`选择素材 ${asset.id}`}
+                    >
+                      <Check />
+                      选择
+                    </Button>
+                  )}
+                  <IconButton
+                    label={`复制素材 ${asset.id} 的 URL`}
+                    onClick={() => copy(asset)}
+                  >
+                    <Copy />
+                  </IconButton>
+                  {!select &&
+                    (asset.actions.delete || asset.actions.restore) && (
+                      <IconButton
+                        label={`${asset.actions.restore ? '恢复' : '删除'}素材 ${asset.id}`}
+                        disabled={change.isPending}
+                        onClick={() => change.mutate(asset)}
+                      >
+                        {asset.actions.restore ? (
+                          <ArrowCounterClockwise />
+                        ) : (
+                          <Trash />
+                        )}
+                      </IconButton>
+                    )}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="pagination">
+        <span>历史引用不会因素材删除而失效。</span>
+        <LoadMore {...list} />
+      </div>
+      <Dialog
+        open={!!preview}
+        onOpenChange={(open) => !open && setPreview(null)}
+        title={`素材 ${preview?.id ?? ''}`}
+        className="asset-preview-dialog"
+        footer={
+          <Button variant="outline" onClick={() => preview && copy(preview)}>
+            <Copy />
+            复制 URL
+          </Button>
+        }
+      >
+        {preview && (
+          <>
+            <AssetImage asset={preview} />
+            <p className="caption">
+              {preview.width} × {preview.height} · {preview.mimeType} ·{' '}
+              {(preview.byteSize / 1024).toFixed(1)} KiB
+            </p>
+          </>
+        )}
+      </Dialog>
     </div>
   );
 }

@@ -1,5 +1,25 @@
 # Data contract
 
+## P0-5.5 product alignment (ADR 0012)
+
+No migration: schema 3 and migrations 00001–00003 stay unchanged. Normal workflows
+use curated_article, topic and note; post remains a compatible stored/API type.
+Note payload v1 adds groupDescription (<=1000 characters) and groupOrder (0..1M).
+Topic payload adds recommendedCount (0..100 and <=entry count); all targets must
+be curated_article at save/submit/publish/export. Note published group name,
+description and groupOrder must match for the same groupSlug.
+
+Curated difficulty is beginner/intermediate/advanced; rating is
+S+/S/A+/A/B+/B/C+/C. Incomplete Draft fields may be empty, complete publication may
+not. Typed payloads reject unknown fields and canonicalize through Go structs.
+Omitted new fields in old stored payloads deserialize to defaults, without editing
+immutable Revision rows. The closed public snapshot schema requires these fields.
+
+Offline legacy import uses normal services. Content first/last published and
+created/updated times may be restored from reliable legacy dates inside the same
+direct-publish transaction as pointer/routes/Audit/generation/job; Revision and
+Audit timestamps retain actual import time. No HTTP endpoint exposes restoration.
+
 P0-4 uses `database/sql` + `modernc.org/sqlite`, goose migrations and generated sqlc
 queries. Services own transactions; no generic DAO, automatic migrations or schema
 mutation on startup/readiness.
@@ -117,6 +137,13 @@ projection. Draft never supplies an exported field.
 
 R2 snapshots are not database backups. Production backup/restore must preserve
 private data and WAL consistency; see operations documentation.
+
+ADR 0013: Development persists the same schema 3 data and jobs in local SQLite,
+with assets/full snapshots in sibling `storage/assets` and `storage/content`.
+Treat DB and storage as one backup set. Startup never resets/seeds data, rewrites
+immutable revisions, migrates schema or retrieves old remote objects. Local
+latest.json is written only by that DB's existing publication worker, separately
+from Production. No new tables or persistence service.
 
 ## Publication persistence
 

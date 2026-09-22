@@ -1,0 +1,243 @@
+---
+import Layout from '../layouts/Layout.astro';
+import MarkdownBody from './MarkdownBody.astro';
+import SourceMeta from './SourceMeta.astro';
+import TopicBody from './TopicBody.astro';
+import Discussion from './Discussion.astro';
+import NoteNavigation from './NoteNavigation.astro';
+import { displayDate, words, localized, type Locale } from '../lib/i18n';
+import {
+  required,
+  seo,
+  typeInfo,
+  type Publication,
+} from '../lib/publication/indexes';
+import { renderMarkdown } from '../lib/publication/markdown';
+import type { Content } from '../lib/publication/types';
+interface Props {
+  content: Content;
+  publication: Publication;
+  locale?: Locale;
+  preview?: {
+    updatedAt: number;
+    entries: { position: number; title: string; content?: Content }[];
+  };
+}
+const { content: item, publication: p, preview, locale = 'zh' } = Astro.props;
+const t = words[locale];
+const author = required(p.authorById, item.authorId),
+  cover =
+    item.coverAssetId === null
+      ? undefined
+      : required(p.assetById, item.coverAssetId);
+const tags = item.tagIds.map((id) => required(p.tagById, id)),
+  rendered = await renderMarkdown(item.bodyMarkdown);
+const headings = rendered.metadata.headings.filter(
+    (h) => h.depth === 2 || h.depth === 3,
+  ),
+  info = typeInfo[item.type];
+const group =
+  item.type === 'note' ? p.notesByGroup.get(item.payload.groupSlug) : undefined;
+const authorHeading =
+  item.type === 'curated_article' ? t.aboutCurator : t.aboutAuthor;
+const bylineLabel =
+  item.type === 'curated_article'
+    ? `${t.curator}：${author.displayName}`
+    : author.displayName;
+const contentFamily =
+  item.type === 'note'
+    ? t.notes
+    : item.type === 'curated_article'
+      ? t.articles
+      : t.post;
+---
+
+<Layout
+  {...seo(item)}
+  canonical={item.canonicalPath}
+  locale={locale}
+  lang={locale === 'en' ? 'en' : item.language}
+  image={cover?.url}
+  ogType={item.type === 'topic' ? 'website' : 'article'}
+  searchIndex={!preview && item.type !== 'post' && locale === 'zh'}
+  noindex={Boolean(preview)}
+>
+  {
+    preview && (
+      <p class="notice" role="status">
+        本地草稿预览，不会发布内容。
+      </p>
+    )
+  }
+  {
+    item.type === 'topic' ? (
+      <TopicBody
+        item={item}
+        publication={p}
+        entries={preview?.entries}
+        locale={locale}
+      />
+    ) : (
+      <div class:list={{ 'note-detail': item.type === 'note' }}>
+        <article
+          class:list={{ prose: item.type !== 'note', 'content-detail': true }}
+        >
+          <header class:list={{ 'note-heading': item.type === 'note' }}>
+            {item.type !== 'note' && (
+              <nav
+                class="breadcrumb"
+                aria-label={t.location}
+                data-pagefind-ignore
+              >
+                <a href={localized(info.path, locale)}>{contentFamily}</a>
+              </nav>
+            )}
+            <h1 data-pagefind-meta="title" lang={item.language}>
+              {item.type === 'curated_article' ? (
+                <a
+                  href={item.payload.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {item.title}
+                </a>
+              ) : (
+                item.title
+              )}
+            </h1>
+            {item.summary && (
+              <p class="lede" lang={item.language}>
+                {item.summary}
+              </p>
+            )}
+            <div class="publication-meta">
+              <a
+                href={localized(`/authors/${author.slug}/`, locale)}
+                rel="author"
+                data-pagefind-meta="author"
+              >
+                {bylineLabel}
+              </a>
+              <span>
+                {preview
+                  ? t.draftSaved
+                  : item.type === 'curated_article'
+                    ? t.saved
+                    : t.published}{' '}
+                <time
+                  datetime={new Date(
+                    preview?.updatedAt ?? item.firstPublishedAt,
+                  ).toISOString()}
+                >
+                  {displayDate(
+                    preview?.updatedAt ?? item.firstPublishedAt,
+                    locale,
+                  )}
+                </time>
+              </span>
+              {!preview &&
+                (item.type === 'note' ||
+                  item.lastPublishedAt !== item.firstPublishedAt) && (
+                  <span>
+                    {t.updated}{' '}
+                    <time
+                      datetime={new Date(item.lastPublishedAt).toISOString()}
+                    >
+                      {displayDate(item.lastPublishedAt, locale)}
+                    </time>
+                  </span>
+                )}
+            </div>
+            {tags.length > 0 && (
+              <ul class="tag-list" aria-label={t.tags} data-pagefind-ignore>
+                {tags.map((tag) => (
+                  <li>
+                    <a
+                      class="chip"
+                      href={localized(`/tags/${tag.slug}/`, locale)}
+                    >
+                      {tag.name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </header>
+          {item.type === 'note' && (
+            <NoteNavigation item={item} group={group} locale={locale} />
+          )}
+          <div class:list={{ 'note-surface panel': item.type === 'note' }}>
+            <div class="reading-body">
+              {cover && (
+                <img
+                  class="cover-image"
+                  src={cover.url}
+                  alt=""
+                  width={cover.width}
+                  height={cover.height}
+                  decoding="async"
+                  referrerpolicy="no-referrer"
+                />
+              )}
+              {item.type === 'curated_article' && (
+                <>
+                  <SourceMeta payload={item.payload} locale={locale} />
+                  <h2>{t.rationale}</h2>
+                </>
+              )}
+              {item.type === 'note' && headings.length > 0 && (
+                <details class="mobile-toc" data-pagefind-ignore>
+                  <summary>{t.toc}</summary>
+                  <ul>
+                    {headings.map((h) => (
+                      <li>
+                        <a href={`#${h.slug}`}>{h.text}</a>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+              <div
+                class="markdown"
+                lang={item.language}
+                set:html={rendered.code}
+              />
+            </div>
+            {item.type === 'note' && headings.length > 0 && (
+              <aside class="toc" data-pagefind-ignore>
+                <nav aria-label={t.toc}>
+                  <p>{t.toc}</p>
+                  <ul>
+                    {headings.map((h) => (
+                      <li class:list={{ nested: h.depth === 3 }}>
+                        <a href={`#${h.slug}`}>{h.text}</a>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+              </aside>
+            )}
+          </div>
+          {item.type === 'note' && (
+            <>
+              {!preview && (
+                <Discussion
+                  groupSlug={item.payload.groupSlug}
+                  slug={item.slug}
+                  locale={locale}
+                />
+              )}
+            </>
+          )}
+          <aside class="author-note" data-pagefind-ignore>
+            <h2>{authorHeading}</h2>
+            <a href={localized(`/authors/${author.slug}/`, locale)}>
+              {author.displayName}
+            </a>
+            {author.bioMarkdown && <MarkdownBody source={author.bioMarkdown} />}
+          </aside>
+        </article>
+      </div>
+    )
+  }
+</Layout>

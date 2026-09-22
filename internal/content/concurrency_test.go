@@ -21,8 +21,8 @@ func TestSQLiteConcurrentEditorialMutations(t *testing.T) {
 					left.TagIDs = []int64{a.ID}
 					right.TagIDs = []int64{b.ID}
 				} else {
-					x := r.create(t, r.admin, "post")
-					y := r.create(t, r.admin, "post")
+					x := r.create(t, r.admin, "curated_article")
+					y := r.create(t, r.admin, "curated_article")
 					left.TopicEntries = []TopicEntry{{x.ID}}
 					right.TopicEntries = []TopicEntry{{y.ID}}
 				}

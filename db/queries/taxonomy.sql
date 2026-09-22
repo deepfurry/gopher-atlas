@@ -7,8 +7,13 @@ SELECT * FROM tags WHERE id = ?;
 -- name: CountExistingTags :one
 SELECT count(*) FROM tags WHERE id IN (sqlc.slice('ids'));
 
--- name: CountExistingContent :one
-SELECT count(*) FROM content_items WHERE id IN (sqlc.slice('ids'));
+-- name: CountCuratedContent :one
+SELECT count(*) FROM content_items WHERE id IN (sqlc.slice('ids')) AND type = 'curated_article';
+
+-- name: PublishedNoteGroupMetadata :many
+SELECT r.payload_json FROM content_items c JOIN content_revisions r ON r.id=c.published_revision_id AND r.content_id=c.id
+WHERE c.type='note' AND c.archived_at IS NULL AND c.id != sqlc.arg(content_id)
+AND json_extract(r.payload_json, '$.groupSlug') = sqlc.arg(group_slug);
 
 -- name: FindTagConflict :one
 SELECT count(*) FROM tags WHERE id != sqlc.arg(exclude_id) AND (normalized_name = sqlc.arg(normalized_name) OR slug = sqlc.arg(slug));
@@ -52,4 +57,4 @@ SELECT sqlc.arg(revision_id), position, target_content_id FROM draft_topic_entri
 
 -- name: UnpublishableTopicTargets :one
 SELECT count(*) FROM revision_topic_entries e JOIN content_items c ON c.id = e.target_content_id
-WHERE e.topic_revision_id = ? AND (c.published_revision_id IS NULL OR c.archived_at IS NOT NULL);
+WHERE e.topic_revision_id = ? AND (c.type != 'curated_article' OR c.published_revision_id IS NULL OR c.archived_at IS NOT NULL);

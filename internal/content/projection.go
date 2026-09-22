@@ -245,7 +245,7 @@ func (s *Service) ReviewDetail(ctx context.Context, actor auth.Principal, conten
 		if err != nil {
 			return dbError(err)
 		}
-		result.Revision, err = loadRevision(ctx, q, c, r)
+		result.Revision, err = s.loadRevision(ctx, q, c, r)
 		if err != nil {
 			return err
 		}

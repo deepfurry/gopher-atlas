@@ -24,3 +24,11 @@ SOFTWARE.
 
 Other dependency licenses remain with their packages, including the self-hosted
 Geist and JetBrains Mono font distributions.
+
+The Public compass, visual tokens and hero treatment are adapted from
+[gofurry/gopher-atlas](https://github.com/gofurry/gopher-atlas), copyright 2026
+gofurry, under [its MIT license](../apps/web/public/licenses/legacy-MIT.txt).
+The legacy static generator is not included. Self-hosted Sora and Plus Jakarta Sans
+retain their [Sora OFL](../apps/web/public/licenses/Sora-OFL.txt) and
+[Plus Jakarta Sans OFL](../apps/web/public/licenses/PlusJakartaSans-OFL.txt).
+These notices also ship in Public output under `/licenses/`.

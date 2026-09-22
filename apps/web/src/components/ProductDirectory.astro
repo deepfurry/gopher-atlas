@@ -1,0 +1,88 @@
+---
+import PageHero from './PageHero.astro';
+import { words, localized, type Locale } from '../lib/i18n';
+import type { Publication } from '../lib/publication/indexes';
+import NoteGroupCard from './NoteGroupCard.astro';
+interface Props {
+  kind: 'topics' | 'notes';
+  publication: Publication;
+  locale?: Locale;
+}
+const { kind, publication: p, locale = 'zh' } = Astro.props,
+  t = words[locale],
+  topics = p.contentByType.get('topic')!;
+---
+
+<PageHero
+  label={kind === 'topics' ? 'Topics' : 'Notes'}
+  title={t[kind]}
+  description={kind === 'topics' ? t.topicsIntro : t.notesIntro}
+  >{
+    kind === 'topics' && (
+      <>
+        <>
+          <a class="btn primary" href={localized('/articles/', locale)}>
+            {t.filterArticles}
+          </a>
+          <button data-copy-link>{t.copy}</button>
+        </>
+      </>
+    )
+  }</PageHero
+>
+<section>
+  <div class="section-intro">
+    <span class="eyebrow">Directory</span><h2>
+      {
+        kind === 'topics'
+          ? `${topics.length} ${t.topicCount} - ${p.contentByType.get('curated_article')!.length} ${t.articleCount}`
+          : `${p.groups.length} ${t.group} - ${p.contentByType.get('note')!.length} ${t.noteCount}`
+      }
+    </h2><p>{kind === 'topics' ? t.topicHint : t.noteHint}</p>
+  </div>
+  <div class={kind === 'topics' ? 'topic-grid' : 'note-grid'}>
+    {
+      kind === 'topics'
+        ? topics.map((topic, index) => (
+            <article
+              class="subtle-panel topic-card"
+              lang={topic.language}
+              style={`--card-order:${index}`}
+            >
+              <>
+                <div class="small-meta">
+                  <>
+                    <span>{t.topic}</span>
+                    <span>
+                      {topic.topicEntries.length}{' '}
+                      {locale === 'zh' ? '篇' : 'articles'}
+                    </span>
+                  </>
+                </div>
+                <div>
+                  <h2>
+                    <a href={localized(topic.canonicalPath, locale)}>
+                      {topic.title}
+                    </a>
+                  </h2>
+                  <p>{topic.summary}</p>
+                </div>
+                <div class="actions">
+                  <a class="btn" href={localized(topic.canonicalPath, locale)}>
+                    {t.enterTopic}
+                  </a>
+                </div>
+              </>
+            </article>
+          ))
+        : p.groups.map((group, index) => (
+            <NoteGroupCard
+              group={group}
+              publication={p}
+              locale={locale}
+              order={index}
+            />
+          ))
+    }
+  </div>
+</section>

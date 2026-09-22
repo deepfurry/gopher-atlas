@@ -48,13 +48,15 @@ func safeLink(value string) bool {
 	return err == nil && u.Scheme == "mailto" && u.User == nil
 }
 
-func Valid(value string) bool {
+func Valid(value string) bool { return (Policy{}).Valid(value) }
+
+func (policy Policy) Valid(value string) bool {
 	if frontmatter.MatchString(value) {
 		return false
 	}
 	source := []byte(value)
 	context := parser.NewContext()
-	document := goldmark.New(goldmark.WithExtensions(extension.GFM)).Parser().Parse(text.NewReader(source), parser.WithContext(context))
+	document := goldmark.New(goldmark.WithExtensions(extension.GFM, extension.Footnote)).Parser().Parse(text.NewReader(source), parser.WithContext(context))
 	valid := true
 	for _, ref := range context.References() {
 		if !safeLink(html.UnescapeString(string(ref.Destination()))) {
@@ -82,8 +84,7 @@ func Valid(value string) bool {
 			}
 		case *ast.Image:
 			destination := html.UnescapeString(string(node.Destination))
-			u, err := url.Parse(destination)
-			if !WebURL(destination, true) || err != nil || u.Host != "assets.gopheratlas.com" || !hasAlt(node, source) {
+			if !policy.Image(destination) || !hasAlt(node, source) {
 				valid = false
 			}
 		}

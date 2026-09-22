@@ -64,7 +64,7 @@ for (const path of [...files('apps/web/src'), ...files('packages')].filter(
   const source = readFileSync(path, 'utf8');
   if (path.startsWith('apps/web/'))
     assert(
-      !/from\s+['"][^'"]*(?:api-client|apps\/admin|shadcn|@base-ui)/u.test(
+      !/from\s+['"][^'"]*(?:api-client|apps\/admin|shadcn|@base-ui|@aws-sdk|internal\/|prepare-web-content)/u.test(
         source,
       ),
       `Public boundary violation: ${path}`,

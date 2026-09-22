@@ -39,12 +39,12 @@ func (q *Queries) AddDraftTopicEntry(ctx context.Context, arg AddDraftTopicEntry
 	return err
 }
 
-const countExistingContent = `-- name: CountExistingContent :one
-SELECT count(*) FROM content_items WHERE id IN (/*SLICE:ids*/?)
+const countCuratedContent = `-- name: CountCuratedContent :one
+SELECT count(*) FROM content_items WHERE id IN (/*SLICE:ids*/?) AND type = 'curated_article'
 `
 
-func (q *Queries) CountExistingContent(ctx context.Context, ids []int64) (int64, error) {
-	query := countExistingContent
+func (q *Queries) CountCuratedContent(ctx context.Context, ids []int64) (int64, error) {
+	query := countCuratedContent
 	var queryParams []interface{}
 	if len(ids) > 0 {
 		for _, v := range ids {
@@ -274,6 +274,40 @@ func (q *Queries) ListTags(ctx context.Context, arg ListTagsParams) ([]Tag, erro
 	return items, nil
 }
 
+const publishedNoteGroupMetadata = `-- name: PublishedNoteGroupMetadata :many
+SELECT r.payload_json FROM content_items c JOIN content_revisions r ON r.id=c.published_revision_id AND r.content_id=c.id
+WHERE c.type='note' AND c.archived_at IS NULL AND c.id != ?1
+AND json_extract(r.payload_json, '$.groupSlug') = ?2
+`
+
+type PublishedNoteGroupMetadataParams struct {
+	ContentID int64
+	GroupSlug string
+}
+
+func (q *Queries) PublishedNoteGroupMetadata(ctx context.Context, arg PublishedNoteGroupMetadataParams) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, publishedNoteGroupMetadata, arg.ContentID, arg.GroupSlug)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var payload_json string
+		if err := rows.Scan(&payload_json); err != nil {
+			return nil, err
+		}
+		items = append(items, payload_json)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const revisionTagIDs = `-- name: RevisionTagIDs :many
 SELECT tag_id FROM revision_tags WHERE revision_id = ? ORDER BY tag_id
 `
@@ -364,7 +398,7 @@ func (q *Queries) SnapshotTopicEntries(ctx context.Context, arg SnapshotTopicEnt
 
 const unpublishableTopicTargets = `-- name: UnpublishableTopicTargets :one
 SELECT count(*) FROM revision_topic_entries e JOIN content_items c ON c.id = e.target_content_id
-WHERE e.topic_revision_id = ? AND (c.published_revision_id IS NULL OR c.archived_at IS NOT NULL)
+WHERE e.topic_revision_id = ? AND (c.type != 'curated_article' OR c.published_revision_id IS NULL OR c.archived_at IS NOT NULL)
 `
 
 func (q *Queries) UnpublishableTopicTargets(ctx context.Context, topicRevisionID int64) (int64, error) {

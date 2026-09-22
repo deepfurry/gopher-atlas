@@ -70,3 +70,40 @@ no credentials and strict closed parsing; it never affects readiness. Go R2 call
 use a 30-second client; build reads use 30-second abort and bounded streaming.
 Only safe bounded classifications reach jobs/logs/API. Tests use in-memory storage
 and loopback HTTP. Curated URLs stay metadata; source articles are never fetched.
+
+## Public static delivery
+
+Workers Static Assets consumes build-generated `_redirects` directly. P0-5 uses
+only static 301 rules and fails above 2,000 rules or 1,000 characters per line,
+per the [platform contract](https://developers.cloudflare.com/workers/static-assets/redirects/).
+No runtime Worker/router or silent rule truncation. P0-6 decides overflow handling
+before legacy cutover. Workers Builds consumes main; non-production builds are
+disabled. Local development uses persistent FileStore, never Production credentials.
+
+ADR 0013 makes normal Development entirely local for assets/publication. CMS uses
+FileStore and a no-op Hook; dev-web polls local latest/snapshot files and strips
+private configuration before browser tooling. R2/CONTENT_R2/Hook values are ignored,
+including stale Production values. Production still uses separate content RO
+credentials and never enables local fallback. Tests use explicit fixtures/fake
+external services or real temporary FileStore; they never load real root .env.
+
+Pagefind assets are generated locally and loaded only by the search UI. A unified
+zh index includes English content, with Chinese segmentation and no English
+stemming. No hosted search, CMS query or private R2 browser request is required.
+
+## P0-5.5 Legacy and discussion boundaries
+
+Legacy plan reads only a local source checkout. Explicit Development apply may
+fetch planned Markdown images over bounded public HTTPS, with redirects disabled
+and private/loopback/resolved non-public addresses rejected. It uses the existing
+asset upload outside SQLite transactions, and never fetches external article bodies.
+Apply itself never calls a Deploy Hook; durable jobs are processed later by the
+ordinary CMS worker. Development apply's asset adapter is now FileStore; explicit
+external image downloads still need network. Automated external calls remain fake.
+
+Giscus is a separate public browser integration, only on published Notes. Public
+repo/category IDs live in source config, without credentials. Stable term mapping,
+strict matching, reactions, lazy loading and exact giscus.app theme messages are
+used. Missing/failed giscus never blocks reading. There is no comment/reaction API,
+DB, local anonymous identity or CMS permission coupling. Draft Preview never loads
+comments. See https://giscus.app and ADR 0012.

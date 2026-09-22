@@ -1,8 +1,8 @@
 .DEFAULT_GOAL := help
-.PHONY: help install check generate dev-web dev-admin dev-cms build-cms db-status db-up
+.PHONY: help install check generate dev dev-web dev-admin dev-cms build-cms db-status db-up
 
 help:
-	@node -e "console.log('make install | check | generate | dev-web | dev-admin | dev-cms | build-cms | db-status | db-up')"
+	@node -e "console.log('make install | check | generate | dev | dev-web | dev-admin | dev-cms | build-cms | db-status | db-up')"
 
 install:
 	pnpm install --frozen-lockfile
@@ -13,6 +13,9 @@ check:
 
 generate:
 	node scripts/generate.mjs
+
+dev:
+	node scripts/dev.mjs
 
 dev-web:
 	pnpm --filter @gopheratlas/web dev

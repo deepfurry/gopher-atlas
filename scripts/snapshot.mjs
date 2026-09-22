@@ -2,23 +2,18 @@ import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
+import snapshotSchema from '../contracts/content-snapshot.schema.json' with { type: 'json' };
 import {
   isSafeLink,
   validateMarkdown,
+  isAssetURL,
 } from '../packages/markdown/src/index.ts';
 
 export const maxSnapshotBytes = 128 * 1024 * 1024;
 export const sha256 = (data) => createHash('sha256').update(data).digest('hex');
 const ajv = new Ajv2020({ strict: true });
 addFormats(ajv);
-const validate = ajv.compile(
-  JSON.parse(
-    readFileSync(
-      new URL('../contracts/content-snapshot.schema.json', import.meta.url),
-      'utf8',
-    ),
-  ),
-);
+const validate = ajv.compile(snapshotSchema);
 const invalid = () => {
   throw new Error('snapshot_invalid');
 };
@@ -27,7 +22,7 @@ const unique = (rows, key = 'id') => {
   if (values.size !== rows.length) invalid();
   return values;
 };
-export function validateSnapshot(data) {
+export function validateSnapshot(data, { assetPolicy } = {}) {
   if (!Buffer.isBuffer(data) || data.length > maxSnapshotBytes) invalid();
   let snapshot;
   try {
@@ -45,6 +40,7 @@ export function validateSnapshot(data) {
     usedAssets = new Set(),
     usedTags = new Set(),
     canonicals = new Map();
+  const groups = new Map();
   for (const route of snapshot.routes) {
     if (!content.has(route.contentId)) invalid();
     if (route.kind === 'canonical') {
@@ -53,6 +49,18 @@ export function validateSnapshot(data) {
     }
   }
   for (const item of snapshot.content) {
+    if (item.type === 'note') {
+      const { group, groupSlug, groupDescription, groupOrder } = item.payload;
+      const metadata = JSON.stringify([group, groupDescription, groupOrder]);
+      if (groups.has(groupSlug) && groups.get(groupSlug) !== metadata)
+        invalid();
+      groups.set(groupSlug, metadata);
+    }
+    if (
+      item.type === 'topic' &&
+      item.payload.recommendedCount > item.topicEntries.length
+    )
+      invalid();
     const prefix = {
       post: 'posts',
       curated_article: 'articles',
@@ -72,7 +80,7 @@ export function validateSnapshot(data) {
     usedAuthors.add(item.authorId);
     if (
       Buffer.byteLength(item.bodyMarkdown) > 524288 ||
-      validateMarkdown(item.bodyMarkdown).length
+      validateMarkdown(item.bodyMarkdown, assetPolicy).length
     )
       invalid();
     if (item.coverAssetId !== null) {
@@ -88,7 +96,7 @@ export function validateSnapshot(data) {
     for (const entry of item.topicEntries)
       if (
         entry.targetContentId === item.id ||
-        !content.has(entry.targetContentId)
+        content.get(entry.targetContentId)?.type !== 'curated_article'
       )
         invalid();
     if (item.type === 'curated_article') {
@@ -103,7 +111,7 @@ export function validateSnapshot(data) {
   for (const author of snapshot.authors) {
     if (
       Buffer.byteLength(author.bioMarkdown) > 10000 ||
-      validateMarkdown(author.bioMarkdown).length ||
+      validateMarkdown(author.bioMarkdown, assetPolicy).length ||
       [author.avatarUrl, author.websiteUrl].some(
         (url) => url && !isSafeLink(url),
       )
@@ -113,8 +121,7 @@ export function validateSnapshot(data) {
   for (const asset of snapshot.assets)
     if (
       asset.width * asset.height > 100000000 ||
-      new URL(asset.url).pathname.split('/')[3] !==
-        new URL(asset.url).pathname.split('/')[4].slice(0, 2)
+      !isAssetURL(asset.url, assetPolicy)
     )
       invalid();
   if (
@@ -151,11 +158,7 @@ export function validateLatest(data) {
   return latest;
 }
 
-export async function loadSnapshot(env, { read = readFileSync, get } = {}) {
-  if (env.CONTENT_SNAPSHOT_FILE) {
-    const data = read(env.CONTENT_SNAPSHOT_FILE);
-    return { snapshot: validateSnapshot(data), data, hash: sha256(data) };
-  }
+export function validateContentInput(env, { development = false } = {}) {
   const required = [
     'CONTENT_R2_ENDPOINT',
     'CONTENT_R2_BUCKET',
@@ -171,7 +174,12 @@ export async function loadSnapshot(env, { read = readFileSync, get } = {}) {
     throw new Error('content_input_invalid');
   }
   if (
-    endpoint.protocol !== 'https:' ||
+    (endpoint.protocol !== 'https:' &&
+      !(
+        development &&
+        endpoint.protocol === 'http:' &&
+        ['127.0.0.1', 'localhost', '[::1]'].includes(endpoint.hostname)
+      )) ||
     endpoint.username ||
     endpoint.password ||
     endpoint.search ||
@@ -180,6 +188,17 @@ export async function loadSnapshot(env, { read = readFileSync, get } = {}) {
     !/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(env.CONTENT_R2_BUCKET)
   )
     throw new Error('content_input_invalid');
+}
+
+export async function loadSnapshot(
+  env,
+  { read = readFileSync, get, development = false } = {},
+) {
+  if (env.CONTENT_SNAPSHOT_FILE) {
+    const data = read(env.CONTENT_SNAPSHOT_FILE);
+    return { snapshot: validateSnapshot(data), data, hash: sha256(data) };
+  }
+  validateContentInput(env, { development });
   try {
     const latest = validateLatest(await get('latest.json', 8192));
     const data = await get(latest.snapshotKey, maxSnapshotBytes);

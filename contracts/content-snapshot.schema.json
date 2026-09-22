@@ -121,7 +121,8 @@
         "url": {
           "type": "string",
           "maxLength": 2048,
-          "pattern": "^https://assets\\.gopheratlas\\.com/media/sha256/[a-f0-9]{2}/[a-f0-9]{64}\\.(png|jpg|webp|gif)$"
+          "pattern": "^https?://[^\\s]+/media/sha256/[a-f0-9]{2}/[a-f0-9]{64}\\.(png|jpg|webp|gif)$",
+          "description": "Structured URL and immutable key; runtime policy requires exact Production assets origin or explicitly configured Development loopback asset base."
         },
         "mimeType": {
           "enum": ["image/png", "image/jpeg", "image/webp", "image/gif"]
@@ -215,7 +216,13 @@
     "note": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["group", "groupSlug", "order"],
+      "required": [
+        "group",
+        "groupSlug",
+        "order",
+        "groupDescription",
+        "groupOrder"
+      ],
       "properties": {
         "group": {
           "type": "string",
@@ -231,18 +238,32 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 1000000
+        },
+        "groupDescription": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "groupOrder": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
         }
       }
     },
     "topic": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["order"],
+      "required": ["order", "recommendedCount"],
       "properties": {
         "order": {
           "type": "integer",
           "minimum": 0,
           "maximum": 1000000
+        },
+        "recommendedCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
         }
       }
     },
@@ -290,12 +311,10 @@
           "maxLength": 32
         },
         "difficulty": {
-          "type": "string",
-          "maxLength": 32
+          "enum": ["beginner", "intermediate", "advanced"]
         },
         "rating": {
-          "type": "string",
-          "maxLength": 16
+          "enum": ["S+", "S", "A+", "A", "B+", "B", "C+", "C"]
         },
         "mustRead": {
           "type": "boolean"

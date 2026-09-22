@@ -4,16 +4,16 @@ info:
   version: 0.4.0
   description:
     P0-4 private same-origin control plane. Public-state mutations atomically select SQLite
-    revisions/routes, append Audit and queue a generation job. A durable worker uploads an immutable
-    public snapshot and triggers a build. Published in CMS is distinct from the observed public
-    build marker. Ordinary JSON is capped at 1 MiB; only asset multipart has a 12 MiB parser
-    ceiling, with a 10 MiB image limit.
+    revisions/routes, append Audit and queue a generation job. A durable worker uploads an immutable public
+    snapshot and triggers a build. Published in CMS is distinct from the observed public build marker.
+    Ordinary JSON is capped at 1 MiB; only asset multipart has a 12 MiB parser ceiling, with a 10 MiB image
+    limit.
   license:
     name: MIT
     identifier: MIT
 servers:
-  - url: https://blog.go-furry.com
-    description: Private Tailscale HTTPS origin
+  - url: /
+    description: Private same-origin Tailscale Serve HTTPS deployment
   - url: http://127.0.0.1:5173
     description: Loopback Vite same-origin proxy; CMS_BASE_URL/redirect must match
 security:
@@ -64,8 +64,8 @@ paths:
         - Runtime
       summary: Check SQLite and complete schema version 3
       description:
-        Read-only schema, columns and singleton probes. Migration 3 must be explicitly applied.
-        Never migrates or contacts external services.
+        Read-only schema, columns and singleton probes. Migration 3 must be explicitly applied. Never
+        migrates or contacts external services.
       responses:
         '200':
           description: Successful operation
@@ -109,9 +109,9 @@ paths:
         - Auth
       summary: Consume state once and resolve GitHub identity
       description:
-        Successful login rotates the prior session and issues session/CSRF cookies, then
-        redirects to /. Unknown identities become pending. Disabled accounts are rejected. Provider
-        access tokens are discarded after numeric identity lookup.
+        Successful login rotates the prior session and issues session/CSRF cookies, then redirects to /.
+        Unknown identities become pending. Disabled accounts are rejected. Provider access tokens are
+        discarded after numeric identity lookup.
       responses:
         '303':
           description: Redirect without exposing OAuth credentials to the Admin URL.
@@ -155,9 +155,8 @@ paths:
         - Auth
       summary: Revoke the current session and expire cookies
       description:
-        Available to active and pending sessions. Requires Origin and CSRF. Server-side
-        revocation precedes cookie removal. Requires the exact configured Origin and a session-bound
-        X-CSRF-Token header.
+        Available to active and pending sessions. Requires Origin and CSRF. Server-side revocation
+        precedes cookie removal. Requires the exact configured Origin and a session-bound X-CSRF-Token header.
       responses:
         '204':
           description: Session revoked and cookies expired.
@@ -179,8 +178,8 @@ paths:
         - Identity
       summary: Read current identity and server-derived permissions
       description:
-        Valid pending sessions may read this endpoint. Disabled users are rejected. No tokens
-        or hashes are returned.
+        Valid pending sessions may read this endpoint. Disabled users are rejected. No tokens or hashes
+        are returned.
       responses:
         '200':
           description: Successful operation
@@ -270,8 +269,8 @@ paths:
         - Users
       summary: approve a user as an active Admin
       description:
-        Approve a pending account as Editor or Reviewer. Requires the exact configured Origin
-        and a session-bound X-CSRF-Token header.
+        Approve a pending account as Editor or Reviewer. Requires the exact configured Origin and a
+        session-bound X-CSRF-Token header.
       responses:
         '200':
           description: Successful operation
@@ -318,8 +317,7 @@ paths:
       summary: disable a user as an active Admin
       description:
         Disable and revoke all sessions atomically. Reject disabling the last active Admin with
-        last_admin_required. Requires the exact configured Origin and a session-bound X-CSRF-Token
-        header.
+        last_admin_required. Requires the exact configured Origin and a session-bound X-CSRF-Token header.
       responses:
         '200':
           description: Successful operation
@@ -359,8 +357,8 @@ paths:
         - Users
       summary: enable a user as an active Admin
       description:
-        Enable a disabled user without restoring revoked sessions. The user must sign in again.
-        Requires the exact configured Origin and a session-bound X-CSRF-Token header.
+        Enable a disabled user without restoring revoked sessions. The user must sign in again. Requires
+        the exact configured Origin and a session-bound X-CSRF-Token header.
       responses:
         '200':
           description: Successful operation
@@ -400,9 +398,9 @@ paths:
         - Users
       summary: Change a user role as an active Admin
       description:
-        Reject demoting the last active Admin with last_admin_required. Permissions are
-        resolved server-side on each request. Requires the exact configured Origin and a
-        session-bound X-CSRF-Token header.
+        Reject demoting the last active Admin with last_admin_required. Permissions are resolved
+        server-side on each request. Requires the exact configured Origin and a session-bound X-CSRF-Token
+        header.
       responses:
         '200':
           description: Successful operation
@@ -469,8 +467,8 @@ paths:
         - Identity
       summary: Update the active user author profile
       description:
-        Update the active user author profile Requires the exact configured Origin and a
-        session-bound X-CSRF-Token header.
+        Update the active user author profile Requires the exact configured Origin and a session-bound
+        X-CSRF-Token header.
       responses:
         '200':
           description: Successful operation
@@ -504,8 +502,8 @@ paths:
         - Content
       summary: List visible content
       description:
-        Visibility is applied inside the query, before pagination. Only Admin may include
-        archived. Reviewer sees others only while in review, with immutable pending titles.
+        Visibility is applied inside the query, before pagination. Only Admin may include archived.
+        Reviewer sees others only while in review, with immutable pending titles.
       responses:
         '200':
           description: Successful operation
@@ -535,8 +533,8 @@ paths:
         - name: after
           in: query
           description:
-            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use
-            revisionNo; other lists use the returned row ID.
+            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use revisionNo;
+            other lists use the returned row ID.
           schema:
             type: integer
             format: int64
@@ -564,8 +562,8 @@ paths:
             type: string
             maxLength: 200
           description:
-            Case-insensitive literal title/summary substring; uses the visible Draft or immutable
-            pending metadata. No FTS.
+            Case-insensitive literal title/summary substring; uses the visible Draft or immutable pending
+            metadata. No FTS.
         - name: ownerUserId
           in: query
           schema:
@@ -579,8 +577,8 @@ paths:
         - Content
       summary: Create identity and initial Draft
       description:
-        Active roles create own Curated/Post/Note. Topic requires Admin. Initial version 1 may
-        be incomplete; creator/owner/byline are the actor. Atomic creation audit.
+        Active roles create own Curated/Post/Note. Topic requires Admin. Initial version 1 may be
+        incomplete; creator/owner/byline are the actor. Atomic creation audit.
       responses:
         '201':
           description: Successful operation
@@ -663,8 +661,8 @@ paths:
         - Content
       summary: Replace Draft with expected version
       description:
-        Owner/Admin only, not archived or in_review. Saving synced changes state to draft and
-        preserves published selection. No Audit event.
+        Owner/Admin only, not archived or in_review. Saving synced changes state to draft and preserves
+        published selection. No Audit event.
       responses:
         '200':
           description: Successful operation
@@ -715,8 +713,8 @@ paths:
         - Content
       summary: List immutable revision summaries
       description:
-        Reviewer viewing another owner may list only the current pending revision. after is
-        exclusive revisionNo.
+        Reviewer viewing another owner may list only the current pending revision. after is exclusive
+        revisionNo.
       responses:
         '200':
           description: Successful operation
@@ -754,8 +752,8 @@ paths:
         - name: after
           in: query
           description:
-            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use
-            revisionNo; other lists use the returned row ID.
+            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use revisionNo;
+            other lists use the returned row ID.
           schema:
             type: integer
             format: int64
@@ -768,8 +766,8 @@ paths:
         - Content
       summary: Read immutable Revision with relations and review
       description:
-        Visibility follows Content policy. Reviewer viewing another owner may fetch only the
-        current pending revision.
+        Visibility follows Content policy. Reviewer viewing another owner may fetch only the current
+        pending revision.
       responses:
         '200':
           description: Successful operation
@@ -819,9 +817,9 @@ paths:
         - Content
       summary: Copy a historical Revision into Draft
       description:
-        Owner/Admin, expected current Draft version, not archived/in_review. Copy
-        fields/tags/topic order and bump version; state draft. Preserve published pointer and
-        immutable history. Non-Admin cannot use restoration to change featured.
+        Owner/Admin, expected current Draft version, not archived/in_review. Copy fields/tags/topic order
+        and bump version; state draft. Preserve published pointer and immutable history. Non-Admin cannot use
+        restoration to change featured.
       responses:
         '200':
           description: Successful operation
@@ -880,9 +878,8 @@ paths:
         - Content
       summary: Capture immutable Revision for review
       description:
-        Owner/Admin from draft or changes_requested, expected Draft version. Complete
-        validation and early route conflict check, snapshot relations, set exact pending pointer and
-        audit.
+        Owner/Admin from draft or changes_requested, expected Draft version. Complete validation and
+        early route conflict check, snapshot relations, set exact pending pointer and audit.
       responses:
         '200':
           description: Successful operation
@@ -977,9 +974,8 @@ paths:
         - Content
       summary: Request changes on exact pending Revision
       description:
-        Reviewer/Admin. Reviewer cannot be owner or revision byline; Admin bypasses. Required
-        safe Markdown comment. Append terminal review, clear pending and state changes_requested
-        atomically.
+        Reviewer/Admin. Reviewer cannot be owner or revision byline; Admin bypasses. Required safe
+        Markdown comment. Append terminal review, clear pending and state changes_requested atomically.
       responses:
         '200':
           description: Successful operation
@@ -1031,10 +1027,11 @@ paths:
       summary: Select a published immutable Revision
       description:
         'Reviewed mode: Reviewer/Admin, exact pending revisionId with owner/byline self-review
-        prohibition except Admin. Direct mode: Admin from draft/changes_requested, expected Draft
-        version, create new immutable revision without fake approval. Topic targets must be
-        published/unarchived. Route, pointer, review if any and audit commit together. Direct audit
-        action is content.published_direct. No R2, generation, jobs or deploy hook.'
+        prohibition except Admin. Direct mode: Admin from draft/changes_requested, expected Draft version,
+        create new immutable revision without fake approval. Topic targets must be published/unarchived.
+        Route, pointer, review if any and audit commit together. Direct audit action is
+        content.published_direct. Generation/job commits atomically; R2 and Hook run asynchronously outside
+        the transaction.'
       responses:
         '200':
           description: Successful operation
@@ -1085,8 +1082,8 @@ paths:
         - Content
       summary: Clear published selection
       description:
-        Admin only, requires currently selected publication. Clear published and pending, state
-        draft. Preserve revision/review/route history.
+        Admin only, requires currently selected publication. Clear published and pending, state draft.
+        Preserve revision/review/route history.
       responses:
         '200':
           description: Successful operation
@@ -1131,8 +1128,8 @@ paths:
         - Content
       summary: Archive content
       description:
-        Admin only. Set archive time, clear published/pending, state draft. Historical routes
-        remain permanently reserved.
+        Admin only. Set archive time, clear published/pending, state draft. Historical routes remain
+        permanently reserved.
       responses:
         '200':
           description: Successful operation
@@ -1221,9 +1218,8 @@ paths:
         - Reviews
       summary: List review queue or history
       description:
-        Reviewer/Admin. Pending queue is immutable revision data and excludes reviewer
-        owner/byline self-review. History contains immutable terminal reviews. Each view has its own
-        cursor IDs.
+        Reviewer/Admin. Pending queue is immutable revision data and excludes reviewer owner/byline
+        self-review. History contains immutable terminal reviews. Each view has its own cursor IDs.
       responses:
         '200':
           description: Successful operation
@@ -1255,8 +1251,8 @@ paths:
         - name: after
           in: query
           description:
-            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use
-            revisionNo; other lists use the returned row ID.
+            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use revisionNo;
+            other lists use the returned row ID.
           schema:
             type: integer
             format: int64
@@ -1307,8 +1303,8 @@ paths:
         - name: after
           in: query
           description:
-            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use
-            revisionNo; other lists use the returned row ID.
+            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use revisionNo;
+            other lists use the returned row ID.
           schema:
             type: integer
             format: int64
@@ -1360,9 +1356,7 @@ paths:
       tags:
         - Tags
       summary: Update tag
-      description:
-        Admin only. Explicit slug is persisted; changing name never computes a new slug. Atomic
-        audit.
+      description: Admin only. Explicit slug is persisted; changing name never computes a new slug. Atomic audit.
       responses:
         '200':
           description: Successful operation
@@ -1442,8 +1436,8 @@ paths:
         - name: after
           in: query
           description:
-            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use
-            revisionNo; other lists use the returned row ID.
+            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use revisionNo;
+            other lists use the returned row ID.
           schema:
             type: integer
             format: int64
@@ -1456,8 +1450,8 @@ paths:
         - Content
       summary: List permanent route history
       description:
-        Content object visibility applies. Bounded keyset pages ordered by route row ID;
-        redirects retain content identity and resolve directly to the current canonical route.
+        Content object visibility applies. Bounded keyset pages ordered by route row ID; redirects retain
+        content identity and resolve directly to the current canonical route.
       responses:
         '200':
           description: Successful operation
@@ -1495,8 +1489,8 @@ paths:
         - name: after
           in: query
           description:
-            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use
-            revisionNo; other lists use the returned row ID.
+            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use revisionNo;
+            other lists use the returned row ID.
           schema:
             type: integer
             format: int64
@@ -1513,8 +1507,8 @@ paths:
         - name: after
           in: query
           description:
-            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use
-            revisionNo; other lists use the returned row ID.
+            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use revisionNo;
+            other lists use the returned row ID.
           schema:
             type: integer
             format: int64
@@ -1861,18 +1855,17 @@ components:
       in: cookie
       name: __Host-gopheratlas_session
       description:
-        'Opaque token; SHA-256 only in SQLite. Secure, HttpOnly, SameSite=Lax, Path=/, no
-        Domain. Validated loopback HTTP development uses gopheratlas_dev_session. CSRF cookie:
-        __Host-gopheratlas_csrf (or gopheratlas_dev_csrf in HTTP development), non-HttpOnly,
-        host-only; mutation headers must match.'
+        'Opaque token; SHA-256 only in SQLite. Secure, HttpOnly, SameSite=Lax, Path=/, no Domain.
+        Validated loopback HTTP development uses gopheratlas_dev_session. CSRF cookie: __Host-gopheratlas_csrf
+        (or gopheratlas_dev_csrf in HTTP development), non-HttpOnly, host-only; mutation headers must match.'
     CSRF:
       type: apiKey
       in: header
       name: X-CSRF-Token
       description:
-        Required for mutations. Must match the session-bound same-origin CSRF cookie and stored
-        SHA-256 hash. Origin must also exactly match CMS_BASE_URL. Browser transport attaches the
-        header automatically.
+        Required for mutations. Must match the session-bound same-origin CSRF cookie and stored SHA-256
+        hash. Origin must also exactly match CMS_BASE_URL. Browser transport attaches the header
+        automatically.
   responses:
     Error:
       description: Stable error envelope without provider/SQL details. See error.code for classification.
@@ -1974,8 +1967,8 @@ components:
           type: string
           maxLength: 10000
           description:
-            At most 10000 UTF-8 bytes. CommonMark/GFM with shared Markdown safety validation; no
-            H1, frontmatter, HTML/MDX, unsafe URLs or external images.
+            At most 10000 UTF-8 bytes. CommonMark/GFM with shared Markdown safety validation; no H1,
+            frontmatter, HTML/MDX, unsafe URLs or external images.
         websiteUrl:
           type: string
           maxLength: 2048
@@ -2163,8 +2156,8 @@ components:
           format: int64
           minimum: 1
       description:
-        Content identity reference. Array order becomes one-based position. Self and duplicate
-        targets are invalid. Unpublished targets are allowed until Topic publication.
+        Curated article identity only. Array order becomes one-based position. Self and duplicate targets
+        are invalid; unpublished curated targets allowed until Topic publication.
     PostPayload:
       type: object
       additionalProperties: false
@@ -2187,6 +2180,14 @@ components:
           format: int64
           minimum: 0
           maximum: 1000000
+        groupDescription:
+          type: string
+          maxLength: 1000
+        groupOrder:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000
     TopicPayload:
       type: object
       additionalProperties: false
@@ -2197,6 +2198,12 @@ components:
           format: int64
           minimum: 0
           maximum: 1000000
+        recommendedCount:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 100
+          description: First N entries are recommended reading; cannot exceed topicEntries length.
     RelatedLink:
       type: object
       additionalProperties: false
@@ -2240,10 +2247,25 @@ components:
           maxLength: 32
         difficulty:
           type: string
-          maxLength: 32
+          enum:
+            - ''
+            - beginner
+            - intermediate
+            - advanced
+          description: Empty only in incomplete Drafts; required before submission/publication.
         rating:
           type: string
-          maxLength: 16
+          enum:
+            - ''
+            - S+
+            - S
+            - A+
+            - A
+            - B+
+            - B
+            - C+
+            - C
+          description: Empty only in incomplete Drafts; required before submission/publication.
         mustRead:
           type: boolean
         relatedLinks:
@@ -2258,10 +2280,10 @@ components:
         - $ref: '#/components/schemas/TopicPayload'
         - $ref: '#/components/schemas/CuratedPayload'
       description:
-        Subtype is determined by immutable Content.type. Unknown fields are rejected for that
-        type. Omitted known subtype fields receive their Go zero/default values, then validated
-        structs are marshaled canonically. Note group/groupSlug and Curated sourceUrl must be
-        complete before submission/publication. payloadSchemaVersion is always 1.
+        Subtype is determined by immutable Content.type. Unknown fields are rejected for that type.
+        Omitted known subtype fields receive their Go zero/default values, then validated structs are
+        marshaled canonically. Note group/groupSlug and Curated sourceUrl must be complete before
+        submission/publication. payloadSchemaVersion is always 1.
     DraftInput:
       type: object
       additionalProperties: false
@@ -2299,8 +2321,8 @@ components:
         bodyMarkdown:
           type: string
           description:
-            At most 524288 UTF-8 bytes. Server CommonMark/GFM safety rules reject H1, frontmatter,
-            raw HTML/MDX, unsafe URLs and uncontrolled images.
+            At most 524288 UTF-8 bytes. Server CommonMark/GFM safety rules reject H1, frontmatter, raw
+            HTML/MDX, unsafe URLs and uncontrolled images.
         bylineUserId:
           type: integer
           format: int64
@@ -2340,11 +2362,10 @@ components:
           minimum: 1
           description: Nullable cover selection included in the same full Draft snapshot and immutable Revision.
       description:
-        Complete replacement snapshot; every property is required. version is the expected
-        current Draft version. Fields, tags and topic entries commit atomically, incrementing
-        version once. A stale version returns 409 content_version_conflict without partial writes.
-        Only Admin may change featured or assign another byline. Topic cannot use tags; other types
-        cannot use topic entries.
+        Complete replacement snapshot; every property is required. version is the expected current Draft
+        version. Fields, tags and topic entries commit atomically, incrementing version once. A stale version
+        returns 409 content_version_conflict without partial writes. Only Admin may change featured or assign
+        another byline. Topic cannot use tags; other types cannot use topic entries.
     Draft:
       type: object
       additionalProperties: false
@@ -2388,8 +2409,8 @@ components:
         bodyMarkdown:
           type: string
           description:
-            At most 524288 UTF-8 bytes. Server CommonMark/GFM safety rules reject H1, frontmatter,
-            raw HTML/MDX, unsafe URLs and uncontrolled images.
+            At most 524288 UTF-8 bytes. Server CommonMark/GFM safety rules reject H1, frontmatter, raw
+            HTML/MDX, unsafe URLs and uncontrolled images.
         bylineUserId:
           type: integer
           format: int64
@@ -2539,9 +2560,11 @@ components:
               format: int64
               minimum: 1
             - type: 'null'
+        product:
+          $ref: '#/components/schemas/ProductSummary'
       description:
-        Published selection is independent from editorialState. Editing a synced draft changes
-        state to draft without changing the published revision.
+        Published selection is independent from editorialState. Editing a synced draft changes state to
+        draft without changing the published revision.
     Route:
       type: object
       additionalProperties: false
@@ -2557,8 +2580,8 @@ components:
             - canonical
             - redirect
       description:
-        Permanently owned path. At most one canonical per Content. Redirects resolve by content
-        identity to the current canonical, without chains. Unpublish/archive never release paths.
+        Permanently owned path. At most one canonical per Content. Redirects resolve by content identity
+        to the current canonical, without chains. Unpublish/archive never release paths.
     Content:
       type: object
       additionalProperties: false
@@ -2674,10 +2697,9 @@ components:
             - $ref: '#/components/schemas/Review'
             - type: 'null'
       description:
-        Editors see their own content. Reviewer access to another owner is limited to an
-        in-review immutable pending revision; draft is null. Admin sees all, including archived. A
-        completed action may return summary with null draft/pendingRevision when the actor no longer
-        has view access.
+        Editors see their own content. Reviewer access to another owner is limited to an in-review
+        immutable pending revision; draft is null. Admin sees all, including archived. A completed action may
+        return summary with null draft/pendingRevision when the actor no longer has view access.
     ReviewDecision:
       type: string
       enum:
@@ -2851,8 +2873,8 @@ components:
         bodyMarkdown:
           type: string
           description:
-            At most 524288 UTF-8 bytes. Server CommonMark/GFM safety rules reject H1, frontmatter,
-            raw HTML/MDX, unsafe URLs and uncontrolled images.
+            At most 524288 UTF-8 bytes. Server CommonMark/GFM safety rules reject H1, frontmatter, raw
+            HTML/MDX, unsafe URLs and uncontrolled images.
         bylineUserId:
           type: integer
           format: int64
@@ -2931,8 +2953,8 @@ components:
             - $ref: '#/components/schemas/AssetSummary'
             - type: 'null'
       description:
-        Immutable persisted fields, typed payload and relation snapshot. Restore copies to
-        Draft and never updates this Revision or the published pointer.
+        Immutable persisted fields, typed payload and relation snapshot. Restore copies to Draft and
+        never updates this Revision or the published pointer.
     PendingReview:
       type: object
       additionalProperties: false
@@ -2998,8 +3020,8 @@ components:
           type: string
           maxLength: 1000
       description:
-        Admin only. Names are trimmed, whitespace collapsed and lowercased for deterministic
-        uniqueness. Slug is explicit and is never recomputed from name.
+        Admin only. Names are trimmed, whitespace collapsed and lowercased for deterministic uniqueness.
+        Slug is explicit and is never recomputed from name.
     Tag:
       type: object
       additionalProperties: false
@@ -3125,9 +3147,7 @@ components:
         requestId:
           type: string
           maxLength: 36
-          description:
-            Server-generated UUID or empty for a non-HTTP operation. Never an incoming request
-            header.
+          description: Server-generated UUID or empty for a non-HTTP operation. Never an incoming request header.
         createdAt:
           type: integer
           format: int64
@@ -3135,8 +3155,8 @@ components:
         actor:
           $ref: '#/components/schemas/AuthorSummary'
       description:
-        Append-only and transactionally coupled to mutations. Contains no body, review comment,
-        typed payload, credential or browser token. Draft save/autosave is not audited.
+        Append-only and transactionally coupled to mutations. Contains no body, review comment, typed
+        payload, credential or browser token. Draft save/autosave is not audited.
     ContentList:
       type: object
       additionalProperties: false
@@ -3155,8 +3175,8 @@ components:
             - 'null'
           format: int64
           description:
-            Use as after for the next page. Null ends pagination. A full final page may yield one
-            empty next page.
+            Use as after for the next page. Null ends pagination. A full final page may yield one empty next
+            page.
     RevisionList:
       type: object
       additionalProperties: false
@@ -3175,8 +3195,8 @@ components:
             - 'null'
           format: int64
           description:
-            Use as after for the next page. Null ends pagination. A full final page may yield one
-            empty next page.
+            Use as after for the next page. Null ends pagination. A full final page may yield one empty next
+            page.
     PendingReviewList:
       type: object
       additionalProperties: false
@@ -3195,8 +3215,8 @@ components:
             - 'null'
           format: int64
           description:
-            Use as after for the next page. Null ends pagination. A full final page may yield one
-            empty next page.
+            Use as after for the next page. Null ends pagination. A full final page may yield one empty next
+            page.
     ReviewHistoryList:
       type: object
       additionalProperties: false
@@ -3215,8 +3235,8 @@ components:
             - 'null'
           format: int64
           description:
-            Use as after for the next page. Null ends pagination. A full final page may yield one
-            empty next page.
+            Use as after for the next page. Null ends pagination. A full final page may yield one empty next
+            page.
     TagList:
       type: object
       additionalProperties: false
@@ -3235,8 +3255,8 @@ components:
             - 'null'
           format: int64
           description:
-            Use as after for the next page. Null ends pagination. A full final page may yield one
-            empty next page.
+            Use as after for the next page. Null ends pagination. A full final page may yield one empty next
+            page.
     AuditList:
       type: object
       additionalProperties: false
@@ -3255,8 +3275,8 @@ components:
             - 'null'
           format: int64
           description:
-            Use as after for the next page. Null ends pagination. A full final page may yield one
-            empty next page.
+            Use as after for the next page. Null ends pagination. A full final page may yield one empty next
+            page.
     CreateContentInput:
       type: object
       additionalProperties: false
@@ -3481,8 +3501,8 @@ components:
         archived:
           type: boolean
       description:
-        Label only; title may be empty when no visible immutable title exists. A reference
-        never grants Draft access.
+        Label only; title may be empty when no visible immutable title exists. A reference never grants
+        Draft access.
     ReviewDetail:
       type: object
       additionalProperties: false
@@ -3503,8 +3523,8 @@ components:
         actions:
           $ref: '#/components/schemas/ReviewActions'
       description:
-        Reviewer/Admin only. Exact immutable pending or reviewed Revision. Never contains a
-        mutable Draft, including for Admin.
+        Reviewer/Admin only. Exact immutable pending or reviewed Revision. Never contains a mutable
+        Draft, including for Admin.
     AssetSummary:
       type: object
       additionalProperties: false
@@ -3522,7 +3542,7 @@ components:
           minimum: 1
         url:
           type: string
-          pattern: ^https://assets\.gopheratlas\.com/media/sha256/[a-f0-9]{2}/[a-f0-9]{64}\.(png|jpg|webp|gif)$
+          pattern: ^https?://[^\s]+/media/sha256/[a-f0-9]{2}/[a-f0-9]{64}\.(png|jpg|webp|gif)$
         mimeType:
           type: string
           enum:
@@ -3566,7 +3586,7 @@ components:
           minimum: 1
         url:
           type: string
-          pattern: ^https://assets\.gopheratlas\.com/media/sha256/[a-f0-9]{2}/[a-f0-9]{64}\.(png|jpg|webp|gif)$
+          pattern: ^https?://[^\s]+/media/sha256/[a-f0-9]{2}/[a-f0-9]{64}\.(png|jpg|webp|gif)$
         mimeType:
           type: string
           enum:
@@ -3750,6 +3770,15 @@ components:
         - publicMarker
         - computedState
       properties:
+        mode:
+          type: string
+          const: local
+          description: Present only in Development. The same worker writes local snapshots without a Hook.
+        localSnapshotGeneration:
+          type: integer
+          minimum: 1
+          description: Present only when the local latest pointer and immutable snapshot digest verify. Not a remote build marker.
+
         desiredGeneration:
           type: integer
           format: int64
@@ -3771,3 +3800,66 @@ components:
             - pending
             - behind
             - unknown
+    ProductSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - summary
+        - payload
+        - language
+        - featured
+        - entryCount
+        - tags
+        - topics
+      properties:
+        summary:
+          type: string
+          maxLength: 4000
+        payload:
+          $ref: '#/components/schemas/TypedPayload'
+        language:
+          type: string
+          maxLength: 32
+        featured:
+          type: boolean
+        entryCount:
+          type: integer
+          minimum: 0
+          maximum: 100
+        tags:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - id
+              - name
+              - slug
+            properties:
+              id:
+                type: integer
+                format: int64
+              name:
+                type: string
+              slug:
+                type: string
+        topics:
+          type: array
+          maxItems: 10000
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - id
+              - title
+            properties:
+              id:
+                type: integer
+                format: int64
+              title:
+                type: string
+      description:
+        Bounded list-only product projection. Owner/Admin sees authoring metadata; other Reviewer sees
+        exact pending immutable metadata. No body. Topic inverse labels use Admin Drafts or otherwise
+        published Topics.

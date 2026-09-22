@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -22,12 +23,15 @@ func webURL(s string) bool         { return len(s) <= 2048 && markdown.WebURL(s,
 
 type PostPayload struct{}
 type NotePayload struct {
-	Group     string `json:"group"`
-	GroupSlug string `json:"groupSlug"`
-	Order     int64  `json:"order"`
+	Group            string `json:"group"`
+	GroupSlug        string `json:"groupSlug"`
+	GroupDescription string `json:"groupDescription"`
+	GroupOrder       int64  `json:"groupOrder"`
+	Order            int64  `json:"order"`
 }
 type TopicPayload struct {
-	Order int64 `json:"order"`
+	Order            int64 `json:"order"`
+	RecommendedCount int64 `json:"recommendedCount"`
 }
 type RelatedLink struct {
 	Label string `json:"label"`
@@ -86,7 +90,7 @@ func CanonicalPayload(kind string, raw []byte, complete bool) (json.RawMessage, 
 		if err := strictPayload(raw, &p); err != nil {
 			return nil, err
 		}
-		if !bounded(p.Group, 100) || p.Order < 0 || p.Order > 1000000 || (p.GroupSlug != "" && !validSlug(p.GroupSlug)) ||
+		if !bounded(p.Group, 100) || !bounded(p.GroupDescription, 1000) || p.GroupOrder < 0 || p.GroupOrder > 1000000 || p.Order < 0 || p.Order > 1000000 || (p.GroupSlug != "" && !validSlug(p.GroupSlug)) ||
 			(complete && (strings.TrimSpace(p.Group) == "" || !validSlug(p.GroupSlug))) {
 			return nil, fault.Payload
 		}
@@ -96,7 +100,7 @@ func CanonicalPayload(kind string, raw []byte, complete bool) (json.RawMessage, 
 		if err := strictPayload(raw, &p); err != nil {
 			return nil, err
 		}
-		if p.Order < 0 || p.Order > 1000000 {
+		if p.Order < 0 || p.Order > 1000000 || p.RecommendedCount < 0 || p.RecommendedCount > RelationLimit {
 			return nil, fault.Payload
 		}
 		value = p
@@ -114,6 +118,10 @@ func CanonicalPayload(kind string, raw []byte, complete bool) (json.RawMessage, 
 			if _, err := time.Parse("2006-01-02", p.SourcePublishedAt); err != nil {
 				return nil, fault.Payload
 			}
+		}
+		if (!slices.Contains([]string{"beginner", "intermediate", "advanced"}, p.Difficulty) && (complete || p.Difficulty != "")) ||
+			(!slices.Contains([]string{"S+", "S", "A+", "A", "B+", "B", "C+", "C"}, p.Rating) && (complete || p.Rating != "")) {
+			return nil, fault.Payload
 		}
 		for _, link := range p.RelatedLinks {
 			if !bounded(link.Label, 200) || strings.TrimSpace(link.Label) == "" || !webURL(link.URL) {
@@ -137,7 +145,11 @@ func initialPayload(kind string) json.RawMessage {
 	data, _ := CanonicalPayload(kind, []byte("{}"), false)
 	return data
 }
-func validateFields(kind string, fields *Fields, complete bool) error {
+func validateFields(kind string, fields *Fields, complete bool, policies ...markdown.Policy) error {
+	policy := markdown.Policy{}
+	if len(policies) > 0 {
+		policy = policies[0]
+	}
 	if !bounded(fields.Title, 200) || !bounded(fields.Summary, 4000) || !bounded(fields.SEOTitle, 120) || !bounded(fields.SEODescription, 320) ||
 		fields.BylineUserID <= 0 || len(fields.Language) > 32 || (fields.Language != "" && !languagePattern.MatchString(fields.Language)) ||
 		(fields.Slug != "" && !validSlug(fields.Slug)) {
@@ -146,7 +158,7 @@ func validateFields(kind string, fields *Fields, complete bool) error {
 	if complete && (strings.TrimSpace(fields.Title) == "" || !validSlug(fields.Slug) || fields.Language == "") {
 		return fault.Validation
 	}
-	if len(fields.BodyMarkdown) > MarkdownLimit || !utf8.ValidString(fields.BodyMarkdown) || !markdown.Valid(fields.BodyMarkdown) {
+	if len(fields.BodyMarkdown) > MarkdownLimit || !utf8.ValidString(fields.BodyMarkdown) || !policy.Valid(fields.BodyMarkdown) {
 		return fault.Markdown
 	}
 	data, err := CanonicalPayload(kind, fields.Payload, complete)
@@ -156,8 +168,12 @@ func validateFields(kind string, fields *Fields, complete bool) error {
 	fields.Payload = data
 	return nil
 }
-func validateComment(s string, required bool) error {
-	if len(s) > ReviewCommentLimit || !utf8.ValidString(s) || !markdown.Valid(s) || (required && strings.TrimSpace(s) == "") {
+func validateComment(s string, required bool, policies ...markdown.Policy) error {
+	policy := markdown.Policy{}
+	if len(policies) > 0 {
+		policy = policies[0]
+	}
+	if len(s) > ReviewCommentLimit || !utf8.ValidString(s) || !policy.Valid(s) || (required && strings.TrimSpace(s) == "") {
 		return fault.Markdown
 	}
 	return nil
@@ -185,8 +201,8 @@ func candidatePath(kind string, f Fields) (string, error) {
 
 // PublishedPath reuses the domain's complete-field validation for the public
 // exporter without exposing mutable Draft state or introducing another grammar.
-func PublishedPath(kind string, fields Fields) (string, error) {
-	if err := validateFields(kind, &fields, true); err != nil {
+func PublishedPath(kind string, fields Fields, policies ...markdown.Policy) (string, error) {
+	if err := validateFields(kind, &fields, true, policies...); err != nil {
 		return "", err
 	}
 	return candidatePath(kind, fields)

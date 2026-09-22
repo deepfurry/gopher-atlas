@@ -26,6 +26,41 @@ The first full real publication generation/build-marker acceptance is still pend
 
 ## Binary and unit
 
+For an already installed Linux/systemd CMS, run as the repository owner (for
+example `ops`), without prefixing make with sudo:
+
+```sh
+cd /srv/gopheratlas/repo
+git pull --ff-only origin main
+make prod-update
+```
+
+`prod-update` requires a clean `main` checkout. It installs frozen pnpm dependencies,
+downloads Go modules and runs `make build-cms` as the operator. Only after a successful
+build does it use sudo to stop the CMS, back up the full data directory and old
+binary, atomically replace the binary and verify readiness/health. It preserves
+the binary's owner/group and installs mode 0750. Build failure leaves the running
+service untouched. Do not also run the old host-local `update.sh`.
+
+Run `make prod-backup` for an independent backup; see [backup-restore.md](backup-restore.md).
+Both commands briefly interrupt private CMS access; the deployed Cloudflare Public
+remains available. A maintenance lock prevents overlapping backup/install operations.
+Neither command sources/prints `.env`/`config/cms.env`, changes systemd/Tailscale/DNS,
+performs migrations, deletes old backups, or invokes R2/Hook directly. Starting the
+configured CMS can resume its normal publication jobs.
+
+Defaults match `/srv/gopheratlas` and `gopheratlas-cms.service`. An explicitly
+different root can use `GOPHERATLAS_ROOT=/absolute/path make prod-update`; checkout
+must be ROOT/repo. Linux requires Bash, GNU coreutils, util-linux `flock`, curl,
+systemd and sudo, plus the repository's Node/pnpm/Go build tools for updates.
+Windows local Development continues to use `make dev`.
+
+If backup fails before replacement, the script tries to restart the original
+service. If the newly installed binary fails readiness/health, it stops that
+service and reports the backup location. It does not automatically roll back a
+database or binary after new code has run: publication generation may already have
+advanced. Inspect the failure before recovery.
+
 `make build-cms` builds Admin and Go with `adminembed`; install the resulting
 `.cache/bin/gopheratlas-cms` at the path above. Plain Go builds intentionally omit
 the SPA and must not be deployed. No Node process is needed at runtime.
@@ -97,9 +132,9 @@ network probes. Manage users through Admin; last-active-Admin protection applies
 ## Publication operations
 
 Only one active CMS writer is supported. A configured restart can process queued
-jobs immediately. In Development, all eight publication values empty disables the
-worker and upload; public mutations still queue. Partial configuration fails.
-Production requires complete identity and publication settings (see .env.example).
+jobs immediately. Development uses persistent local FileStore and ignores R2/Hook
+configuration. Production requires complete identity and publication settings
+(see .env.example); partial Production configuration fails.
 
 Jobs persist pending/snapshot_uploaded/build_triggered/failed/superseded.
 Old actionable generations are coalesced. Safe failures retry at 30s, 2m, 10m,

@@ -253,6 +253,19 @@ Development 总是启用本地 FileStore 与 snapshot worker，忽略旧 R2/Hook
 Production 仍必须配全八个 P0-4 变量，缺失时不能 fallback 到本地。参见
 [部署与恢复](docs/operations/deployment.md) 和 [Production 构建说明](docs/operations/cloudflare.md)。
 
+已有 Linux/systemd 生产安装更新时，以仓库所属用户执行：
+
+```sh
+cd /srv/gopheratlas/repo
+git pull --ff-only origin main
+make prod-update
+```
+
+该命令安装依赖、构建内嵌 Admin 的 CMS，随后自动 sudo 停机备份、安装、启动并检查健康状态。
+单独备份使用 `make prod-backup`；备份保存在 `/srv/gopheratlas/backups/`，不会自动删除。
+两个命令均不自动迁移、不读取或修改生产 Secret；不再需要维护服务器上的旧 `update.sh`。
+详见[运维说明](docs/operations/deployment.md)与[备份说明](docs/operations/backup-restore.md)。
+
 本地 `make dev-web` / `make dev` 自动读取根 `.env`，不需要手工导出或映射环境变量。
 正常开发只有一条输入链路：本地 Admin → CMS → SQLite → 本地 full snapshot → Public。
 默认目录如下，storage 总是位于 `DATABASE_PATH` 同目录：

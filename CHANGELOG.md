@@ -1,5 +1,14 @@
 # Changelog
 
+## Production maintenance commands
+
+- Add `make prod-update` for dependency installation, embedded CMS build, stopped
+  SQLite/old-binary backup, atomic installation and bounded health verification.
+- Add `make prod-backup` with protected timestamped copies, WAL preservation,
+  checksum/completion markers and restoration of the original running state.
+- Keep migrations, secrets, restore decisions, backup retention and Cloudflare
+  configuration outside these on-demand commands; test failures on an isolated host.
+
 ## Development — Local persistent storage
 
 - Normal dev/dev-web now use persistent SQLite and sibling FileStore assets/full

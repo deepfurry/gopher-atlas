@@ -20,6 +20,7 @@ silently rewriting history. Routine implementation choices do not need an ADR.
 
 | [0012](0012-product-realignment-and-legacy-import.md) | Three product lines, legacy import and Public identity | Accepted |
 | [0013](0013-development-local-persistence.md) | Persistent local Development FileStore and environment-specific image policy | Accepted |
+| [0014](0014-production-maintenance-commands.md) | On-demand Linux Production update and stopped-writer backup | Accepted |
 
 New records include date, status, context, decision, alternatives, consequences
 and implementation scope. Earlier ADR phase boundaries describe their original

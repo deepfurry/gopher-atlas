@@ -76,8 +76,8 @@ and loopback HTTP. Curated URLs stay metadata; source articles are never fetched
 Workers Static Assets consumes build-generated `_redirects` directly. P0-5 uses
 only static 301 rules and fails above 2,000 rules or 1,000 characters per line,
 per the [platform contract](https://developers.cloudflare.com/workers/static-assets/redirects/).
-No runtime Worker/router or silent rule truncation. P0-6 decides overflow handling
-before legacy cutover. Workers Builds consumes main; non-production builds are
+No runtime Worker/router or silent rule truncation. Production legacy import is no longer planned (ADR 0015);
+the existing output limits still fail closed. Workers Builds consumes main; non-production builds are
 disabled. Local development uses persistent FileStore, never Production credentials.
 
 ADR 0013 makes normal Development entirely local for assets/publication. CMS uses

@@ -38,9 +38,12 @@ backups lack COMPLETE and must not be treated as usable recovery points. Checksu
 verify file copying, not a full SQLite restore drill. Configuration/Secrets and
 R2 objects are not copied; the existing protected `config/cms.env` is unchanged.
 
-This implements local on-demand backups, not the P0-6 restore drill or protected
-off-host retention. Verify both before Production import/cutover. No new service
-or scheduler is introduced.
+The operator successfully executed prod-update and prod-backup on 2026-09-22,
+before publishing generation 1. Those copies do not contain the new publication.
+Take a current backup before later maintenance. Restore verification and protected
+off-host retention have not been demonstrated; command success is not evidence
+of either. ADR 0015 removes Production import from the plan, not the responsibility
+to preserve and recover existing data. No new service or scheduler is introduced.
 
 The drill must preserve the failed DB, stop gopheratlas-cms.service, restore a
 verified consistent backup, run integrity_check, check/apply explicit migrations,

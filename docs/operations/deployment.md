@@ -22,7 +22,10 @@ private hostname. No additional reverse proxy or public CMS listener is needed.
 User-reported verification (2026-09-11): migrations 00001→00003 applied from empty,
 embedded binary started, healthz/readyz both 200, loopback binding checked, private
 HTTPS and real GitHub OAuth login succeeded, real Asset upload/read succeeded.
-The first full real publication generation/build-marker acceptance is still pending.
+On 2026-09-22, the operator updated to a1f4638 with prod-update, ran prod-backup,
+resolved GitHub egress through Mihomo, and verified generation 1 synced plus the
+Worker homepage. See the [Production runbook](production-runbook.md) for repeatable
+commands and the distinction between confirmed and outstanding acceptance.
 
 ## Binary and unit
 
@@ -155,4 +158,6 @@ or lower remote pointers manually. Migration 3 Down refuses to lose new Audit ro
 restore a reviewed consistent backup instead of deleting history.
 
 See [Production Cloudflare Builds](cloudflare.md) and [backup boundary](backup-restore.md).
-DNS cutover and a restore drill remain P0-6.
+ADR 0015 reduces P0-6 to fresh-start domain cutover; no Production legacy import
+is planned. Restore verification remains unperformed and must not be inferred
+from successful backups. See the Production runbook before further operations.

@@ -1,5 +1,11 @@
 # Implementation scope
 
+Current operator decision (2026-09-22): Production generation 1 is synced and the
+Worker homepage is accessible. The blog starts afresh; no Production legacy import
+is planned. P0-6 now covers domain cutover and new-site acceptance only (ADR 0015).
+See [Production runbook](operations/production-runbook.md) for verified commands;
+earlier phase evidence below retains its historical scope.
+
 Architecture authority: the supplied **GopherAtlas Platform Rebuild — Codex
 Implementation Plan** (2026-09-10), refined by **GopherAtlas P0-1 — CMS Runtime,
 Identity, Auth, Logging & Persistence** (2026-09-11). Both were read in full; the
@@ -35,7 +41,7 @@ are preserved and SchemaVersion remains 2.
 | P0-4 (complete)     | R2 assets, published projection v1, generation/jobs/snapshots, hook/recovery/coalescing                                                                                                                                                                                                   |
 | P0-5 (complete)     | Full Public route families, publication design, search/SEO/redirects; cutover stays P0-6                                                                                                                                                                                                  |
 | P0-5.5 (acceptance) | Product alignment, Development Legacy importer, existing Admin Shell with three product lines, legacy Public identity, Markdown/giscus/chrome i18n; human visual signoff and operator mappings remain                                                                                     |
-| P0-6 (deferred)     | Controlled Production import/route comparison, backup/restore drill, deployment and cutover                                                                                                                                                                                               |
+| P0-6 (deferred)     | Fresh-start domain cutover and new-site acceptance; no Production legacy import (ADR 0015)                                                                                                                                                                                                |
 
 P0-1 validation covers migration up/down/rollback, pooled PRAGMAs/FKs, bootstrap,
 last-Admin concurrency, state replay/mismatch/expiry, hashed session rotation/
@@ -195,7 +201,7 @@ external image/data requests. No Production endpoint was used. Local redirect
 verification returned 301 directly to the current canonical path; real Cloudflare
 redirect acceptance is not claimed.
 
-P0-6 is next/deferred: legacy content/route inventory and import, preservation and
+Historical P0-5 plan (superseded by ADR 0015): legacy content/route inventory and import, preservation and
 redirect-overflow verification, Production backup/restore drill, first imported
 generation acceptance, Worker verification with imported content, explicit DNS
 cutover, post-cutover checks and legacy-site retirement decision. No such action
@@ -364,8 +370,8 @@ Giscus is integration-ready. Read-only GitHub inspection found Discussions disab
 on deepfurry/gopher-atlas. Its public repository ID is configured; installing giscus,
 enabling Discussions and choosing a category remain manual setup. Empty category
 identifiers keep the integration disabled without affecting reading.
-Production legacy import, deployment, backup/restore drill, route comparison and DNS
-cutover remain P0-6. No main merge or Production operation is included.
+At that phase, Production import and cutover were deferred; ADR 0015 now cancels
+Production legacy import. No main merge or Production operation occurred in that implementation phase.
 
 ## P0-5.5 Public fidelity correction
 
@@ -432,3 +438,26 @@ explicitly cleared from the ignored local .env; other configuration was retained
 The initial empty-site/local watcher and three services run normally. Authenticated
 browser creation/upload/publication/restart acceptance is pending the operator's
 GitHub login; service tests are not presented as that browser acceptance.
+
+## Production verification and fresh-start decision (2026-09-22)
+
+Operator-provided terminal output confirms prod-update installed main a1f4638,
+health/readiness passed, and both update-time and standalone backups completed.
+Both backups predate the first publication; no restore drill has been performed.
+GitHub Token endpoint timed out directly but responded through existing loopback
+Mihomo. Setting HTTPS_PROXY/NO_PROXY in systemd's cms.env and restarting resolved
+OAuth; the screenshot confirms an active Admin login. No credentials are recorded.
+
+The operator published the first Note. Publication screenshots show generation 1,
+snapshots/generation-1.json, no job error and matching CMS/Public generation 1
+with synced status. A subsequent screenshot confirms the Worker homepage renders.
+Independent marker hash comparison, Note detail/search/feed/sitemap acceptance
+and final gopheratlas.com cutover are not yet reported. These are real operator
+observations, not results of automated tests or agent access to Production.
+
+The user explicitly cancels Production legacy content migration and starts afresh.
+Keep current Production identities/content/history, do not import Development data,
+and do not extend the Development-only importer. P0-6 is now domain-only cutover
+and new-site acceptance (ADR 0015); earlier migration scope is historical. No DNS,
+production config or runtime code was changed by this documentation update.
+See [Production runbook](operations/production-runbook.md).

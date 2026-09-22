@@ -8,8 +8,9 @@ existing fields. Exact currently executable HTTP shapes live in `openapi.yaml`.
 Public URL families are `/articles/:slug/`, `/posts/:slug/`,
 `/notes/:group/:slug/`, `/topics/:slug/`, `/tags/:slug/`, `/authors/:slug/`,
 plus index/search/about/contribute pages. Astro uses `trailingSlash: always`.
-Posts have no date component. Development legacy route verification is implemented in P0-5.5; Production comparison remains P0-6.
-Previously published routes remain reserved forever and redirect with 301 directly
+Posts have no date component. Development legacy route verification is implemented in P0-5.5. ADR 0015
+cancels Production legacy content/URL migration; missing old-site pages may 404.
+Routes already published by the new CMS remain reserved forever and redirect with 301 directly
 to the current canonical route, never through chains.
 
 Canonical origin is `https://gopheratlas.com`. CMS API requests are private and

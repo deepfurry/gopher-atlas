@@ -2,7 +2,8 @@
 
 Current operator decision (2026-09-22): Production generation 1 is synced and the
 Worker homepage is accessible. The blog starts afresh; no Production legacy import
-is planned. P0-6 now covers domain cutover and new-site acceptance only (ADR 0015).
+is planned. P0-6 covers domain cutover and new-site acceptance only (ADR 0015); the operator
+has since confirmed apex/WWW cutover and Note detail/image access.
 See [Production runbook](operations/production-runbook.md) for verified commands;
 earlier phase evidence below retains its historical scope.
 
@@ -41,7 +42,7 @@ are preserved and SchemaVersion remains 2.
 | P0-4 (complete)     | R2 assets, published projection v1, generation/jobs/snapshots, hook/recovery/coalescing                                                                                                                                                                                                   |
 | P0-5 (complete)     | Full Public route families, publication design, search/SEO/redirects; cutover stays P0-6                                                                                                                                                                                                  |
 | P0-5.5 (acceptance) | Product alignment, Development Legacy importer, existing Admin Shell with three product lines, legacy Public identity, Markdown/giscus/chrome i18n; human visual signoff and operator mappings remain                                                                                     |
-| P0-6 (deferred)     | Fresh-start domain cutover and new-site acceptance; no Production legacy import (ADR 0015)                                                                                                                                                                                                |
+| P0-6 (acceptance)   | Fresh-start domain cutover and new-site acceptance; no Production legacy import (ADR 0015)                                                                                                                                                                                                |
 
 P0-1 validation covers migration up/down/rollback, pooled PRAGMAs/FKs, bootstrap,
 last-Admin concurrency, state replay/mismatch/expiry, hashed session rotation/
@@ -366,10 +367,9 @@ The full Linux `go test -race -tags=adminembed ./...` passed through WSL. Final
 completion records any subsequent checks after review fixes. Migrations 00001–00003,
 schema 3 and existing dependency pins are unchanged.
 
-Giscus is integration-ready. Read-only GitHub inspection found Discussions disabled
-on deepfurry/gopher-atlas. Its public repository ID is configured; installing giscus,
-enabling Discussions and choosing a category remain manual setup. Empty category
-identifiers keep the integration disabled without affecting reading.
+At the P0-5.5 checkpoint, giscus was integration-ready but Discussions was disabled.
+The operator has since enabled it and supplied the public Blog Comments category
+ID (2026-09-22); first real comment/reaction acceptance is still pending.
 At that phase, Production import and cutover were deferred; ADR 0015 now cancels
 Production legacy import. No main merge or Production operation occurred in that implementation phase.
 
@@ -461,3 +461,17 @@ and do not extend the Development-only importer. P0-6 is now domain-only cutover
 and new-site acceptance (ADR 0015); earlier migration scope is historical. No DNS,
 production config or runtime code was changed by this documentation update.
 See [Production runbook](operations/production-runbook.md).
+
+## Domain cutover and giscus configuration (2026-09-22)
+
+The operator bound gopheratlas.com to the Production Worker and returned its marker:
+generation 1 and snapshot SHA-256 match the CMS job; commit is a1f4638. The operator
+reports WWW redirect success and shows the published Note/detail image at the
+formal domain. No legacy content was imported. CMS PUBLIC_SITE_URL adjustment and
+search/feed/sitemap manual checks have not yet been confirmed.
+
+GitHub screenshots confirm the Blog Comments announcement category and successful
+giscus repository validation. The supplied public category ID is configured in the
+Web source, preserving specific per-Note terms and strict matching. Production
+comment/reaction submission is not performed by implementation tests and remains
+operator acceptance. See the updated Production runbook for steps.

@@ -3,6 +3,6 @@
 export const discussion = {
   repo: 'deepfurry/gopher-atlas',
   repoId: 'R_kgDOUVFzbg',
-  category: '',
-  categoryId: '',
+  category: '博客评论',
+  categoryId: 'DIC_kwDOUVFzbs4DGK8e',
 };

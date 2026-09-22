@@ -126,7 +126,8 @@ curl -sS -o /dev/null --proxy http://127.0.0.1:7890 --noproxy '' \
 随后用户发布「GopherAtlas 建站记录」，生成 `snapshots/generation-1.json`；
 后台截图确认 CMS/Public 均为 1、状态「已同步」，无任务错误；Worker 首页可访问。
 任务保留「已请求构建」是正常的，最终同步状态由 marker 决定。
-独立 marker hash 比对、随笔详情/搜索/RSS/sitemap 的人工验收尚无回报，不能记为已通过。
+随后正式域名返回的 marker SHA-256 与后台任务一致，用户截图确认随笔详情和图片可见。
+搜索/RSS/sitemap 的人工验收尚无回报，不能记为已通过。
 
 没有初始快照时不要使用 fixture、手写 latest.json 或放宽构建校验。
 已有快照仍构建失败时，应检查错误阶段、content RO 配置及 snapshot schema/hash，
@@ -143,4 +144,41 @@ curl -sS -o /dev/null --proxy http://127.0.0.1:7890 --noproxy '' \
 Public canonical 已在 Astro 配置中固定为 `https://gopheratlas.com`；
 CMS 的 `PUBLIC_SITE_URL` 当前用于 Worker marker 探测，正式域名可达后再调整并重启验证。
 不要修改私有 CMS/Tailscale/OAuth origin，也不要改动 assets 域名或 bucket。
-本次文档整理没有修改 DNS、Cloudflare 配置或执行恢复、导入。
+上述域名切换已由用户执行，见下方记录；文档和评论配置更新本身未操作 DNS 或生产凭据。
+
+## 正式域名切换记录与评论启用（2026-09-22）
+
+用户删除原主域名指向 GitHub Pages 的 CNAME，在 gopheratlas-web 的自定义域中
+添加根域名 `gopheratlas.com`，启用对象选择「生产」。正式域名 marker 已返回
+schemaVersion 1、generation 1、commit a1f4638，snapshotSha256 与后台任务一致。
+不需要迁移内容、重新安装 CMS 或修改 OAuth callback。
+
+www 按以下配置切换，用户回报验证无问题：
+
+- 删除 `www → gofurry.github.io` 的旧 CNAME，改为 `A www 192.0.2.1`，开启橙色云朵代理。
+- Single Redirect 条件：`(http.host eq "www.gopheratlas.com")`。
+- 动态目标：`concat("https://gopheratlas.com", http.request.uri.path)`。
+- 状态码 301，保留查询字符串；assets 和验证 TXT 不变。
+- 验证 `https://www.gopheratlas.com/notes/?from=www` 跳转到主域名并保留路径/参数。
+
+`192.0.2.1` 是边缘重定向占位地址，不是 Infra IP。CMS 的 `PUBLIC_SITE_URL`
+建议在正式域名可达后改为 `https://gopheratlas.com` 并重启，核对发布页仍为「已同步」。
+此配置调整尚未收到用户确认，不记录为已完成。
+
+评论通过 GitHub Discussions/giscus 托管，不增加数据库或 CMS API：
+
+1. 仓库启用 Discussions，安装并授权 giscus App；配置页须显示仓库检查通过。
+2. 创建公告类型的「博客评论」分类，将公开 repo/repoId/category/categoryId 写入
+   `apps/web/src/config/discussion.ts`。此步骤用户已完成配置提供。
+3. dev 验证后普通 merge/push main，让 Cloudflare 重建 Public；无需更新 CMS 二进制，
+   无需再次发布 Note 或增加 generation。配置不使用 CMS OAuth Secret。
+4. 正式 Note 页面滚动到评论区加载 giscus，独立通过 GitHub 授权，手动发表评论与回应。
+5. 刷新页面并查看 GitHub Discussions 中对应记录，验证持久化、明暗主题及中英文页面
+   共用同一讨论。真正发出评论属于用户操作；本次配置更新未代用户发表评论。
+
+映射保持 `specific` 与 strict=1，每篇 term 为 `note:<groupSlug>/<slug>`，不采用配置页
+默认的 pathname。当前建站记录对应 `note:engineering-practice/gopheratlas-building-notes`。
+正式域名与 Worker 地址、不同 chrome 语言都复用同一 term；改变 groupSlug/slug 则会改变 term。
+评论从浏览器直接访问 GitHub/giscus；服务器 Mihomo 不会解决访客浏览器的网络限制。
+若仍显示「尚未配置」，先核对部署的 commit；若加载错误，则检查浏览器网络和 giscus 授权。
+首次真实评论与 Reactions 的生产验收待用户回报。

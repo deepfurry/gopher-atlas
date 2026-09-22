@@ -10,7 +10,7 @@ Revision History、Tags/Authors/Users/Audit 和 Monitor。Publish 仅表示 **�
 Public 从 snapshot v1 构建完整阅读页面、静态 redirects、RSS/sitemap/SEO 与 Pagefind 搜索。
 Production CMS 已更新并验证登录、备份、generation 1 发布同步与 Worker 首页访问。
 实操命令及验收边界见 [生产操作手册](docs/operations/production-runbook.md)。
-首次 generation → snapshot → Hook → marker 已跑通；正式域名尚未切换。
+首次 generation → snapshot → Hook → marker 已跑通；正式域名已接入新 Worker。
 详见 [阶段范围](docs/implementation-status.md)。
 
 ## 架构
@@ -326,7 +326,7 @@ redirects/RSS/sitemap/search 索引、marker hash 和输出隐私，已接入 `m
 详见 [ADR 0012](docs/decisions/0012-product-realignment-and-legacy-import.md)。P0-5.5
 已实现 Development plan/apply 与旧路由校验。用户已决定博客从头开始：不导入旧内容，
 保留现有生产账号、建站记录和 generation，P0-6 只处理域名切换与新站验收。
-见 [ADR 0015](docs/decisions/0015-fresh-start-domain-cutover.md)；本次未修改 DNS。
+见 [ADR 0015](docs/decisions/0015-fresh-start-domain-cutover.md) 和生产操作手册中的实际切换记录。
 
 ## 三条产品线与 Legacy 导入
 
@@ -356,10 +356,10 @@ Public 的 Logo、首页、配色、文章筛选和 Topic/Notes 结构延续旧 
 不重复进入 sitemap/Pagefind，SQLite 中的旧 URL 不变。Public 交互和断点以旧站为准。
 Note 阅读提供 TOC、代码复制、脚注、宽表格滚动与组内上下篇。
 
-Note 评论与 Reactions 使用 giscus。当前仓库尚未启用 GitHub Discussions，公开的
-repo/repoId 已配置。维护者启用 Discussions、安装 giscus App、选择分类后，把公开的
-category/categoryId 写入 `apps/web/src/config/discussion.ts`。分类为空时显示未配置说明；
-这些值不是 Secret。
+Note 评论与 Reactions 使用 giscus。维护者已启用 GitHub Discussions，giscus 配置页
+确认仓库满足条件；`apps/web/src/config/discussion.ts` 使用公开的「博客评论」分类 ID。
+这些值不是 Secret。更换分类后需重新构建 Public；分类为空时显示未配置说明。
+访客评论使用独立的 giscus GitHub 授权，不复用 CMS 登录。首次真实评论/回应仍需人工验收。
 映射固定为 `note:<groupSlug>/<slug>`，标题变更不会新建 Discussion。
 
 Legacy Importer 保留为 Development 工具，不扩展生产入口，也不用于此次域名切换。

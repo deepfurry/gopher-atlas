@@ -77,7 +77,7 @@ architecture and current scope are summarized in `docs/implementation-status.md`
   local full snapshots. Default image policy stays exact Production HTTPS; only
   explicit Development policy allows the configured loopback asset base.
 - UI says Published in CMS with independent marker status. P0-5 builds Public
-  routes/search/SEO from snapshot v1 only. P0-5.5 imports Development legacy content; P0-6 Production migration/cutover remains deferred.
+  routes/search/SEO from snapshot v1 only. P0-5.5 imports Development legacy content; ADR 0015 cancels Production legacy migration; P0-6 is fresh-start domain cutover only.
 
 Completion gate: **`make check`**. Report actual commands and results, inspect the
 complete diff, and preserve local files. Commit/push only within user authorization.

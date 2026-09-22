@@ -1,5 +1,20 @@
 # Changelog
 
+## Public comments configuration
+
+- Enable Note giscus with the operator-provided public Blog Comments category ID;
+  retain stable per-Note terms, strict matching, reactions, lazy loading and themes.
+- Record the operator-confirmed apex-domain marker/hash, www redirect and Note
+  page/image acceptance; real comment submission remains to be verified.
+
+## Verified Production operations (2026-09-22)
+
+- Document operator-verified CMS update/backup, systemd Mihomo proxy setup,
+  generation 1 publication sync and Worker homepage acceptance.
+- Separate unverified restore/detail/hash checks from confirmed evidence.
+- Record the fresh-start decision: no Production legacy import; retain existing
+  Production data and limit the next phase to domain cutover and site acceptance.
+
 ## Production maintenance commands
 
 - Add `make prod-update` for dependency installation, embedded CMS build, stopped

@@ -1,7 +1,7 @@
 # Production Cloudflare Workers Builds
 
-Environments are Development and Production. Development uses `dev`, local
-fixtures and fake dependencies. Production builds **main**; non-production builds
+Environments are Development and Production. Development uses `dev`, persistent local SQLite and FileStore. Tests alone use
+explicit fixtures and fake dependencies. Production builds **main**; non-production builds
 are disabled. These are user-reported deployed facts (2026-09-11), not settings
 changed by the implementation agent.
 
@@ -31,19 +31,20 @@ Production, prefix credentials with PUBLIC_/VITE_, or reuse CMS RW credentials.
 The Hook belongs only in the CMS environment file. PUBLIC_SITE_URL points at the
 current Production Worker origin; binding gopheratlas.com is a separate P0-6 task.
 
-## Acceptance still to perform
+## Production acceptance (2026-09-22)
 
 Real CMS login, health/readiness and immutable Asset upload/read have succeeded.
-The first real generation → snapshot → latest → Hook → build marker has **not**
-yet been manually accepted. A Hook 2xx means accepted, not deployed. In a separately
-authorized Production run, compare the marker generation/hash with the selected
-snapshot and CMS desired generation, then inspect public routes and Publication
-status. Initial builds without valid latest.json fail closed. A configured CMS
+The operator has now published generation 1: the Admin screenshot shows desired
+and public generation 1 with synced status, and the Worker homepage is accessible.
+A Hook 2xx alone means accepted, not deployed. Independent marker hash comparison
+and detailed public-route checks are still pending. See the
+[verified Production runbook](production-runbook.md) for evidence and commands. Initial builds without valid latest.json fail closed. A configured CMS
 can immediately process existing queued jobs; never use it as a local smoke test.
 
 No implementation check accesses real R2/Hook/OAuth or changes Cloudflare/DNS.
-Legacy import, route preservation, backup/restore drill, first imported generation
-and final gopheratlas.com cutover belong to P0-6.
+ADR 0015 cancels Production legacy import: the blog starts afresh. Remaining
+cutover work covers the domain and new-site verification, preserving existing
+Production data. Backup success does not claim a completed restore drill.
 
 ## Local build
 

@@ -1,4 +1,7 @@
-# Legacy import — Development first
+# Legacy import — Development only
+
+Production scope changed on 2026-09-22: the user will start afresh, without old
+content migration. This tool is not part of the domain cutover; see ADR 0015.
 
 The importer reads an exact local checkout of the old repository. It never fetches
 the original external article bodies. Plan and apply are separate commands:
@@ -61,7 +64,6 @@ Topic order, groups, historic dates, images, Draft Preview and generation refres
 The browser visual comparison is against the old site, in both themes and at
 desktop/narrow widths. Human visual acceptance is still required.
 
-P0-6 separately owns production backup/restore and a controlled production import,
-route comparison, main release snapshot, deployment and DNS cutover. The P0-5.5 CLI
-currently rejects Production mode. Never point implementation tests at production
-SQLite, and never treat development rehearsal as authorization to cut over DNS.
+The CLI rejects Production mode and remains unchanged. P0-6 now covers domain
+cutover and new-site acceptance only. Never point this Development importer or
+implementation tests at Production SQLite; no production import extension is needed.

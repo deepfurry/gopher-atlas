@@ -10,7 +10,9 @@ P0-4 provides immutable assets, snapshot v1 and durable publication. P0-5 adds
 static reader routes/search/SEO over that input, preserving the generation marker.
 Development uses dev, persistent local SQLite and FileStore; Production uses main and private R2.
 The manually installed CMS uses systemd and Tailscale Serve; see operations docs.
-P0-5.5 adds Development legacy import and product realignment; Production migration and DNS cutover remain P0-6.
+P0-5.5 adds Development legacy import and product realignment. ADR 0015 cancels
+Production legacy import: preserve existing Production data and complete domain
+cutover only. Verified operational steps live in docs/operations/production-runbook.md.
 
 Dependency direction:
 

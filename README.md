@@ -8,8 +8,9 @@
 Revision History、Tags/Authors/Users/Audit 和 Monitor。Publish 仅表示 **已在 CMS 发布**；
 已实现 Assets/R2、原子 generation/outbox、Snapshot v1、Worker/Hook 和公开构建 marker。
 Public 从 snapshot v1 构建完整阅读页面、静态 redirects、RSS/sitemap/SEO 与 Pagefind 搜索。
-人工 Production CMS 已部署并验证登录和 Asset 上传。
-真实 generation → snapshot → Hook → marker 尚未人工验收。
+Production CMS 已更新并验证登录、备份、generation 1 发布同步与 Worker 首页访问。
+实操命令及验收边界见 [生产操作手册](docs/operations/production-runbook.md)。
+首次 generation → snapshot → Hook → marker 已跑通；正式域名已接入新 Worker。
 详见 [阶段范围](docs/implementation-status.md)。
 
 ## 架构
@@ -194,7 +195,7 @@ Publish **表示 SQLite 选定 Revision 并原子排队 generation/job**，并�
 [Data contract](contracts/data.md) 和 [ADR 0006](docs/decisions/0006-content-revision-and-route-model.md)。
 P0-3 增加 author summaries、immutable Review detail、列表筛选及 server action projection；
 筛选不绕过 object policy，Reviewer 的历史详情也不返回他人的 Draft。
-P0-4 publication 网络步骤独立于 SQLite 事务；旧站导入和生产切换更晚。
+P0-4 publication 网络步骤独立于 SQLite 事务；正式域名切换独立执行。
 
 ## 编辑工作台
 
@@ -229,7 +230,7 @@ preview 或禁止的 editor/primitives 模块进入产物。工程决定见
 素材库复用图片选择器，标签用创建/编辑对话框，成员统一表格与资料表单；发布页先说明
 同步状态，技术字段放入详情抽屉。UI 架构与约束见
 [ADR 0010](docs/decisions/0010-admin-editorial-workspace.md)。本次未改变 Public、API、
-数据库或发布语义，P0-6 生产导入与切换仍独立进行。
+数据库或发布语义，P0-6 只做正式域名切换，不迁移旧内容（ADR 0015）。
 
 ## Assets 与 Publication
 
@@ -323,8 +324,9 @@ Astro preview 不模拟 Cloudflare `_redirects`；其内容由门禁检查，平
 redirects/RSS/sitemap/search 索引、marker hash 和输出隐私，已接入 `make check`。
 
 详见 [ADR 0012](docs/decisions/0012-product-realignment-and-legacy-import.md)。P0-5.5
-已实现 Development plan/apply 与旧路由校验。P0-6 单独负责生产导入、历史路由最终比对、
-backup/restore drill、生产 generation 验收、DNS cutover 和旧站下线。本阶段不修改生产配置。
+已实现 Development plan/apply 与旧路由校验。用户已决定博客从头开始：不导入旧内容，
+保留现有生产账号、建站记录和 generation，P0-6 只处理域名切换与新站验收。
+见 [ADR 0015](docs/decisions/0015-fresh-start-domain-cutover.md) 和生产操作手册中的实际切换记录。
 
 ## 三条产品线与 Legacy 导入
 
@@ -354,14 +356,14 @@ Public 的 Logo、首页、配色、文章筛选和 Topic/Notes 结构延续旧 
 不重复进入 sitemap/Pagefind，SQLite 中的旧 URL 不变。Public 交互和断点以旧站为准。
 Note 阅读提供 TOC、代码复制、脚注、宽表格滚动与组内上下篇。
 
-Note 评论与 Reactions 使用 giscus。当前仓库尚未启用 GitHub Discussions，公开的
-repo/repoId 已配置。维护者启用 Discussions、安装 giscus App、选择分类后，把公开的
-category/categoryId 写入 `apps/web/src/config/discussion.ts`。分类为空时显示未配置说明；
-这些值不是 Secret。
+Note 评论与 Reactions 使用 giscus。维护者已启用 GitHub Discussions，giscus 配置页
+确认仓库满足条件；`apps/web/src/config/discussion.ts` 使用公开的「博客评论」分类 ID。
+这些值不是 Secret。更换分类后需重新构建 Public；分类为空时显示未配置说明。
+访客评论使用独立的 giscus GitHub 授权，不复用 CMS 登录。首次真实评论/回应仍需人工验收。
 映射固定为 `note:<groupSlug>/<slug>`，标题变更不会新建 Discussion。
 
-P0-6 只负责生产备份恢复演练、受控 Legacy apply、路由比对、main 发布快照和最终
-cutover。本阶段不修改生产 DNS，不合并 main，也不触发生产部署。
+Legacy Importer 保留为 Development 工具，不扩展生产入口，也不用于此次域名切换。
+备份成功与恢复演练须分别记录；正式域名切换单独执行，不清空现有生产数据。
 
 ## License
 

@@ -1,4 +1,5 @@
 import { words, type Locale } from './i18n';
+import { createMotionScope } from './motion';
 export const ratings = ['S+', 'S', 'A+', 'A', 'B+', 'B', 'C+', 'C'];
 export interface ArticleIndex {
   id: number;
@@ -101,6 +102,7 @@ export function filterArticles(rows: ArticleIndex[], filters: Filters) {
     });
 }
 export function mountSelect(root: HTMLElement) {
+  const motion = createMotionScope();
   const input = root.querySelector<HTMLInputElement>('input')!,
     trigger = root.querySelector<HTMLButtonElement>(':scope > button')!,
     list = root.querySelector<HTMLElement>('[role=listbox]')!,
@@ -117,16 +119,25 @@ export function mountSelect(root: HTMLElement) {
     );
   };
   const close = () => {
+    const wasOpen = root.dataset.open === 'true';
     root.dataset.open = 'false';
     list.inert = true;
     list.setAttribute('aria-hidden', 'true');
     trigger.setAttribute('aria-expanded', 'false');
+    if (wasOpen) {
+      root.dataset.leaving = 'true';
+      motion.exit(list, () => {
+        delete root.dataset.leaving;
+      });
+    }
   };
   const open = () => {
+    delete root.dataset.leaving;
     root.dataset.open = 'true';
     list.inert = false;
     list.removeAttribute('aria-hidden');
     trigger.setAttribute('aria-expanded', 'true');
+    motion.enter([list], { duration: 0.18, distance: -4, opacity: 0 });
     (
       options.find((o) => o.dataset.value === input.value) || options[0]
     ).focus();
@@ -178,6 +189,9 @@ export function mountSelect(root: HTMLElement) {
   return sync;
 }
 export function mountExplorer(root: HTMLElement) {
+  const motion = createMotionScope();
+  let renderedIDs = '';
+  let initialized = false;
   const t = words[(document.documentElement.dataset.locale as Locale) || 'zh'];
   const form = root.querySelector<HTMLFormElement>('form')!,
     results = root.querySelector<HTMLElement>('[data-results]')!,
@@ -301,11 +315,17 @@ export function mountExplorer(root: HTMLElement) {
     const shown = new Set(
       filtered.slice((state.page - 1) * 12, state.page * 12).map((r) => r.id),
     );
+    const ids = [...shown].join(',');
+    motion.cancel();
     nodes.forEach((n) => (n.hidden = !shown.has(Number(n.dataset.id))));
     filtered.forEach((row) => {
       const node = byId.get(row.id)!;
       results.append(node);
     });
+    if (initialized && ids !== renderedIDs)
+      motion.enter([...shown].map((id) => byId.get(id)!));
+    renderedIDs = ids;
+    initialized = true;
     count.textContent = `${filtered.length} ${t.found}`;
     empty.hidden = filtered.length > 0;
     pages.replaceChildren();

@@ -44,3 +44,11 @@ validation, image policies, Giscus terms, snapshots and generations are unchange
 Supplied background is AVIF/AV1, 1920×1080, 60,533 bytes; source bytes are retained.
 Copyright/license was not supplied and remains unknown. Plex OFL and Phosphor MIT
 notices ship with the site. No production access, deployment or migration occurs.
+
+## Interaction follow-up (2026-10-13)
+
+After initial visual acceptance, retain the layout/type/color design and extend
+Motion mini to cancellable state transitions. The Public design contract now
+defines one focus edge for input/Select controls and a proportional ScrollDock
+with native scrolling. Native cross-document View Transitions are a CSS-only,
+reduced-motion-aware enhancement; no client router or architecture change is needed.

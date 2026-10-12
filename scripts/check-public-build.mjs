@@ -54,6 +54,11 @@ for (const path of allPaths) {
   );
   assert.equal(doc.querySelectorAll('h1').length, 1, `One H1: ${path}`);
   assert(doc.querySelector('a.skip-link[href="#main"]'));
+  const dock = doc.querySelector('[data-scroll-dock]');
+  assert(dock?.hasAttribute('hidden') && dock.hasAttribute('inert'));
+  assert.equal(dock.getAttribute('aria-label'), words[localeOf(path)].scrollUp);
+  assert(dock.querySelector('svg[aria-hidden="true"] [data-scroll-progress]'));
+  assert(!doc.querySelector('[data-back-top]'));
   assert(!doc.querySelector('script[src*="api-client"], iframe, astro-island'));
   assert.equal(
     doc.querySelector('[data-language-link]')?.getAttribute('href'),

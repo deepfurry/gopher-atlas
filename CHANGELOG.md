@@ -1,5 +1,13 @@
 # Changelog
 
+## Public interaction polish (2026-10-13)
+
+- Replace Back to Top with a square progress ScrollDock and proportional upward
+  scrolling; hide document scrollbar chrome and refine internal scrollbars.
+- Standardize single-edge input/Select focus without removing keyboard indicators.
+- Add cancellable Motion mini feedback for filtering, paging, search, Select and
+  ScrollDock; use optional native document crossfades with reduced-motion support.
+
 ## Public editorial redesign (2026-10-13)
 
 - Redesign all Public surfaces with IBM Plex, static Phosphor SVGs, a supplied

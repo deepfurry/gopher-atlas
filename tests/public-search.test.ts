@@ -58,6 +58,7 @@ it('loads lazily, debounces typing, and renders safe bounded results with more',
   await vi.advanceTimersByTimeAsync(1);
   expect(api.search).toHaveBeenCalledExactlyOnceWith('go');
   expect(screen.getAllByRole('link')).toHaveLength(10);
+  const firstResult = screen.getAllByRole('link')[0];
   expect(document.querySelector('script')).toBeNull();
   expect(document.querySelector('ol')!.textContent).toContain(
     '<script> text & Go',
@@ -65,6 +66,8 @@ it('loads lazily, debounces typing, and renders safe bounded results with more',
   fireEvent.click(screen.getByText('加载更多'));
   await vi.advanceTimersByTimeAsync(0);
   expect(screen.getAllByRole('link')).toHaveLength(12);
+  expect(screen.getAllByRole('link')[0]).toBe(firstResult);
+  expect(document.querySelector('ol')!.getAttribute('aria-busy')).toBe('false');
   expect(screen.getByRole('status').textContent).toContain('已显示 12');
 });
 it('supports submit, empty/no-result/error states and explicit retry', async () => {
@@ -108,6 +111,43 @@ it('does not let a slow prior search replace a newer result', async () => {
   await Promise.resolve();
   await Promise.resolve();
   expect(screen.queryByRole('link', { name: 'old result' })).toBeNull();
+});
+it('ignores duplicate load-more clicks and discards a pending append after a new query', async () => {
+  let finish!: (
+    value: Awaited<ReturnType<ReturnType<typeof hit>['data']>>,
+  ) => void;
+  const pending = vi.fn(
+    () =>
+      new Promise<Awaited<ReturnType<ReturnType<typeof hit>['data']>>>(
+        (resolve) => {
+          finish = resolve;
+        },
+      ),
+  );
+  const search = vi
+    .fn()
+    .mockResolvedValueOnce({
+      results: [...Array.from({ length: 10 }, () => hit()), { data: pending }],
+    })
+    .mockResolvedValue({ results: [hit('new result')] });
+  const { input, form } = setup(async () => ({ search }));
+  fireEvent.input(input, { target: { value: 'old' } });
+  fireEvent.submit(form);
+  await waitFor(() => expect(screen.getAllByRole('link')).toHaveLength(10));
+  const more = screen.getByText<HTMLButtonElement>('加载更多');
+  fireEvent.click(more);
+  fireEvent.click(more);
+  expect(pending).toHaveBeenCalledOnce();
+  expect(more.disabled).toBe(true);
+  fireEvent.input(input, { target: { value: 'new' } });
+  fireEvent.submit(form);
+  await screen.findByRole('link', { name: 'new result' });
+  finish(await hit('stale append').data());
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(screen.queryByRole('link', { name: 'stale append' })).toBeNull();
+  expect(screen.getAllByRole('link')).toHaveLength(1);
+  expect(document.querySelector('ol')!.getAttribute('aria-busy')).toBe('false');
 });
 it('rejects unsafe result URLs and never creates HTML from search metadata', async () => {
   expect(safeResultURL('https://evil.invalid/')).toBe(false);

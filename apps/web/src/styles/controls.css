@@ -1,4 +1,11 @@
 /* Native controls and generated filter/search results retain stable DOM hooks. */
+/* One continuous 2px edge, no second outer ring. Links/buttons keep global focus. */
+input[type='search']:focus,
+.public-select > button:focus-visible {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
 .filters label > span,
 .select-label,
 .filters legend {
@@ -57,7 +64,8 @@
 .public-select {
   position: relative;
 }
-.public-select[data-open='true'] {
+.public-select[data-open='true'],
+.public-select[data-leaving='true'] {
   z-index: 10;
 }
 .public-select > button {
@@ -100,6 +108,10 @@
   opacity: 1;
   pointer-events: auto;
 }
+.public-select[data-leaving='true'] [role='listbox'] {
+  visibility: visible;
+  opacity: 1;
+}
 .public-select [role='option'] {
   width: 100%;
   border: 0;
@@ -109,6 +121,7 @@
 }
 .public-select [role='option']:focus-visible {
   outline-offset: -2px;
+  background: var(--surface-strong);
 }
 .public-select [data-option-check] {
   opacity: 0;

@@ -1,4 +1,5 @@
 import { words, alternateChrome, type Locale } from './i18n';
+import { createMotionScope } from './motion';
 export function mountChrome() {
   const root = document.documentElement,
     t = words[(root.dataset.locale as Locale) || 'zh'];
@@ -134,11 +135,9 @@ export function mountChrome() {
       announce(t.copyFailed);
     }
   });
-  const top = document.querySelector<HTMLButtonElement>('[data-back-top]');
   const header = document.querySelector<HTMLElement>('.site-header');
   const hero = document.querySelector<HTMLElement>('.home-hero');
   const updateScroll = () => {
-    if (top) top.hidden = window.scrollY < 400;
     if (header && hero)
       header.dataset.scrolled = String(
         hero.getBoundingClientRect().bottom <= 72,
@@ -147,17 +146,8 @@ export function mountChrome() {
   window.addEventListener('scroll', updateScroll, { passive: true });
   window.addEventListener('resize', updateScroll);
   updateScroll();
-  if (top) {
-    top.addEventListener('click', () =>
-      window.scrollTo({
-        top: 0,
-        behavior: matchMedia('(prefers-reduced-motion: reduce)').matches
-          ? 'instant'
-          : 'smooth',
-      }),
-    );
-  }
   document.querySelectorAll<HTMLElement>('[data-paged]').forEach((section) => {
+    const motion = createMotionScope();
     const items = [
         ...section.querySelectorAll<HTMLElement>('[data-page-item]'),
       ],
@@ -166,12 +156,14 @@ export function mountChrome() {
       next = section.querySelector<HTMLButtonElement>('[data-next]'),
       label = section.querySelector('[data-page-label]');
     let page = 0;
-    const render = () => {
+    const render = (animate = true) => {
+      motion.cancel();
       items.forEach((item, i) => (item.hidden = Math.floor(i / size) !== page));
       if (prev) prev.disabled = page === 0;
       if (next) next.disabled = (page + 1) * size >= items.length;
       if (label)
         label.textContent = `${page + 1} / ${Math.max(1, Math.ceil(items.length / size))}`;
+      if (animate) motion.enter(items.filter((item) => !item.hidden));
     };
     prev?.addEventListener('click', () => {
       page = Math.max(0, page - 1);
@@ -181,6 +173,6 @@ export function mountChrome() {
       page = Math.min(Math.ceil(items.length / size) - 1, page + 1);
       render();
     });
-    render();
+    render(false);
   });
 }

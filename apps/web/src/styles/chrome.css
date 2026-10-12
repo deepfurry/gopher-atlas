@@ -31,18 +31,13 @@
 [data-theme='light'] .theme-toggle .dark-icon {
   display: none;
 }
-.back-top {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  background: var(--bg);
-  z-index: 20;
-  padding: 10px;
-}
 .public-toast {
   position: fixed;
   left: 50%;
-  bottom: 24px;
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  max-width: calc(100% - 40px);
+  width: max-content;
+  overflow-wrap: anywhere;
   transform: translateX(-50%);
   padding: 10px 20px;
   background: var(--surface-strong);

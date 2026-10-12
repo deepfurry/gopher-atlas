@@ -3,6 +3,7 @@ import '../styles/global.css';
 import * as stylex from '@stylexjs/stylex';
 import { layout as s } from '../styles/layout.stylex';
 import Icon from '../components/Icon.astro';
+import ScrollDock from '../components/ScrollDock.astro';
 import {
   words,
   localeOf,
@@ -244,9 +245,7 @@ const year = new Date().getFullYear();
         </nav>
       </div>
     </footer>
-    <button class="back-top" data-back-top hidden aria-label={t.top}
-      ><Icon name="arrowUp" /></button
-    >
+    <ScrollDock locale={locale} />
     <p class="public-toast" role="status" aria-live="polite" data-toast></p>
     <script>
       import { mountChrome } from '../lib/chrome';

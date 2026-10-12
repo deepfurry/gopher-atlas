@@ -111,6 +111,8 @@ export const words = {
     directory: '目录',
     topicGuide: '专题导读',
     readingOrder: '阅读顺序',
+    scrollUp: '向上滚动（总距离的 25%）',
+    scrollProgress: '阅读进度',
     topicArticles: '专题文章',
     articlesIntro:
       '值得反复阅读的 Go 技术文章。阅读原文，也看看我们为什么推荐它。',
@@ -233,6 +235,8 @@ export const words = {
     directory: 'Directory',
     topicGuide: 'Topic introduction',
     readingOrder: 'Reading order',
+    scrollUp: 'Scroll up by 25% of the total distance',
+    scrollProgress: 'Reading progress',
     topicArticles: 'Topic articles',
     articlesIntro:
       'Go writing worth revisiting. Read the original, and discover why we selected it.',

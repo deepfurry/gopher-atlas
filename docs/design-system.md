@@ -50,8 +50,44 @@ Giscus remain. The same template serves private/no-store/noindex Draft Preview.
 Search, author/tag directories, collections, About/Contribute and 404 use this
 type/grid system. Locale aliases preserve authored Markdown, canonical routes
 and query/fragment navigation. Post compatibility remains outside normal discovery.
-Motion mini animates only header/copy once, honors reduced motion, and never
-hides content before script load. CSS hover transitions last 180 ms.
+Motion mini uses independent scopes for each operated region: Curated results,
+each Note group, Pagefind results/status, each Select and ScrollDock. DOM state
+changes immediately; a new operation cancels old animation work and restores its
+inline opacity/transform. Results enter for 200 ms / 4 px; only appended Pagefind
+rows animate on load-more. Unchanged filter results do not reanimate. Select opens
+for 180 ms and closes for 160 ms, becoming inert/aria-hidden before visual exit.
+Reduced-motion changes and pagehide settle animations, including pending exits.
+No-JS authored content remains visible; no CSS entrance hides it before script load.
+
+Native same-origin cross-document navigation opts into a 180 ms root crossfade
+only under prefers-reduced-motion: no-preference. There is no ClientRouter or
+navigation interception. Unsupported browsers navigate normally. This follows
+the [native View Transition contract](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@view-transition).
+
+### Public focus and scroll controls
+
+Single Focus Indicator Contract: controls.css overrides only the search input and
+Select trigger focus. A 1 px border plus contiguous 1 px inset in --ring forms a
+single 2 px edge, with no outer outline/glow or layout shift. Search appearance
+is reset so browser-native decoration does not add a second edge. Global
+:focus-visible remains for links, buttons and keyboard controls; listbox options
+use an inset outline and surface highlight. Do not add a second focus ring to
+these fields in component CSS. Admin's Base UI system is independent.
+
+ScrollDock.astro and scroll-dock.stylex.ts render a 48×48 px button, 10 px corners
+and a static SVG rounded-square track with a 3.5 px progress stroke. Its TS
+controller follows GoFurry Card's ScrollDock distance semantics: progress is
+scrollY / (scrollHeight - innerHeight), clamped to 0–1; click subtracts 25% of that
+total range. A passive scroll listener batches updates with requestAnimationFrame,
+and ResizeObserver handles result changes, images and comments changing page height.
+Short ranges (<=320 px) and the first 72 px hide the dock; hidden controls are inert.
+The translated accessible name includes progress. Motion handles show/hide only;
+scrolling remains browser-native and reduced motion uses instant scrolling.
+
+scrollbars.css hides only the document scrollbar chrome. Internal listbox, code,
+table and TOC scrollports use thin semantic-color thumbs. Dock offsets include
+mobile safe areas; Toast sits above the dock at 84 px plus the bottom safe area.
+Hover remains 180 ms. No body overflow lock, custom wheel handling or scroll library.
 
 ## Admin implementation
 

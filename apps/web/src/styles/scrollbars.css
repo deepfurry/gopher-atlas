@@ -1,0 +1,39 @@
+/* Hide only the document's scrollbar chrome; wheel, touch and keys stay native. */
+html {
+  scrollbar-width: none;
+}
+html::-webkit-scrollbar {
+  display: none;
+}
+
+/* Content scrollports remain discoverable, including generated safe Markdown. */
+:where(.public-select [role='listbox'], .markdown pre, .table-scroll, .toc) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+:where(
+  .public-select [role='listbox'],
+  .markdown pre,
+  .table-scroll,
+  .toc
+)::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+:where(
+  .public-select [role='listbox'],
+  .markdown pre,
+  .table-scroll,
+  .toc
+)::-webkit-scrollbar-track {
+  background: transparent;
+}
+:where(
+  .public-select [role='listbox'],
+  .markdown pre,
+  .table-scroll,
+  .toc
+)::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 6px;
+}

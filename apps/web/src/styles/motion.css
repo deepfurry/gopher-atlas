@@ -1,4 +1,18 @@
-/* All content is visible before JS. Motion enhances only initial chrome/copy. */
+/* Optional native full-document navigation; no interception or client router. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 180ms;
+    animation-timing-function: ease-out;
+  }
+  ::view-transition {
+    pointer-events: none;
+  }
+}
+/* All content is visible before JS; state transitions never gate DOM updates. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

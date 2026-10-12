@@ -42,9 +42,25 @@ published data, route, safety and editorial semantics stay unchanged.
   import Admin styles, components, clients or private services.
 - All canonical paths, /en/ chrome aliases, search, Markdown safety, Giscus,
   transient Draft Preview, RSS/sitemap/SEO and direct redirects remain intact.
-- Motion mini enhances only initial header (320 ms) and Hero copy (550 ms).
-  Content is visible without JS; reduced motion bypasses animations. Image and
-  list entries never run permanent or repeated reveal animations.
+- Single Focus Indicator Contract: search/text fields and Select triggers have
+  one continuous focus edge, without a second outline or external glow. Public
+  links/buttons keep visible keyboard focus; never globally disable focus-visible.
+  Listbox options retain keyboard highlighting and an inset focus indicator.
+- ScrollDock replaces Back to Top: 48 px square, 10 px corners, 3.5 px progress
+  stroke, Phosphor arrow and existing theme tokens. Click scrolls up 25% of the
+  total scrollable distance. Hide when that distance is <=320 px or scrollY <=72.
+  Honor safe areas and reserve separate space above it for Toast. Only hide the
+  document scrollbar visually; native wheel/touch/keyboard scrolling stays intact.
+  Internal listboxes, code, tables and TOCs use thin, visible scrollbars.
+- Motion mini enhances initial header/Hero copy and user-driven list, Select and
+  ScrollDock changes. Interaction transitions last 160–200 ms and move 0–4 px;
+  existing Hero entry may use 550 ms / 8 px. Apply new state immediately, cancel
+  obsolete work and restore CSS when animation ends. Closing overlays become
+  inert immediately. Content stays readable without JS; reduced motion settles
+  active animations and skips new ones. Never add repeated scroll reveals.
+- Native same-origin cross-document View Transitions may crossfade for 180 ms
+  when motion is allowed; unsupported browsers keep ordinary navigation. No
+  ClientRouter, client route interception or replacement of history/scroll semantics.
 
 ## Admin: dense, calm editorial workspace
 

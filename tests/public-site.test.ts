@@ -15,9 +15,36 @@ import {
 } from '../apps/web/src/lib/publication/routes';
 import { renderMarkdown } from '../apps/web/src/lib/publication/markdown';
 import type { Content, Snapshot } from '../apps/web/src/lib/publication/types';
+import { homeContent } from '../apps/web/src/lib/publication/home';
 
 const fixture = (): Snapshot =>
   validateSnapshot(readFileSync('tests/fixtures/content-snapshot-v1.json'));
+it('home uses published recency independently of Note reading order and never invents missing content', () => {
+  const snapshot = fixture();
+  const notes = snapshot.content.filter((c) => c.type === 'note');
+  notes[0].lastPublishedAt = notes[1].lastPublishedAt + 1000;
+  const publication = createPublication(snapshot);
+  const order = publication.notesByGroup.get('go')!.content.map((c) => c.id);
+  const before = JSON.stringify(snapshot);
+  expect(homeContent(publication).notes.map((c) => c.id)).toEqual([
+    notes[0].id,
+    notes[1].id,
+  ]);
+  expect(publication.notesByGroup.get('go')!.content.map((c) => c.id)).toEqual(
+    order,
+  );
+  expect(JSON.stringify(snapshot)).toBe(before);
+  expect(homeContent(publication).articles).toHaveLength(1);
+  const empty = createPublication({
+    ...snapshot,
+    content: [],
+    assets: [],
+    authors: [],
+    tags: [],
+    routes: [],
+  });
+  expect(homeContent(empty)).toEqual({ notes: [], articles: [], topics: [] });
+});
 it('fails the actual Web build without explicit input, even when generated files already exist', () => {
   const env = { ...process.env };
   for (const key of Object.keys(env))

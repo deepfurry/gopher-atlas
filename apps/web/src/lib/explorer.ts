@@ -189,7 +189,7 @@ export function mountExplorer(root: HTMLElement) {
   const rows: ArticleIndex[] = nodes.map((n) => ({
     id: Number(n.dataset.id),
     title: n.dataset.title!,
-    text: (n.textContent || '').toLowerCase(),
+    text: (n.dataset.searchText ?? n.textContent ?? '').toLowerCase(),
     topics: JSON.parse(n.dataset.topics!),
     tags: JSON.parse(n.dataset.tags!),
     language: n.dataset.language!,
@@ -221,6 +221,46 @@ export function mountExplorer(root: HTMLElement) {
     visibleTags = 30;
   const tags = [...form.querySelectorAll<HTMLElement>('[data-tag-option]')],
     more = root.querySelector<HTMLButtonElement>('[data-more-tags]');
+  const advanced = root.querySelector<HTMLDetailsElement>(
+    '[data-advanced-filters]',
+  );
+  const summary = root.querySelector<HTMLElement>('[data-filter-summary]');
+  const activeLabels = () => {
+    const selectedLabel = (name: string, value: string) => {
+      const select = [
+        ...form.querySelectorAll<HTMLElement>('[data-select]'),
+      ].find((node) => node.querySelector('input')?.name === name);
+      return (
+        [...(select?.querySelectorAll<HTMLElement>('[role=option]') ?? [])]
+          .find((node) => node.dataset.value === value)
+          ?.querySelector('[data-option-label]')?.textContent ?? value
+      );
+    };
+    const tagLabels = state.tags.map(
+      (slug) =>
+        [...labels.tags].find(([, value]) => value === slug)?.[0] ?? slug,
+    );
+    return [
+      ...tagLabels,
+      ...state.ratings.map((rating) => `${t.rating}: ${rating}`),
+      ...(state.language
+        ? [`${t.language}: ${selectedLabel('lang', state.language)}`]
+        : []),
+      ...(state.difficulty
+        ? [`${t.difficulty}: ${selectedLabel('difficulty', state.difficulty)}`]
+        : []),
+      ...(state.sort !== 'source-date'
+        ? [`${t.sort}: ${selectedLabel('sort', state.sort)}`]
+        : []),
+    ];
+  };
+  const summarize = () => {
+    const values = activeLabels();
+    if (summary) {
+      summary.textContent = values.join(' / ');
+      summary.hidden = !values.length;
+    }
+  };
   const showTags = () => {
     tags.forEach(
       (n, i) =>
@@ -250,6 +290,8 @@ export function mountExplorer(root: HTMLElement) {
           )[element.name] || '';
     }
     syncs.forEach((fn) => fn());
+    if (advanced) advanced.open = activeLabels().length > 0;
+    summarize();
     showTags();
   };
   const render = (historyMode: 'push' | 'replace' | 'none' = 'replace') => {
@@ -260,9 +302,8 @@ export function mountExplorer(root: HTMLElement) {
       filtered.slice((state.page - 1) * 12, state.page * 12).map((r) => r.id),
     );
     nodes.forEach((n) => (n.hidden = !shown.has(Number(n.dataset.id))));
-    filtered.forEach((row, index) => {
+    filtered.forEach((row) => {
       const node = byId.get(row.id)!;
-      node.style.setProperty('--card-order', String(index % 12));
       results.append(node);
     });
     count.textContent = `${filtered.length} ${t.found}`;
@@ -317,6 +358,7 @@ export function mountExplorer(root: HTMLElement) {
       ),
     );
     render();
+    summarize();
     showTags();
   };
   form.addEventListener('submit', (e) => {

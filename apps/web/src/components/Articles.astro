@@ -1,4 +1,6 @@
 ---
+import * as stylex from '@stylexjs/stylex';
+import { products as r } from '../styles/products.stylex';
 import CuratedCard from './CuratedCard.astro';
 import PublicSelect from './PublicSelect.astro';
 import PageHero from './PageHero.astro';
@@ -26,43 +28,32 @@ const tags = p.tags
   }))
   .filter((tag) => tag.count)
   .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'en'));
-const stats = [
-  [articles.length, t.collectedArticles],
-  [topics.length, t.topicTotal],
-  [tags.length, t.tagTotal],
-  [
-    articles.length
-      ? displayDate(
-          Math.max(...articles.map((c) => c.firstPublishedAt)),
-          locale,
-        )
-      : '—',
-    t.lastUpdated,
-  ],
-];
+const lastUpdated = articles.length
+  ? displayDate(Math.max(...articles.map((c) => c.lastPublishedAt)), locale)
+  : '';
 ---
 
-<PageHero label="Articles" title={t.articles} description={t.articlesIntro}
-  ><div class="stats">
-    {
-      stats.map(([value, label]) => (
-        <div class="stat">
-          <>
-            <strong>{value}</strong>
-            <span>{label}</span>
-          </>
-        </div>
-      ))
-    }
-  </div></PageHero
+<PageHero
+  label="02 / CURATED ARTICLES"
+  title={locale === 'zh' ? '精选文章' : 'Curated articles'}
+  description={t.articlesIntro}
 >
+  <p {...stylex.attrs(r.meta)}>
+    {articles.length}
+    {t.found}{
+      lastUpdated && (
+        <span>
+          {t.lastUpdated} {lastUpdated}
+        </span>
+      )
+    }
+  </p>
+</PageHero>
 <div data-explorer>
-  <section class="panel filters">
-    <header>
-      <div>
-        <span class="eyebrow">Search tools</span><h2>{t.filters}</h2>
-      </div><button data-copy-link>{t.copy}</button>
-    </header>
+  <section
+    class:list={['filters', stylex.attrs(r.filters).class]}
+    aria-label={t.filters}
+  >
     <form
       action={locale === 'en' ? '/en/articles/' : '/articles/'}
       method="get"
@@ -76,7 +67,7 @@ const stats = [
           />
         ))
       }
-      <div class="filter-fields">
+      <div {...stylex.attrs(r.filterBar)}>
         <label
           ><span>{t.keyword}</span><input
             type="search"
@@ -96,83 +87,96 @@ const stats = [
             })),
           ]}
         />
-        <PublicSelect
-          name="lang"
-          label={t.language}
-          options={[
-            { value: '', label: t.allLanguages },
-            { value: 'zh', label: '中文' },
-            { value: 'en', label: 'English' },
-          ]}
-        />
-        <PublicSelect
-          name="sort"
-          label={t.sort}
-          value="source-date"
-          options={[
-            { value: 'source-date', label: t.sourceDateSort },
-            { value: 'recommended', label: t.recommended },
-            { value: 'added', label: t.added },
-            { value: 'rating', label: t.rating },
-            { value: 'title', label: t.title },
-          ]}
-        />
+        <button type="button" data-copy-link>{t.copy}</button>
       </div>
-      <fieldset class="filter-set">
-        <legend>{t.rating}</legend><div class="filter-chips">
-          {
-            ratings.map((rating) => (
-              <label>
-                <>
-                  <input
-                    class="sr-only"
-                    type="checkbox"
-                    name="rating"
-                    value={rating}
-                  />
-                  <span class="chip">{rating}</span>
-                </>
-              </label>
-            ))
-          }
+      <details data-advanced-filters {...stylex.attrs(r.advanced)}>
+        <summary
+          >{
+            locale === 'zh' ? '更多筛选与排序' : 'More filters & sorting'
+          }</summary
+        >
+        <div {...stylex.attrs(r.advancedBody)}>
+          <div {...stylex.attrs(r.filterFields)}>
+            <PublicSelect
+              name="lang"
+              label={t.language}
+              options={[
+                { value: '', label: t.allLanguages },
+                { value: 'zh', label: '中文' },
+                { value: 'en', label: 'English' },
+              ]}
+            />
+            <PublicSelect
+              name="sort"
+              label={t.sort}
+              value="source-date"
+              options={[
+                { value: 'source-date', label: t.sourceDateSort },
+                { value: 'recommended', label: t.recommended },
+                { value: 'added', label: t.added },
+                { value: 'rating', label: t.rating },
+                { value: 'title', label: t.title },
+              ]}
+            />
+          </div>
+          <fieldset class="filter-set">
+            <legend>{t.rating}</legend><div class="filter-chips">
+              {
+                ratings.map((rating) => (
+                  <label>
+                    <>
+                      <input
+                        class="sr-only"
+                        type="checkbox"
+                        name="rating"
+                        value={rating}
+                      />
+                      <span class="chip">{rating}</span>
+                    </>
+                  </label>
+                ))
+              }
+            </div>
+          </fieldset>
+          <div {...stylex.attrs(r.filterFields)}>
+            <PublicSelect
+              name="difficulty"
+              label={t.difficulty}
+              options={[
+                { value: '', label: t.all },
+                ...(['beginner', 'intermediate', 'advanced'] as const).map(
+                  (value) => ({ value, label: t[value] }),
+                ),
+              ]}
+            />
+          </div>
+          <fieldset class="filter-set">
+            <legend>{t.tags}</legend><div class="filter-chips">
+              {
+                tags.map((tag) => (
+                  <label data-tag-option data-tag-name={tag.name}>
+                    <>
+                      <input
+                        class="sr-only"
+                        type="checkbox"
+                        name="tags"
+                        value={tag.slug}
+                      />
+                      <span class="chip">
+                        {tag.name}
+                        <small>{tag.count}</small>
+                      </span>
+                    </>
+                  </label>
+                ))
+              }
+            </div><div class="load-tags">
+              <button type="button" data-more-tags hidden>{t.moreTags}</button>
+            </div>
+          </fieldset>
         </div>
-      </fieldset>
-      <div class="filter-fields">
-        <PublicSelect
-          name="difficulty"
-          label={t.difficulty}
-          options={[
-            { value: '', label: t.all },
-            ...(['beginner', 'intermediate', 'advanced'] as const).map(
-              (value) => ({ value, label: t[value] }),
-            ),
-          ]}
-        />
-      </div>
-      <fieldset class="filter-set">
-        <legend>{t.tags}</legend><div class="filter-chips">
-          {
-            tags.map((tag) => (
-              <label data-tag-option data-tag-name={tag.name}>
-                <>
-                  <input
-                    class="sr-only"
-                    type="checkbox"
-                    name="tags"
-                    value={tag.slug}
-                  />
-                  <span class="chip">
-                    {tag.name}
-                    <small>{tag.count}</small>
-                  </span>
-                </>
-              </label>
-            ))
-          }
-        </div><div class="load-tags">
-          <button type="button" data-more-tags hidden>{t.moreTags}</button>
-        </div>
-      </fieldset>
+      </details>
+      <p class="filter-summary" data-filter-summary role="status" hidden></p>
       <div class="actions">
         <button class="primary" type="submit">{t.apply}</button><button
           type="button"
@@ -181,7 +185,10 @@ const stats = [
       </div>
     </form>
   </section>
-  <div class="results-heading" data-results-heading>
+  <div
+    class:list={['results-heading', stylex.attrs(r.resultsHeading).class]}
+    data-results-heading
+  >
     <p role="status" aria-live="polite" data-result-count>
       {articles.length}
       {t.found}

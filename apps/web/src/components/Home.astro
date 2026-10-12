@@ -1,25 +1,198 @@
 ---
-import { words, localized, type Locale } from '../lib/i18n';
+import * as stylex from '@stylexjs/stylex';
+import { layout as s } from '../styles/layout.stylex';
+import { home as h } from '../styles/home.stylex';
+import { products as r } from '../styles/products.stylex';
+import { words, localized, displayDate, type Locale } from '../lib/i18n';
+import { type Publication } from '../lib/publication/indexes';
+import { homeContent } from '../lib/publication/home';
+import CuratedCard from './CuratedCard.astro';
+import Icon from './Icon.astro';
 interface Props {
   locale?: Locale;
+  publication: Publication;
 }
-const { locale = 'zh' } = Astro.props,
+const { locale = 'zh', publication: p } = Astro.props,
   t = words[locale];
+const { notes, articles, topics } = homeContent(p);
 ---
 
-<section class="home-hero">
-  <div class="home-copy">
-    <span>Golang or go home?</span><div>
-      <h1 class="home-wordmark">GopherAtlas</h1><p>{t.hero}</p>
-    </div><div class="actions">
-      <a class="btn primary" href={localized('/articles/', locale)}
-        >{t.browse}</a
-      ><a class="btn" href={localized('/topics/', locale)}>{t.enterTopics}</a>
+<section class:list={['home-hero', stylex.attrs(h.hero).class]}>
+  <div {...stylex.attrs(h.artwork)}>
+    <img
+      {...stylex.attrs(h.image)}
+      src="/images/background.avif"
+      width="1920"
+      height="1080"
+      alt="There's no place like 127.0.0.1"
+      fetchpriority="high"
+      decoding="async"
+    />
+  </div>
+  <div {...stylex.attrs(s.shell, h.copyRow)}>
+    <div {...stylex.attrs(h.copy)} data-hero-copy>
+      <p {...stylex.attrs(h.label)}>DEEPFURRY / GO KNOWLEDGE ATLAS</p>
+      <h1 {...stylex.attrs(h.title)}>
+        {
+          locale === 'zh'
+            ? '记录技术，保留思考。'
+            : 'Document the work. Keep the thinking.'
+        }
+      </h1>
+      <p {...stylex.attrs(h.subtitle)}>
+        {
+          locale === 'zh'
+            ? '精选 Go 技术文章与团队工程实践。'
+            : 'Selected Go writing and engineering practice from our team.'
+        }
+      </p>
+      <div {...stylex.attrs(h.actions)}>
+        <a class="inline-link" href={localized('/articles/', locale)}
+          >{locale === 'zh' ? '探索文章' : 'Explore articles'}
+          <Icon name="arrowUpRight" /></a
+        >
+        <a class="inline-link" href={localized('/notes/', locale)}
+          >{t.notes} <Icon name="arrowRight" /></a
+        >
+      </div>
     </div>
-  </div><div class="home-art">
-    <div class="home-hero__stage">
-      <div class="home-hero__halo"></div><div class="home-hero__ornaments">
-      </div><img class="home-hero__logo" src="/images/logo.png" alt="" />
-    </div>
+    <a {...stylex.attrs(h.scroll)} href="#field-notes"
+      >SCROLL TO EXPLORE <Icon name="arrowDown" /></a
+    >
   </div>
 </section>
+<div class:list={['home-feed', stylex.attrs(s.shell, h.feed).class]}>
+  <section
+    id="field-notes"
+    data-home-section="notes"
+    {...stylex.attrs(s.editorial, h.section)}
+  >
+    <header>
+      <p {...stylex.attrs(s.eyebrow)}>01 / FIELD NOTES</p>
+      <h2 {...stylex.attrs(s.sectionTitle)}>{t.notes}</h2>
+      <p {...stylex.attrs(s.description)}>
+        {
+          locale === 'zh'
+            ? '团队原创，实践与思考。'
+            : 'Original work. Practice and reflection.'
+        }
+      </p>
+    </header>
+    <div>
+      {
+        notes.map((note, index) => (
+          <article {...stylex.attrs(h.note)} lang={note.language}>
+            {index === 0 && (
+              <p {...stylex.attrs(s.eyebrow)}>LATEST PUBLICATION</p>
+            )}
+            <h3 {...stylex.attrs(h.noteTitle, index === 0 && h.leadTitle)}>
+              <a href={localized(note.canonicalPath, locale)}>{note.title}</a>
+            </h3>
+            {index === 0 && note.summary && (
+              <p {...stylex.attrs(r.summary)}>{note.summary}</p>
+            )}
+            <div {...stylex.attrs(h.meta)}>
+              <a
+                href={localized(
+                  '/authors/' + p.authorById.get(note.authorId)!.slug + '/',
+                  locale,
+                )}
+              >
+                {p.authorById.get(note.authorId)!.displayName}
+              </a>
+              <a
+                href={localized(
+                  '/notes/' + note.payload.groupSlug + '/',
+                  locale,
+                )}
+              >
+                {note.payload.group}
+              </a>
+              <time datetime={new Date(note.lastPublishedAt).toISOString()}>
+                {displayDate(note.lastPublishedAt, locale)}
+              </time>
+            </div>
+          </article>
+        ))
+      }
+      {!notes.length && <p class="empty">{t.noPublicContent}</p>}
+      <a {...stylex.attrs(h.allLink)} href={localized('/notes/', locale)}
+        >{locale === 'zh' ? '查看全部随笔' : 'All learning notes'}
+        <Icon name="arrowRight" /></a
+      >
+    </div>
+  </section>
+  <section
+    data-home-section="articles"
+    {...stylex.attrs(s.editorial, h.section)}
+  >
+    <header>
+      <p {...stylex.attrs(s.eyebrow)}>02 / CURATED</p>
+      <h2 {...stylex.attrs(s.sectionTitle)}>
+        {locale === 'zh' ? '精选文章' : 'Curated articles'}
+      </h2>
+      <p {...stylex.attrs(s.description)}>
+        {
+          locale === 'zh'
+            ? '值得反复阅读。'
+            : 'Worth reading. Worth revisiting.'
+        }
+      </p>
+    </header>
+    <div>
+      {
+        articles.map((item) => (
+          <CuratedCard
+            heading="h3"
+            item={item}
+            publication={p}
+            locale={locale}
+          />
+        ))
+      }
+      {!articles.length && <p class="empty">{t.noPublicContent}</p>}
+      <a {...stylex.attrs(h.allLink)} href={localized('/articles/', locale)}
+        >{t.browse} <Icon name="arrowRight" /></a
+      >
+    </div>
+  </section>
+  {
+    topics.length > 0 && (
+      <section
+        data-home-section="topics"
+        {...stylex.attrs(s.editorial, h.section)}
+      >
+        <header>
+          <p {...stylex.attrs(s.eyebrow)}>03 / TOPICS</p>
+          <h2 {...stylex.attrs(s.sectionTitle)}>{t.topics}</h2>
+          <p {...stylex.attrs(s.description)}>
+            {locale === 'zh'
+              ? '沿着一个主题，持续深入。'
+              : 'Follow a subject. Go deeper.'}
+          </p>
+        </header>
+        <div>
+          {topics.map((topic) => (
+            <article {...stylex.attrs(h.note)}>
+              <h3 {...stylex.attrs(h.noteTitle)}>
+                <a
+                  class="inline-link"
+                  href={localized(topic.canonicalPath, locale)}
+                >
+                  {topic.title} <Icon name="arrowUpRight" />
+                </a>
+              </h3>
+              <p {...stylex.attrs(r.summary)}>{topic.summary}</p>
+              <p {...stylex.attrs(h.meta)}>
+                {topic.topicEntries.length} {t.articleCount}
+              </p>
+            </article>
+          ))}
+          <a {...stylex.attrs(h.allLink)} href={localized('/topics/', locale)}>
+            {t.enterTopics} <Icon name="arrowRight" />
+          </a>
+        </div>
+      </section>
+    )
+  }
+</div>

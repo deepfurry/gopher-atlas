@@ -86,7 +86,6 @@ compiles with `adminembed`; plain Go tooling intentionally has no production SPA
 
 Product alignment: curated_article / topic / note are the normal workflows; post
 is compatibility-only. Read ADR 0012 before product/import changes. Topic targets
-must be Curated; Note group metadata is payload-derived and consistent. Legacy
-logo/visuals/interactions are acceptance criteria. Import plan is read-only; apply
+must be Curated; Note group metadata is payload-derived and consistent. Public visuals follow ADR 0016; legacy product semantics remain. Import plan is read-only; apply
 uses existing Asset/Content services and explicit author mapping, never raw SQL
 content insertion or relaxed Markdown safety. No migration is needed for P0-5.5.

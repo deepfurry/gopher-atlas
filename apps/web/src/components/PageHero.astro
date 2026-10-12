@@ -1,4 +1,6 @@
 ---
+import * as stylex from '@stylexjs/stylex';
+import { layout as s } from '../styles/layout.stylex';
 interface Props {
   label: string;
   title: string;
@@ -7,8 +9,15 @@ interface Props {
 const { label, title, description } = Astro.props;
 ---
 
-<header class="page-hero">
-  <div>
-    <span class="eyebrow">{label}</span><h1>{title}</h1><p>{description}</p>
-  </div><div class="hero-actions"><slot /></div>
+<header class:list={['page-hero', stylex.attrs(s.pageHeading).class]}>
+  <p {...stylex.attrs(s.eyebrow)}>{label}</p>
+  <h1 {...stylex.attrs(s.title)}>{title}</h1>
+  <p {...stylex.attrs(s.description)}>{description}</p>
+  {
+    Astro.slots.has('default') && (
+      <div {...stylex.attrs(s.actions)}>
+        <slot />
+      </div>
+    )
+  }
 </header>

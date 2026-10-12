@@ -1,5 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import * as stylex from '@stylexjs/stylex';
+import { layout as s } from '../styles/layout.stylex';
+import { products as r } from '../styles/products.stylex';
 import MarkdownBody from './MarkdownBody.astro';
 import SourceMeta from './SourceMeta.astro';
 import TopicBody from './TopicBody.astro';
@@ -32,6 +35,12 @@ const author = required(p.authorById, item.authorId),
       : required(p.assetById, item.coverAssetId);
 const tags = item.tagIds.map((id) => required(p.tagById, id)),
   rendered = await renderMarkdown(item.bodyMarkdown);
+const topics =
+  item.type === 'curated_article'
+    ? (p.contentByType.get('topic') ?? []).filter((topic) =>
+        topic.topicEntries.some((entry) => entry.targetContentId === item.id),
+      )
+    : [];
 const headings = rendered.metadata.headings.filter(
     (h) => h.depth === 2 || h.depth === 3,
   ),
@@ -80,9 +89,32 @@ const contentFamily =
     ) : (
       <div class:list={{ 'note-detail': item.type === 'note' }}>
         <article
-          class:list={{ prose: item.type !== 'note', 'content-detail': true }}
+          class:list={[
+            'content-detail',
+            item.type !== 'note' && 'prose',
+            stylex.attrs(item.type !== 'note' && s.prose).class,
+          ]}
         >
-          <header class:list={{ 'note-heading': item.type === 'note' }}>
+          <header
+            class:list={[
+              'note-heading',
+              stylex.attrs(item.type === 'note' && r.noteHeading).class,
+            ]}
+          >
+            {item.type === 'note' && (
+              <nav
+                class="breadcrumb"
+                aria-label={t.location}
+                data-pagefind-ignore
+              >
+                <a href={localized('/notes/', locale)}>{t.notes}</a>
+                {group && (
+                  <a href={localized('/notes/' + group.slug + '/', locale)}>
+                    {group.name}
+                  </a>
+                )}
+              </nav>
+            )}
             {item.type !== 'note' && (
               <nav
                 class="breadcrumb"
@@ -92,7 +124,11 @@ const contentFamily =
                 <a href={localized(info.path, locale)}>{contentFamily}</a>
               </nav>
             )}
-            <h1 data-pagefind-meta="title" lang={item.language}>
+            <h1
+              {...stylex.attrs(s.title)}
+              data-pagefind-meta="title"
+              lang={item.language}
+            >
               {item.type === 'curated_article' ? (
                 <a
                   href={item.payload.sourceUrl}
@@ -162,11 +198,25 @@ const contentFamily =
                 ))}
               </ul>
             )}
+            {item.featured && <p class="small-meta">{t.featured}</p>}
+            {topics.length > 0 && (
+              <ul class="tag-list" aria-label={t.topics} data-pagefind-ignore>
+                {topics.map((topic) => (
+                  <li>
+                    <a href={localized(topic.canonicalPath, locale)}>
+                      {topic.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
           </header>
-          {item.type === 'note' && (
-            <NoteNavigation item={item} group={group} locale={locale} />
-          )}
-          <div class:list={{ 'note-surface panel': item.type === 'note' }}>
+          <div
+            class:list={[
+              'reading-layout',
+              stylex.attrs(item.type === 'note' && r.readingGrid).class,
+            ]}
+          >
             <div class="reading-body">
               {cover && (
                 <img
@@ -218,24 +268,29 @@ const contentFamily =
               </aside>
             )}
           </div>
-          {item.type === 'note' && (
-            <>
-              {!preview && (
-                <Discussion
-                  groupSlug={item.payload.groupSlug}
-                  slug={item.slug}
-                  locale={locale}
-                />
+          <div {...stylex.attrs(item.type === 'note' && r.noteEnd)}>
+            {item.type === 'note' && (
+              <>
+                <NoteNavigation item={item} group={group} locale={locale} />
+                {!preview && (
+                  <Discussion
+                    groupSlug={item.payload.groupSlug}
+                    slug={item.slug}
+                    locale={locale}
+                  />
+                )}
+              </>
+            )}
+            <aside class="author-note" data-pagefind-ignore>
+              <h2>{authorHeading}</h2>
+              <a href={localized(`/authors/${author.slug}/`, locale)}>
+                {author.displayName}
+              </a>
+              {author.bioMarkdown && (
+                <MarkdownBody source={author.bioMarkdown} />
               )}
-            </>
-          )}
-          <aside class="author-note" data-pagefind-ignore>
-            <h2>{authorHeading}</h2>
-            <a href={localized(`/authors/${author.slug}/`, locale)}>
-              {author.displayName}
-            </a>
-            {author.bioMarkdown && <MarkdownBody source={author.bioMarkdown} />}
-          </aside>
+            </aside>
+          </div>
         </article>
       </div>
     )

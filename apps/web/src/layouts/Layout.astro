@@ -1,5 +1,8 @@
 ---
 import '../styles/global.css';
+import * as stylex from '@stylexjs/stylex';
+import { layout as s } from '../styles/layout.stylex';
+import Icon from '../components/Icon.astro';
 import {
   words,
   localeOf,
@@ -23,7 +26,7 @@ interface Props {
 }
 const {
   title,
-  description = '高质量 Go 技术文章精选导航',
+  description = '原创学习随笔、Go 技术精选与话题阅读路径。',
   canonical: path = chromePaths.includes(withoutLocale(Astro.url.pathname))
     ? Astro.url.pathname
     : withoutLocale(Astro.url.pathname),
@@ -40,20 +43,22 @@ const t = words[locale],
   canonical = new URL(path, Astro.site);
 const base = withoutLocale(Astro.url.pathname);
 const links = [
-  ['/', t.home],
-  ['/articles/', t.articles],
-  ['/topics/', t.topics],
-  ['/notes/', t.notes],
+  ['/articles/', locale === 'zh' ? '文章' : 'Articles'],
+  ['/topics/', locale === 'zh' ? '话题' : 'Topics'],
+  ['/notes/', locale === 'zh' ? '随笔' : 'Notes'],
+  ['/search/', t.search],
 ];
 const localized = (href: string) => (locale === 'en' ? `/en${href}` : href);
 const github = 'https://github.com/deepfurry/gopher-atlas';
 const year = new Date().getFullYear();
-const copyrightYears = year > 2026 ? `2026-${year}` : '2026';
 ---
 
 <!doctype html>
 <html lang={lang} data-locale={locale} data-theme="dark">
   <head>
+    <style is:inline>
+      @layer base, priority1, priority2, priority3, priority4, priority5;
+    </style>
     <meta charset="utf-8" /><meta
       name="viewport"
       content="width=device-width, initial-scale=1"
@@ -104,7 +109,22 @@ const copyrightYears = year > 2026 ? `2026-${year}` : '2026';
     }
     {noindex && <meta name="robots" content="noindex, follow" />}
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <link rel="icon" href="/images/logo.png" type="image/png" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {
+      home && (
+        <link
+          rel="preload"
+          as="image"
+          href="/images/background.avif"
+          type="image/avif"
+        />
+      )
+    }
+    {
+      import.meta.env.DEV && (
+        <link rel="stylesheet" href="/virtual:stylex.css" />
+      )
+    }
     <link
       rel="alternate"
       type="application/rss+xml"
@@ -124,80 +144,65 @@ const copyrightYears = year > 2026 ? `2026-${year}` : '2026';
   </head>
   <body class:list={{ 'home-page': home }}>
     <a class="skip-link" href="#main">{t.skip}</a>
-    <header class="site-header">
-      <div class="page-shell header-inner">
-        <a class="brand" href={localized('/')}
-          ><img src="/images/logo.png" width="36" height="36" alt="" /><span
-            ><strong>GopherAtlas</strong><small>{t.subtitle}</small></span
-          ></a
+    <header class:list={['site-header', stylex.attrs(s.header).class]}>
+      <div
+        class:list={[
+          'header-inner',
+          stylex.attrs(s.shell, s.headerInner).class,
+        ]}
+      >
+        <a
+          class:list={['brand', stylex.attrs(s.brand).class]}
+          href={localized('/')}>GopherAtlas</a
         >
-        <button
-          class="menu-toggle"
-          data-menu-toggle
-          aria-expanded="false"
-          aria-controls="primary-navigation">{t.menu}</button
-        >
+        <div {...stylex.attrs(s.mobileControls)}>
+          <a
+            {...stylex.attrs(s.iconButton)}
+            href={localized('/search/')}
+            aria-label={t.search}><Icon name="search" /></a
+          >
+          <button
+            {...stylex.attrs(s.iconButton)}
+            data-menu-toggle
+            aria-expanded="false"
+            aria-controls="primary-navigation"
+            aria-label={t.menu}><Icon name="menu" /></button
+          >
+        </div>
         <nav
           id="primary-navigation"
+          {...stylex.attrs(s.nav)}
           aria-label={locale === 'zh' ? '主导航' : 'Main navigation'}
         >
           {
             links.map(([href, label]) => (
               <a
                 href={localized(href)}
-                aria-current={
-                  (href === '/' ? base === '/' : base.startsWith(href))
-                    ? 'page'
-                    : undefined
-                }
+                aria-current={base.startsWith(href) ? 'page' : undefined}
               >
                 {label}
               </a>
             ))
           }
           <a
-            class="github-link"
+            class="inline-link"
             href={github}
             target="_blank"
-            rel="noopener noreferrer"
-            aria-label="GitHub"
-            ><img
-              class="dark-icon"
-              src="/images/logo-github-light.svg"
-              width="36"
-              height="36"
-              alt=""
-            /><img
-              class="light-icon"
-              src="/images/logo-github-dark.svg"
-              width="36"
-              height="36"
-              alt=""
-            /></a
+            rel="noopener noreferrer">GitHub <Icon name="arrowUpRight" /></a
           >
           <button
-            class="theme-toggle"
+            class:list={['theme-toggle', stylex.attrs(s.iconButton).class]}
             data-theme-toggle
             aria-label={t.theme}
             title={t.theme}
-            ><img
-              class="dark-icon"
-              src="/images/sun.svg"
-              width="20"
-              height="20"
-              alt=""
-            /><img
-              class="light-icon"
-              src="/images/moon.svg"
-              width="20"
-              height="20"
-              alt=""
-            /></button
           >
+            <span class="dark-icon"><Icon name="sun" /></span><span
+              class="light-icon"><Icon name="moon" /></span
+            >
+          </button>
           {
             !noindex && (
               <a
-                class="language-link"
                 data-language-link
                 href={alternateChrome(
                   Astro.url.pathname,
@@ -215,30 +220,40 @@ const copyrightYears = year > 2026 ? `2026-${year}` : '2026';
     <main
       id="main"
       tabindex="-1"
-      class="page-shell"
+      class:list={[
+        'page-shell',
+        stylex.attrs(home ? s.homeMain : s.shell, !home && s.main).class,
+      ]}
       data-pagefind-body={searchIndex ? '' : undefined}
       data-pagefind-ignore={searchIndex ? undefined : 'all'}
     >
       <slot />
     </main>
-    <footer class="site-footer">
-      <div class="page-shell footer-inner">
-        <p>Copyright {copyrightYears} DeepFurry</p><nav
+    <footer class:list={['site-footer', stylex.attrs(s.footer).class]}>
+      <div {...stylex.attrs(s.shell, s.footerInner)}>
+        <p {...stylex.attrs(s.mono)}>© {year} DeepFurry</p>
+        <nav
+          {...stylex.attrs(s.footerLinks)}
           aria-label={locale === 'zh' ? '页脚导航' : 'Footer'}
         >
-          <a href={localized('/contribute/')}>{t.contribute}</a><a
-            href={localized('/about/')}>{t.about}</a
-          ><a href={localized('/search/')}>{t.search}</a><a href="/rss.xml"
-            >RSS</a
-          >
+          <a href={github} target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a href={localized('/about/')}>{t.about}</a>
+          <a href={localized('/contribute/')}>{t.contribute}</a>
+          <a href={localized('/search/')}>{t.search}</a>
+          <a href="/rss.xml">RSS</a>
         </nav>
       </div>
     </footer>
-    <button class="back-top" data-back-top hidden aria-label={t.top}>↑</button>
+    <button class="back-top" data-back-top hidden aria-label={t.top}
+      ><Icon name="arrowUp" /></button
+    >
     <p class="public-toast" role="status" aria-live="polite" data-toast></p>
     <script>
       import { mountChrome } from '../lib/chrome';
       mountChrome();
+      if (import.meta.env.DEV) import('virtual:stylex:css-only');
+      import { mountMotion } from '../lib/motion';
+      mountMotion();
     </script>
   </body>
 </html>

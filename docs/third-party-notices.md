@@ -25,10 +25,22 @@ SOFTWARE.
 Other dependency licenses remain with their packages, including the self-hosted
 Geist and JetBrains Mono font distributions.
 
-The Public compass, visual tokens and hero treatment are adapted from
-[gofurry/gopher-atlas](https://github.com/gofurry/gopher-atlas), copyright 2026
-gofurry, under [its MIT license](../apps/web/public/licenses/legacy-MIT.txt).
-The legacy static generator is not included. Self-hosted Sora and Plus Jakarta Sans
-retain their [Sora OFL](../apps/web/public/licenses/Sora-OFL.txt) and
-[Plus Jakarta Sans OFL](../apps/web/public/licenses/PlusJakartaSans-OFL.txt).
-These notices also ship in Public output under `/licenses/`.
+## Current Public assets
+
+Public uses [IBM Plex](https://github.com/IBM/plex) Sans Latin 400/500/600 and
+Mono Latin 400, distributed by @fontsource 5.3.0 and self-hosted as WOFF2 with
+font-display: swap. Its [SIL OFL 1.1](../apps/web/public/licenses/IBM-Plex-OFL.txt)
+ships in Public output. No remote font service or CJK font download is used.
+
+Regular SVGs from [Phosphor Icons](https://github.com/phosphor-icons/core) 2.1.1
+are compiled into HTML; [MIT license](../apps/web/public/licenses/Phosphor-MIT.txt)
+ships with the site. Motion 14.1.0 and StyleX 0.19.1 retain package MIT notices.
+
+The user supplied background.avif for the homepage: actual AVIF/AV1, 1920×1080,
+60,533 bytes, preserved without recompression. The image's copyright holder and
+license were not supplied and remain unknown. User direction to use the asset is
+not a claim of an open-source license. No alternate encoded fallback is shipped.
+
+The earlier compass/Sora/Plus Jakarta Sans assets are no longer loaded or shipped.
+Historical MIT/OFL notices remain for inherited work; the legacy generator was
+never included. Admin's existing fonts, UI provenance and licenses are unchanged.

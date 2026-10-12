@@ -21,6 +21,7 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
   document.body.replaceChildren();
+  history.replaceState({}, '', '/articles/');
 });
 const row = (id: number, extra: Partial<ArticleIndex> = {}): ArticleIndex => ({
   id,
@@ -144,6 +145,30 @@ it('Public explorer paginates twelve, synchronizes URL and leaves all original s
   expect(root.querySelectorAll('[data-article]:not([hidden])')).toHaveLength(1);
   expect(location.search).toContain('Title+27');
   expect(results.children).toHaveLength(27);
+});
+it('restores advanced filters on shared URLs and history, and searches full rationale beyond compact rows', () => {
+  document.body.innerHTML = `<div data-explorer><form><input name="q"><input name="sort" value="source-date"><details data-advanced-filters><summary>More</summary><input type="checkbox" name="rating" value="A+"><input name="lang"><button type="button" data-reset>Reset</button></details><p data-filter-summary hidden></p></form><span data-result-count></span><div data-results><article data-article data-id="1" data-title="Example" data-topics='[]' data-tags='[]' data-language="en" data-rating="A+" data-difficulty="beginner" data-added="1" data-source-date="2026-01-01" data-search-text="Example Detailed rationale concurrency">Example</article></div><p data-empty></p><nav data-pagination></nav></div>`;
+  const root = document.querySelector<HTMLElement>('[data-explorer]')!;
+  const advanced = root.querySelector<HTMLDetailsElement>('details')!;
+  history.replaceState({}, '', '/articles/?rating=A%2B&lang=en');
+  mountExplorer(root);
+  expect(advanced.open).toBe(true);
+  expect(root.querySelector<HTMLInputElement>('[name=rating]')!.checked).toBe(
+    true,
+  );
+  expect(root.querySelector('[data-filter-summary]')!.textContent).toContain(
+    'A+',
+  );
+  root.querySelector<HTMLButtonElement>('[data-reset]')!.click();
+  expect(advanced.open).toBe(false);
+  expect(location.search).toBe('');
+  history.replaceState({}, '', '/articles/?rating=A%2B&q=concurrency');
+  window.dispatchEvent(new PopStateEvent('popstate'));
+  expect(advanced.open).toBe(true);
+  expect(root.querySelector<HTMLInputElement>('[name=q]')!.value).toBe(
+    'concurrency',
+  );
+  expect(root.querySelectorAll('[data-article]:not([hidden])')).toHaveLength(1);
 });
 it('locale chrome preserves every detail, tag, author, group and pagination path', () => {
   expect(Object.keys(words.zh).sort()).toEqual(Object.keys(words.en).sort());

@@ -31,7 +31,9 @@ export function mountChrome() {
     });
   if ('IntersectionObserver' in window) {
     const links = [
-      ...document.querySelectorAll<HTMLAnchorElement>('.toc a[href^="#"]'),
+      ...document.querySelectorAll<HTMLAnchorElement>(
+        '.toc a[href^="#"], .mobile-toc a[href^="#"]',
+      ),
     ];
     const observer = new IntersectionObserver(
       (entries) => {
@@ -40,11 +42,13 @@ export function mountChrome() {
             links.forEach((link) =>
               link.setAttribute(
                 'aria-current',
-                String(link.hash === '#' + entry.target.id),
+                String(
+                  decodeURIComponent(link.hash.slice(1)) === entry.target.id,
+                ),
               ),
             );
       },
-      { rootMargin: '0px 0px -65% 0px' },
+      { rootMargin: '-96px 0px -55% 0px' },
     );
     links.forEach((link) => {
       const heading = document.getElementById(
@@ -104,7 +108,13 @@ export function mountChrome() {
     nav?.classList.toggle('open', open);
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') close();
+    if (
+      e.key === 'Escape' &&
+      toggle?.getAttribute('aria-expanded') === 'true'
+    ) {
+      close();
+      toggle.focus();
+    }
   });
   document.addEventListener('click', async (e) => {
     const target =
@@ -125,12 +135,19 @@ export function mountChrome() {
     }
   });
   const top = document.querySelector<HTMLButtonElement>('[data-back-top]');
+  const header = document.querySelector<HTMLElement>('.site-header');
+  const hero = document.querySelector<HTMLElement>('.home-hero');
+  const updateScroll = () => {
+    if (top) top.hidden = window.scrollY < 400;
+    if (header && hero)
+      header.dataset.scrolled = String(
+        hero.getBoundingClientRect().bottom <= 72,
+      );
+  };
+  window.addEventListener('scroll', updateScroll, { passive: true });
+  window.addEventListener('resize', updateScroll);
+  updateScroll();
   if (top) {
-    window.addEventListener(
-      'scroll',
-      () => (top.hidden = window.scrollY < 400),
-      { passive: true },
-    );
     top.addEventListener('click', () =>
       window.scrollTo({
         top: 0,

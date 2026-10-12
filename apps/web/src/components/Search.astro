@@ -1,5 +1,7 @@
 ---
 import { words, type Locale } from '../lib/i18n';
+import * as stylex from '@stylexjs/stylex';
+import { layout as s } from '../styles/layout.stylex';
 interface Props {
   locale?: Locale;
 }
@@ -7,8 +9,10 @@ const { locale = 'zh' } = Astro.props,
   t = words[locale];
 ---
 
-<div class="prose" data-search>
-  <h1>{t.search}</h1><p class="lede">{t.searchHint}</p><form role="search">
+<div class:list={['prose', stylex.attrs(s.prose).class]} data-search>
+  <h1 {...stylex.attrs(s.title)}>{t.search}</h1><p class="lede">
+    {t.searchHint}
+  </p><form role="search">
     <label for="search-query">{t.keyword}</label><div class="search-form">
       <input
         id="search-query"

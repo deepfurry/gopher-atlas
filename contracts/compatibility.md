@@ -18,7 +18,7 @@ same-origin with Admin. UI visibility never substitutes for server authorization
 Errors use `{ error: { code, message, requestId, fields? } }`; internal errors must
 not disclose private details. Liveness is not readiness.
 
-Runtime lines: Node 24, Astro 6, React 19, Tailwind 4, Go 1.26, Fiber 3. Exact
+Runtime lines: Node 24, Astro 7, React 19, Tailwind 4, Go 1.26, Fiber 3. Exact
 tool versions are in `.node-version`, `.go-version`, manifests and lockfiles.
 Generated clients and sqlc output are changed by regeneration and drift checked.
 

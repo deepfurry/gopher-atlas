@@ -1,5 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import * as stylex from '@stylexjs/stylex';
+import { layout as s } from '../styles/layout.stylex';
+import { products as r } from '../styles/products.stylex';
 import Home from './Home.astro';
 import Articles from './Articles.astro';
 import ProductDirectory from './ProductDirectory.astro';
@@ -57,7 +60,7 @@ const body =
 >
   {
     page === 'home' ? (
-      <Home locale={locale} />
+      <Home locale={locale} publication={publication} />
     ) : page === 'articles' ? (
       <Articles publication={publication} locale={locale} />
     ) : page === 'topics' || page === 'notes' ? (
@@ -66,16 +69,23 @@ const body =
       <Search locale={locale} />
     ) : page === 'authors' || page === 'tags' ? (
       <section>
-        <header class="collection-heading">
-          <h1>{page === 'authors' ? t.authorsTitle : t.tagsTitle}</h1>
+        <header {...stylex.attrs(s.pageHeading)}>
+          <h1 {...stylex.attrs(s.title)}>
+            {page === 'authors' ? t.authorsTitle : t.tagsTitle}
+          </h1>
           <p class="lede">
             {page === 'authors' ? t.authorsIntro : t.tagsIntro}
           </p>
         </header>
-        <ul class="directory-list">
+        <ul
+          class:list={[
+            'directory-list',
+            stylex.attrs(r.directory, page === 'tags' && r.tags).class,
+          ]}
+        >
           {page === 'authors'
             ? publication.authors.map((author) => (
-                <li>
+                <li {...stylex.attrs(r.directoryItem, r.author)}>
                   <>
                     {author.avatarUrl && (
                       <img
@@ -88,22 +98,24 @@ const body =
                         referrerpolicy="no-referrer"
                       />
                     )}
-                    <h2>
-                      <a href={localized(`/authors/${author.slug}/`, locale)}>
-                        {author.displayName}
-                      </a>
-                    </h2>
-                    <p>
-                      {publication.contentByAuthor.get(author.id)!.length}{' '}
-                      {t.contentCount}
-                    </p>
+                    <div {...stylex.attrs(r.groupHeader)}>
+                      <h2 {...stylex.attrs(r.directoryTitle)}>
+                        <a href={localized(`/authors/${author.slug}/`, locale)}>
+                          {author.displayName}
+                        </a>
+                      </h2>
+                      <p>
+                        {publication.contentByAuthor.get(author.id)!.length}{' '}
+                        {t.contentCount}
+                      </p>
+                    </div>
                   </>
                 </li>
               ))
             : publication.tags.map((tag) => (
-                <li>
+                <li {...stylex.attrs(r.directoryItem)}>
                   <>
-                    <h2>
+                    <h2 {...stylex.attrs(r.directoryTitle)}>
                       <a href={localized(`/tags/${tag.slug}/`, locale)}>
                         {tag.name}
                       </a>
@@ -127,9 +139,9 @@ const body =
         )}
       </section>
     ) : (
-      <article class="prose">
+      <article class:list={['prose', stylex.attrs(s.prose).class]}>
         <>
-          <span class="eyebrow">{page}</span>
+          <span {...stylex.attrs(s.eyebrow)}>{page}</span>
           <h1>{t[page]}</h1>
           <MarkdownBody source={body} />
         </>

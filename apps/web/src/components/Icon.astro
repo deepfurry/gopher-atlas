@@ -1,0 +1,31 @@
+---
+import arrowUpRight from '@phosphor-icons/core/assets/regular/arrow-up-right.svg?raw';
+import arrowRight from '@phosphor-icons/core/assets/regular/arrow-right.svg?raw';
+import arrowDown from '@phosphor-icons/core/assets/regular/arrow-down.svg?raw';
+import arrowUp from '@phosphor-icons/core/assets/regular/arrow-up.svg?raw';
+import search from '@phosphor-icons/core/assets/regular/magnifying-glass.svg?raw';
+import menu from '@phosphor-icons/core/assets/regular/list.svg?raw';
+import sun from '@phosphor-icons/core/assets/regular/sun.svg?raw';
+import moon from '@phosphor-icons/core/assets/regular/moon.svg?raw';
+import caretDown from '@phosphor-icons/core/assets/regular/caret-down.svg?raw';
+import check from '@phosphor-icons/core/assets/regular/check.svg?raw';
+const icons = {
+  arrowUpRight,
+  arrowRight,
+  arrowDown,
+  arrowUp,
+  search,
+  menu,
+  sun,
+  moon,
+  caretDown,
+  check,
+};
+interface Props {
+  name: keyof typeof icons;
+}
+const { name } = Astro.props;
+---
+
+<!-- Trusted, bundled Phosphor Regular SVG only; never accepts content markup. -->
+<span class="icon" aria-hidden="true" set:html={icons[name]} />

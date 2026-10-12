@@ -5,51 +5,53 @@ The P0-5.5 product rebuild preserves the current Admin Shell.
 
 ## Public implementation
 
-ADR 0012 and the original GopherAtlas define the product baseline. Public CSS is
-split into tokens, chrome, legacy hero, products, reading and motion; global.css contains
-base rules in a lower CSS layer so component/keyboard/mobile rules win correctly.
+ADR 0016 defines Modern Geek Editorial, replacing legacy visual fidelity while
+retaining ADR 0012's three product lines. Astro 7 renders static pages from the
+existing snapshot. The explicit unified Markdown processor and HTML whitespace
+compression preserve the established safety pipeline and inline spacing.
 
-| Token      | Light   | Dark    |
+StyleX's official Vite plugin compiles layout/home/products TS style modules into
+static CSS. Do not put stylex.create in Astro frontmatter. Use border longhands;
+border shorthand is not emitted by this compiler. Explicit CSS layer order keeps
+development's virtual stylesheet and built CSS consistent. Theme colors remain
+semantic custom properties selected by data-theme before paint. The dev-only
+virtual stylesheet/HMR import is stripped from static builds.
+
+| Token      | Dark    | Light   |
 | ---------- | ------- | ------- |
-| Background | #e4dbcf | #11161a |
-| Text       | #1f2526 | #ece8e1 |
-| Secondary  | #5f6668 | #bbb9b3 |
-| Accent     | #6d857f | #a6bbbd |
+| Background | #101215 | #f6f6f3 |
+| Text       | #e8e9e7 | #202326 |
+| Secondary  | #aeb4b9 | #62676b |
+| Accent     | #8495a6 | #657a8c |
+| Separator  | #30353a | #d5d8d8 |
 
-The official compass, Sora wordmark, Plus Jakarta Sans and small GitHub/theme icons
-are self-hosted with attribution/license files. The max 1440 px shell, 72 px header,
-hero proportions, warm light / graphite dark colors and editorial rows follow the
-old implementation. Theme defaults dark and persists explicitly; reduced motion
-stops hero motion. Mobile navigation is expandable, focusable and Escape-dismissed.
+IBM Plex Sans Latin 400/500/600 and Mono Latin 400 are bundled locally as WOFF2
+with swap; Chinese uses system fonts. Icon.astro selects trusted static Phosphor
+Regular SVGs. Neither fonts nor icons need a remote request or hydration.
 
-Public product components are Articles/CuratedCard, ProductDirectory, TopicBody and
-ContentDetail. Curated title/read actions lead externally. Topic recommendations
-occupy the leading recommendedCount entries with two-entry pagination. Notes show
-group metadata and four-entry pagination. Post routes remain compatible but hidden
-from primary UX, RSS and Pagefind.
+The 1200 px shell and 28/72 editorial grid stack below 768 px. The black Hero
+uses the original AVIF without recompression; contain and a mobile image frame
+trim only black margins, retaining the baked-in text. Copy occupies a separate
+lower safe area. Header is 72 px; Footer follows the real content flow.
+Home Notes sort by lastPublishedAt; group order and Topic sequence are unchanged.
 
-Note reading restores the full-width legacy heading and 8 px panel, with a 240 px
-TOC beside the body, 17 px / 1.9 body, restrained H2/H3, Shiki
-light/dark code with language/copy controls, scrollable code/tables, safe images,
-footnotes and same-group previous/next links. Below 1100 px the TOC is inline.
-Curated rationale and Topic guides use the same parser without forced TOCs.
+Curated rows have external source/title and internal editorial links. Search text
+retains published rationale/source authors/tags even though long rationale now
+lives in details. Advanced filter conditions restore on load and popstate, with a
+visible summary when collapsed. Groups retain four-item paging and full-group
+links. Topics render each entry once and mark the recommendedCount prefix.
 
-Seven site-owned /en/ pages translate static guidance. All content and auxiliary
-collection pages also have /en/ chrome aliases, including pagination. The language
-control preserves the current path/query/fragment; canonical detail routes and
-Markdown remain unchanged, aliases stay outside sitemap/Pagefind.
+Note bodies are 740 px with a 210 px sticky TOC at 104 px from the viewport top;
+below 1100 px the TOC becomes collapsible. Anchor offset is 96 px. Header group
+links and end-of-article previous/next/group links replace the floating toolbar.
+Shared safe Markdown/Shiki, copy controls, table overflow, footnotes and lazy
+Giscus remain. The same template serves private/no-store/noindex Draft Preview.
 
-The legacy transition is 500 ms. PublicSelect uses the old SVG chevron, 48 px
-trigger, 288 px scrollable menu and opacity/8 px translate transition. Closed lists
-are inert/aria-hidden immediately while the visual transition completes.
-Header subtitle remains visible at 768 px; Topic grid is 1/2/3 columns at
-1024/1280 px. Article Hero splits at 768 px and filter fields at 1280 px.
-Home hero-rise enters at 80/180/300/380 ms (780 ms duration), the visual at 440 ms.
-Page/card/stats entries use 820 ms; reduced motion disables them. The footer uses
-Copyright 2026[-current year] DeepFurry with contribution/about/search/RSS links.
-Giscus uses public configuration,
-lazy Note-only loading, stable note terms and theme messages; the disabled/error
-states never obstruct reading. It is disabled in transient Draft Preview.
+Search, author/tag directories, collections, About/Contribute and 404 use this
+type/grid system. Locale aliases preserve authored Markdown, canonical routes
+and query/fragment navigation. Post compatibility remains outside normal discovery.
+Motion mini animates only header/copy once, honors reduced motion, and never
+hides content before script load. CSS hover transitions last 180 ms.
 
 ## Admin implementation
 

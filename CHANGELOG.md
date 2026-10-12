@@ -1,5 +1,16 @@
 # Changelog
 
+## Public editorial redesign (2026-10-13)
+
+- Redesign all Public surfaces with IBM Plex, static Phosphor SVGs, a supplied
+  AVIF Hero and original Notes first. Preserve published data, routes and safety.
+- Adopt StyleX external style modules and restrained Motion mini; remove unused
+  Public Tailwind/React integration and legacy compass/font assets.
+- Upgrade Public to Astro 7.3.8 while retaining unified Markdown and static output.
+- Keep full Curated filter/search semantics and editorial links; render Topic
+  reading lists once; move Note group navigation to the heading and reading end.
+- Update Public design contracts and ADR 0016; Admin and CMS are unchanged.
+
 ## Public comments configuration
 
 - Enable Note giscus with the operator-provided public Blog Comments category ID;

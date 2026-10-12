@@ -1,21 +1,24 @@
 ---
-import MarkdownBody from './MarkdownBody.astro';
-import { displayDate, words, localized, type Locale } from '../lib/i18n';
+import * as stylex from '@stylexjs/stylex';
+import { products as s } from '../styles/products.stylex';
+import { words, localized, type Locale } from '../lib/i18n';
 import { type Publication } from '../lib/publication/indexes';
 import type { Content } from '../lib/publication/types';
+import Icon from './Icon.astro';
 interface Props {
   item: Extract<Content, { type: 'curated_article' }>;
   publication: Publication;
   locale?: Locale;
   searchable?: boolean;
   order?: number;
+  heading?: 'h2' | 'h3';
 }
 const {
   item,
   publication: p,
   locale = 'zh',
   searchable = false,
-  order = 0,
+  heading: Heading = 'h2',
 } = Astro.props;
 const t = words[locale],
   source = item.payload;
@@ -23,14 +26,25 @@ const topics = (p.contentByType.get('topic') ?? []).filter((topic) =>
   topic.topicEntries.some((entry) => entry.targetContentId === item.id),
 );
 const tags = item.tagIds.map((id) => p.tagById.get(id)!);
+// Search still includes editorial rationale, source authors, tags and topics even
+// though the compact row now links to the full editorial detail.
+const searchText = [
+  item.title,
+  item.summary,
+  item.bodyMarkdown,
+  source.sourceAuthor,
+  source.sourceName,
+  ...tags.map((tag) => tag.name),
+  ...topics.map((topic) => topic.title),
+].join(' ');
 ---
 
 <article
-  class="article-card"
-  style={`--card-order:${order % 12}`}
+  class:list={['article-card', stylex.attrs(s.row).class]}
   lang={item.language}
   data-article={searchable ? '' : undefined}
   data-id={item.id}
+  data-search-text={searchable ? searchText : undefined}
   data-topics={JSON.stringify(topics.map((topic) => topic.slug))}
   data-tags={JSON.stringify(tags.map((tag) => tag.slug))}
   data-language={source.sourceLanguage}
@@ -42,104 +56,42 @@ const tags = item.tagIds.map((id) => p.tagById.get(id)!);
   data-added={item.firstPublishedAt}
   data-source-date={source.sourcePublishedAt}
 >
-  <div class="article-top">
-    <div class="tag-list">
-      {
-        topics.map((topic) => (
-          <a class="chip" href={localized(topic.canonicalPath, locale)}>
-            {topic.title}
-          </a>
-        ))
-      }{source.mustRead && <span class="chip">{t.mustRead}</span>}
-    </div><span class="rating" data-rating={source.rating}>{source.rating}</span
-    >
-  </div>
-  <div class="article-heading">
-    <h2>
-      <a href={source.sourceUrl} target="_blank" rel="noopener noreferrer"
-        >{item.title}</a
-      >
-    </h2>
-    <p class="summary">{item.summary}</p>
-  </div>
-  <div class="small-meta">
+  <div {...stylex.attrs(s.meta)}>
+    <span>{source.sourceName || source.sourceAuthor}</span>
     <span
-      >{
-        [source.sourceAuthor, source.sourceName].filter(Boolean).join(' · ')
-      }</span
-    >{
-      source.sourcePublishedAt && (
-        <span>
-          {t.sourceDate} {displayDate(source.sourcePublishedAt, locale)}
-        </span>
-      )
-    }<span
       >{
         source.sourceLanguage === 'zh'
           ? '中文'
           : source.sourceLanguage === 'en'
             ? 'English'
             : source.sourceLanguage
-      } · {source.difficulty ? t[source.difficulty] : ''}</span
+      }</span
     >
+    {source.mustRead && <span>{t.mustRead}</span>}
+    {item.featured && <span>{t.featured}</span>}
   </div>
-  <div class="rationale">
-    <strong>{t.rationale}：</strong><MarkdownBody source={item.bodyMarkdown} />
-  </div>
-  <ul class="tag-list">
-    {
-      tags.map((tag) => (
-        <li>
-          <a class="chip" href={localized(`/tags/${tag.slug}/`, locale)}>
-            {tag.name}
-          </a>
-        </li>
-      ))
-    }
-  </ul>
-  <div class="actions">
+  <span
+    class:list={['rating', stylex.attrs(s.rating).class]}
+    aria-label={t.rating + ' ' + source.rating}>{source.rating}</span
+  >
+  <Heading {...stylex.attrs(s.rowTitle)}>
+    <a href={source.sourceUrl} target="_blank" rel="noopener noreferrer"
+      >{item.title}</a
+    >
+  </Heading>
+  {item.summary && <p {...stylex.attrs(s.summary)}>{item.summary}</p>}
+  <div {...stylex.attrs(s.links)}>
     <a
-      class="btn primary"
+      class="inline-link"
       href={source.sourceUrl}
       target="_blank"
-      rel="noopener noreferrer">{t.read}</a
-    >{
-      source.originalUrl && (
-        <a
-          class="btn"
-          href={source.originalUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {t.original}
-        </a>
-      )
-    }<button type="button" data-copy-text={source.sourceUrl}
-      >{t.copySource}</button
+      rel="noopener noreferrer"
+      >{locale === 'zh' ? '阅读原文' : 'Read source'}
+      <Icon name="arrowUpRight" /></a
+    >
+    <a class="inline-link" href={localized(item.canonicalPath, locale)}
+      >{locale === 'zh' ? '查看点评' : 'Editorial notes'}
+      <Icon name="arrowRight" /></a
     >
   </div>
-  {
-    source.relatedLinks.length > 0 && (
-      <div class="related-links">
-        <>
-          <span class="muted">{t.related}</span>
-          <div class="actions">
-            {source.relatedLinks.map((link) => (
-              <a
-                class="chip"
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {link.label}
-              </a>
-            ))}
-          </div>
-        </>
-      </div>
-    )
-  }
-  <time class="sr-only" datetime={new Date(item.firstPublishedAt).toISOString()}
-    >{displayDate(item.firstPublishedAt, locale)}</time
-  >
 </article>

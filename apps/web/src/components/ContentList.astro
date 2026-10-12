@@ -1,5 +1,7 @@
 ---
 import { required, type Publication } from '../lib/publication/indexes';
+import * as stylex from '@stylexjs/stylex';
+import { products as s } from '../styles/products.stylex';
 import type { Content } from '../lib/publication/types';
 import CuratedCard from './CuratedCard.astro';
 import { displayDate, words, localized, type Locale } from '../lib/i18n';
@@ -22,9 +24,10 @@ const t = words[locale];
   items.length ? (
     <ul class="content-list">
       {items.map((item, order) => (
-        <li>
+        <li {...stylex.attrs(item.type !== 'curated_article' && s.listItem)}>
           {item.type === 'curated_article' ? (
             <CuratedCard
+              heading={Heading}
               item={item}
               publication={p}
               locale={locale}
@@ -45,10 +48,12 @@ const t = words[locale];
                   {displayDate(item.lastPublishedAt, locale)}
                 </time>
               </div>
-              <Heading>
+              <Heading {...stylex.attrs(s.rowTitle)}>
                 <a href={localized(item.canonicalPath, locale)}>{item.title}</a>
               </Heading>
-              {item.summary && <p>{item.summary}</p>}
+              {item.summary && (
+                <p {...stylex.attrs(s.summary)}>{item.summary}</p>
+              )}
               <a
                 class="byline"
                 href={localized(

@@ -89,13 +89,13 @@ for (const path of ['/', '/en/']) {
     doc.querySelector('.home-hero h1').textContent.trim(),
     path === '/'
       ? '代码之内，自有旷野。'
-      : 'Document the work. Keep the thinking.',
+      : 'Within the code, the wild remains.',
   );
   assert.equal(
     doc.querySelector('[data-hero-subtitle]').textContent.trim(),
     path === '/'
       ? '我们试着理解世界，也不愿停止想象。'
-      : 'Selected Go writing and engineering practice from our team.',
+      : 'We try to understand the world, yet never stop imagining.',
   );
   assert.equal(doc.querySelectorAll('.corner-link').length, 7);
   assert.equal(

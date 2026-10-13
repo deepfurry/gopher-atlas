@@ -16,6 +16,8 @@ export const home = stylex.create({
     },
   },
   artwork: {
+    userSelect: 'none',
+    pointerEvents: 'none',
     position: 'absolute',
     top: 72,
     left: 0,

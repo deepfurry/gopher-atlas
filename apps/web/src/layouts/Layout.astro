@@ -156,7 +156,7 @@ const year = new Date().getFullYear();
           class:list={['brand', stylex.attrs(s.brand).class]}
           href={localized('/')}>GopherAtlas</a
         >
-        <div {...stylex.attrs(s.mobileControls)}>
+        <div {...stylex.attrs(s.mobileControls)} data-header-mobile>
           <a
             {...stylex.attrs(s.iconButton)}
             href={localized('/search/')}
@@ -178,18 +178,22 @@ const year = new Date().getFullYear();
           {
             links.map(([href, label]) => (
               <a
+                class="corner-link"
                 href={localized(href)}
                 aria-current={base.startsWith(href) ? 'page' : undefined}
               >
                 {label}
+                <span class="corner-brackets" aria-hidden="true" />
               </a>
             ))
           }
           <a
-            class="inline-link"
+            class="inline-link corner-link"
             href={github}
             target="_blank"
-            rel="noopener noreferrer">GitHub <Icon name="arrowUpRight" /></a
+            rel="noopener noreferrer"
+            >GitHub<span class="corner-brackets" aria-hidden="true"></span>
+            <Icon name="arrowUpRight" /></a
           >
           <button
             class:list={['theme-toggle', stylex.attrs(s.iconButton).class]}

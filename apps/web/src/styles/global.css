@@ -150,6 +150,11 @@
     outline: 2px solid var(--ring);
     outline-offset: 4px;
   }
+  /* Skip-link target, not an interactive control: its page-sized outline leaks
+     a bright line at the main/footer boundary when keyboard focus is restored. */
+  main#main[tabindex='-1']:focus {
+    outline: none;
+  }
   [hidden] {
     display: none !important;
   }

@@ -33,6 +33,10 @@ The 1200 px shell and 28/72 editorial grid stack below 768 px. The black Hero
 uses the original AVIF without recompression; contain and a mobile image frame
 trim only black margins, retaining the baked-in text. Copy occupies a separate
 lower safe area. Header is 72 px; Footer follows the real content flow.
+Only artwork disables pointer events/selection; the image also declares
+draggable=false and -webkit-user-drag:none. Keep loading priority, preload and
+original AVIF bytes. Chinese Hero copy is “代码之内，自有旷野。” followed by
+“我们试着理解世界，也不愿停止想象。”; English and CTA wording stay unchanged.
 Home Notes sort by lastPublishedAt; group order and Topic sequence are unchanged.
 
 Curated rows have external source/title and internal editorial links. Search text
@@ -59,6 +63,21 @@ for 180 ms and closes for 160 ms, becoming inert/aria-hidden before visual exit.
 Reduced-motion changes and pagehide settle animations, including pending exits.
 No-JS authored content remains visible; no CSS entrance hides it before script load.
 
+Homepage entrance uses independent sibling groups, inspired by the grouping and
+cubic-bezier(0.4,0,0.2,1) easing of [DeepFurry](https://github.com/deepfurry/website/blob/main/src/styles/global.css):
+brand 0/380 ms, desktop nav or mobile controls 90/380 ms, eyebrow 160/450 ms,
+H1 300/550 ms, subtitle 460/470 ms, CTA group 620/450 ms, scroll hint 780/420 ms
+(start/duration). The maximum displacement is 11 px on H1; other groups use 5–7 px.
+Do not animate header-inner/hero-copy along with their children. Other pages keep
+the existing immediate 320 ms header fade. Focus or pointer interaction finishes
+the Hero entrance immediately. Pagehide/reduced motion restore CSS; bfcache resume
+does not replay it. There are no entrance timers or hidden SSR styles.
+
+Only the scroll hint's Phosphor arrow pulses 0→3→0 px and 0.7→1→0.7 opacity every
+2.6 s after its entrance. IntersectionObserver pauses it outside Hero; pagehide or
+a hidden document pauses it too. Reduced motion disables it. Text/anchor stay still,
+and the existing narrow-screen hiding rule remains.
+
 Native same-origin cross-document navigation opts into a 180 ms root crossfade
 only under prefers-reduced-motion: no-preference. There is no ClientRouter or
 navigation interception. Unsupported browsers navigate normally. This follows
@@ -73,6 +92,21 @@ is reset so browser-native decoration does not add a second edge. Global
 :focus-visible remains for links, buttons and keyboard controls; listbox options
 use an inset outline and surface highlight. Do not add a second focus ring to
 these fields in component CSS. Admin's Base UI system is independent.
+
+The main#main[tabindex=-1] skip target keeps focus behavior but omits its own outline.
+Investigation reproduced a page-wide line at the main/footer boundary after
+keyboard skip-link focus: computed outline was 2 px solid --ring, offset 4 px,
+with no main/Hero border, shadow or active view-transition animation. Removing only
+that outline addresses this observed path; standalone F12/devtools focus transfer
+was not established in the in-app browser. Ordinary controls retain focus styling.
+
+Only the five primary navigation links and two Hero CTAs opt into corner-link.
+Four independent 8 px L corners use 1.6 px strokes, 2.5 px radii and --ring (including
+the fixed-black Hero/header override). They expand 2 px without changing text or
+layout, enter in 180 ms and leave in 140 ms. Keyboard focus uses these corners
+instead of a second outer outline; pointer hover is restricted to fine hover
+devices. Reduced motion has no transition. Preserve aria-current underlining;
+brand, locale, theme, footer, content links and ScrollDock do not opt in.
 
 ScrollDock.astro and scroll-dock.stylex.ts render a 48×48 px button, 10 px corners
 and a static SVG rounded-square track with a 3.5 px progress stroke. Its TS

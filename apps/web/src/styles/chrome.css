@@ -1,4 +1,85 @@
 /* Attribute/state selectors used by the DOM controller. */
+.home-hero img {
+  -webkit-user-drag: none;
+}
+/* Opt-in B brackets: five primary links and the two Hero CTAs only.
+   Absolute decorations preserve text placement, hit targets and nav wrapping. */
+.corner-link {
+  position: relative;
+}
+.corner-brackets {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.corner-link::before,
+.corner-link::after,
+.corner-brackets::before,
+.corner-brackets::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 0 solid var(--ring);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 140ms ease-out,
+    transform 140ms ease-out;
+}
+.corner-link::before {
+  top: -4px;
+  left: -8px;
+  border-top-width: 1.6px;
+  border-left-width: 1.6px;
+  border-top-left-radius: 2.5px;
+  transform: translate(2px, 2px);
+}
+.corner-link::after {
+  top: -4px;
+  right: -8px;
+  border-top-width: 1.6px;
+  border-right-width: 1.6px;
+  border-top-right-radius: 2.5px;
+  transform: translate(-2px, 2px);
+}
+.corner-brackets::before {
+  bottom: -4px;
+  left: -8px;
+  border-bottom-width: 1.6px;
+  border-left-width: 1.6px;
+  border-bottom-left-radius: 2.5px;
+  transform: translate(2px, -2px);
+}
+.corner-brackets::after {
+  bottom: -4px;
+  right: -8px;
+  border-bottom-width: 1.6px;
+  border-right-width: 1.6px;
+  border-bottom-right-radius: 2.5px;
+  transform: translate(-2px, -2px);
+}
+.corner-link:focus-visible {
+  outline: none;
+}
+.corner-link:focus-visible::before,
+.corner-link:focus-visible::after,
+.corner-link:focus-visible > .corner-brackets::before,
+.corner-link:focus-visible > .corner-brackets::after {
+  opacity: 1;
+  transform: translate(0, 0);
+  transition-duration: 180ms;
+}
+@media (hover: hover) and (pointer: fine) {
+  .corner-link:hover::before,
+  .corner-link:hover::after,
+  .corner-link:hover > .corner-brackets::before,
+  .corner-link:hover > .corner-brackets::after {
+    opacity: 1;
+    transform: translate(0, 0);
+    transition-duration: 180ms;
+  }
+}
 .home-hero,
 .home-page
   .site-header:not([data-scrolled='true']):not(:has(#primary-navigation.open)) {

@@ -26,6 +26,8 @@ export function createMotionScope() {
     translate: number[],
     duration: number,
     done?: () => void,
+    delay = 0,
+    ease: 'easeOut' | [number, number, number, number] = 'easeOut',
   ) {
     if (
       !preference ||
@@ -52,7 +54,7 @@ export function createMotionScope() {
           opacity,
           transform: translate.map((y) => `translateY(${y}px)`),
         },
-        { duration, ease: 'easeOut' },
+        { duration, delay, ease },
       );
       void controls.then(() => settle(true));
     } catch {
@@ -62,6 +64,29 @@ export function createMotionScope() {
   }
   return {
     cancel,
+    finish,
+    sequence(
+      steps: {
+        element: HTMLElement;
+        delay: number;
+        duration: number;
+        distance: number;
+        opacity?: number;
+        complete?: () => void;
+      }[],
+    ) {
+      cancel();
+      for (const step of steps)
+        play(
+          step.element,
+          [step.opacity ?? 0, 1],
+          [step.distance, 0],
+          step.duration,
+          step.complete,
+          step.delay,
+          [0.4, 0, 0.2, 1],
+        );
+    },
     enter(
       elements: HTMLElement[],
       options: { duration?: number; distance?: number; opacity?: number } = {},
@@ -88,18 +113,106 @@ export function createMotionScope() {
 }
 
 export function mountMotion() {
+  const motion = createMotionScope();
+  const hero = document.querySelector<HTMLElement>('.home-hero');
   const header = document.querySelector<HTMLElement>('.header-inner');
-  const copy = document.querySelector<HTMLElement>('[data-hero-copy]');
-  if (header)
-    createMotionScope().enter([header], {
-      opacity: 0.8,
-      distance: 0,
-      duration: 0.32,
-    });
-  if (copy)
-    createMotionScope().enter([copy], {
-      opacity: 0.75,
-      distance: 8,
-      duration: 0.55,
-    });
+  if (!hero) {
+    if (header)
+      motion.enter([header], {
+        opacity: 0.8,
+        distance: 0,
+        duration: 0.32,
+      });
+    return () => motion.dispose();
+  }
+
+  const preference =
+    typeof matchMedia === 'function'
+      ? matchMedia('(prefers-reduced-motion: reduce)')
+      : undefined;
+  let entered = false,
+    visible = false,
+    suspended = document.hidden;
+  const update = () => {
+    hero.dataset.scrollActive = String(
+      entered && visible && !suspended && preference?.matches === false,
+    );
+  };
+  const ready = () => {
+    entered = true;
+    hero.dataset.scrollReady = 'true';
+    update();
+  };
+  const observer =
+    typeof IntersectionObserver === 'function'
+      ? new IntersectionObserver(([entry]) => {
+          visible = entry.isIntersecting;
+          update();
+        })
+      : undefined;
+  observer?.observe(hero);
+  const hide = () => {
+    suspended = true;
+    update();
+  };
+  const resume = () => {
+    suspended = document.hidden;
+    update();
+  };
+  preference?.addEventListener('change', update);
+  document.addEventListener('visibilitychange', resume);
+  window.addEventListener('pagehide', hide);
+  window.addEventListener('pageshow', resume);
+  // Keyboard focus and an intentional click/selection take priority over reveal.
+  const interact = (event: Event) => {
+    if (
+      event.target instanceof Node &&
+      (hero.contains(event.target) || header?.contains(event.target))
+    )
+      motion.finish();
+  };
+  document.addEventListener('focusin', interact);
+  document.addEventListener('pointerdown', interact);
+
+  // Siblings only: neither header-inner nor hero-copy also receives an entrance.
+  // Mini's native delay shares cancellation/cleanup with immediate transitions.
+  const stages: [string, number, number, number, number][] = [
+    ['.brand', 0, 0.38, 6, 0.6],
+    ['#primary-navigation', 0.09, 0.38, 6, 0.6],
+    ['[data-header-mobile]', 0.09, 0.38, 6, 0.6],
+    ['[data-hero-eyebrow]', 0.16, 0.45, 6, 0],
+    ['[data-hero-title]', 0.3, 0.55, 11, 0],
+    ['[data-hero-subtitle]', 0.46, 0.47, 7, 0],
+    ['[data-hero-actions]', 0.62, 0.45, 6, 0],
+    ['[data-hero-scroll]', 0.78, 0.42, 5, 0],
+  ];
+  motion.sequence(
+    stages.flatMap(([selector, delay, duration, distance, opacity]) => {
+      const element = document.querySelector<HTMLElement>(selector);
+      return element
+        ? [
+            {
+              element,
+              delay,
+              duration,
+              distance,
+              opacity,
+              complete: selector === '[data-hero-scroll]' ? ready : undefined,
+            },
+          ]
+        : [];
+    }),
+  );
+  return () => {
+    motion.dispose();
+    observer?.disconnect();
+    preference?.removeEventListener('change', update);
+    document.removeEventListener('visibilitychange', resume);
+    window.removeEventListener('pagehide', hide);
+    window.removeEventListener('pageshow', resume);
+    document.removeEventListener('focusin', interact);
+    document.removeEventListener('pointerdown', interact);
+    delete hero.dataset.scrollReady;
+    delete hero.dataset.scrollActive;
+  };
 }

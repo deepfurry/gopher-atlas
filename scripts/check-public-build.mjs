@@ -83,6 +83,35 @@ for (const path of ['/', '/en/']) {
   const doc = pageDocument(path);
   const heroImage = doc.querySelector('.home-hero img');
   assert.equal(heroImage?.getAttribute('src'), '/images/background.avif');
+  assert.equal(heroImage.draggable, false);
+  assert.equal(heroImage.getAttribute('fetchpriority'), 'high');
+  assert.equal(
+    doc.querySelector('.home-hero h1').textContent.trim(),
+    path === '/'
+      ? '代码之内，自有旷野。'
+      : 'Document the work. Keep the thinking.',
+  );
+  assert.equal(
+    doc.querySelector('[data-hero-subtitle]').textContent.trim(),
+    path === '/'
+      ? '我们试着理解世界，也不愿停止想象。'
+      : 'Selected Go writing and engineering practice from our team.',
+  );
+  assert.equal(doc.querySelectorAll('.corner-link').length, 7);
+  assert.equal(
+    doc.querySelectorAll('#primary-navigation .corner-link').length,
+    5,
+  );
+  assert.equal(
+    doc.querySelectorAll('[data-hero-actions] .corner-link').length,
+    2,
+  );
+  assert(
+    !doc.querySelector(
+      '.brand.corner-link, [data-language-link].corner-link, footer .corner-link',
+    ),
+  );
+  assert.equal(doc.querySelector('#main').getAttribute('tabindex'), '-1');
   assert.equal(
     heroImage?.getAttribute('alt'),
     "There's no place like 127.0.0.1",

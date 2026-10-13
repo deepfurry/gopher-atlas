@@ -22,6 +22,9 @@ published data, route, safety and editorial semantics stay unchanged.
   is never duplicated as visible HTML. Use contain; mobile may trim surrounding
   black space but must retain every character. Alt text supplies equivalent
   semantics. Hero stays black in Light theme. No image animation or filters.
+  The artwork is non-draggable and non-selectable; copy/links retain interaction.
+  Chinese Hero copy is “代码之内，自有旷野。” / “我们试着理解世界，也不愿停止想象。”;
+  English, eyebrow and CTA labels retain their existing wording.
 - Below the Hero: Notes, Curated Articles, then Topics. A 1200 px maximum shell
   uses a 28/72 editorial grid, stacking below 768 px. Home Notes use descending
   lastPublishedAt; group pages retain groupOrder/order. Empty Topics are omitted.
@@ -46,6 +49,9 @@ published data, route, safety and editorial semantics stay unchanged.
   one continuous focus edge, without a second outline or external glow. Public
   links/buttons keep visible keyboard focus; never globally disable focus-visible.
   Listbox options retain keyboard highlighting and an inset focus indicator.
+  The noninteractive main#main[tabindex=-1] skip target alone omits its page-sized
+  outline. Five primary nav links and two Hero CTAs use B rounded corner brackets
+  as their sole focus indicator; brand, locale, theme and other links do not.
 - ScrollDock replaces Back to Top: 48 px square, 10 px corners, 3.5 px progress
   stroke, Phosphor arrow and existing theme tokens. Click scrolls up 25% of the
   total scrollable distance. Hide when that distance is <=320 px or scrollY <=72.
@@ -54,7 +60,9 @@ published data, route, safety and editorial semantics stay unchanged.
   Internal listboxes, code, tables and TOCs use thin, visible scrollbars.
 - Motion mini enhances initial header/Hero copy and user-driven list, Select and
   ScrollDock changes. Interaction transitions last 160–200 ms and move 0–4 px;
-  existing Hero entry may use 550 ms / 8 px. Apply new state immediately, cancel
+  homepage sibling groups enter over 1.2 s (up to 550 ms / 11 px per group), with
+  no simultaneous parent entrance. Only the scroll hint arrow pulses 3 px / 2.6 s
+  after entrance, paused outside Hero and disabled for reduced motion. Apply new state immediately, cancel
   obsolete work and restore CSS when animation ends. Closing overlays become
   inert immediately. Content stays readable without JS; reduced motion settles
   active animations and skips new ones. Never add repeated scroll reveals.

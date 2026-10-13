@@ -27,36 +27,43 @@ const { notes, articles, topics } = homeContent(p);
       alt="There's no place like 127.0.0.1"
       fetchpriority="high"
       decoding="async"
+      draggable="false"
     />
   </div>
   <div {...stylex.attrs(s.shell, h.copyRow)}>
     <div {...stylex.attrs(h.copy)} data-hero-copy>
-      <p {...stylex.attrs(h.label)}>DEEPFURRY / GO KNOWLEDGE ATLAS</p>
-      <h1 {...stylex.attrs(h.title)}>
+      <p {...stylex.attrs(h.label)} data-hero-eyebrow>
+        DEEPFURRY / GO KNOWLEDGE ATLAS
+      </p>
+      <h1 {...stylex.attrs(h.title)} data-hero-title>
         {
           locale === 'zh'
-            ? '记录技术，保留思考。'
+            ? '代码之内，自有旷野。'
             : 'Document the work. Keep the thinking.'
         }
       </h1>
-      <p {...stylex.attrs(h.subtitle)}>
+      <p {...stylex.attrs(h.subtitle)} data-hero-subtitle>
         {
           locale === 'zh'
-            ? '精选 Go 技术文章与团队工程实践。'
+            ? '我们试着理解世界，也不愿停止想象。'
             : 'Selected Go writing and engineering practice from our team.'
         }
       </p>
-      <div {...stylex.attrs(h.actions)}>
-        <a class="inline-link" href={localized('/articles/', locale)}
+      <div {...stylex.attrs(h.actions)} data-hero-actions>
+        <a
+          class="inline-link corner-link"
+          href={localized('/articles/', locale)}
           >{locale === 'zh' ? '探索文章' : 'Explore articles'}
+          <span class="corner-brackets" aria-hidden="true"></span>
           <Icon name="arrowUpRight" /></a
         >
-        <a class="inline-link" href={localized('/notes/', locale)}
-          >{t.notes} <Icon name="arrowRight" /></a
+        <a class="inline-link corner-link" href={localized('/notes/', locale)}
+          >{t.notes}<span class="corner-brackets" aria-hidden="true"></span>
+          <Icon name="arrowRight" /></a
         >
       </div>
     </div>
-    <a {...stylex.attrs(h.scroll)} href="#field-notes"
+    <a {...stylex.attrs(h.scroll)} href="#field-notes" data-hero-scroll
       >SCROLL TO EXPLORE <Icon name="arrowDown" /></a
     >
   </div>

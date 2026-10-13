@@ -1,5 +1,12 @@
 # Changelog
 
+## Public Hero polish (2026-10-13)
+
+- Freeze the approved Chinese Hero copy and prevent background-image dragging.
+- Remove only the noninteractive main skip target's page-sized focus outline.
+- Stage homepage sibling entrances over 1.2 seconds, pause the subtle scroll-arrow
+  pulse offscreen, and add rounded corner feedback to primary links and Hero CTAs.
+
 ## Public interaction polish (2026-10-13)
 
 - Replace Back to Top with a square progress ScrollDock and proportional upward

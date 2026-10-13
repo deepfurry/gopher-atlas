@@ -12,6 +12,26 @@
     pointer-events: none;
   }
 }
+/* The scroll label stays still. JS enables this only after its entrance; the
+   paused state retains phase while the Hero is outside the viewport. */
+.home-hero[data-scroll-ready='true'] [data-hero-scroll] > .icon {
+  animation: hero-scroll-hint 2.6s ease-in-out infinite;
+  animation-play-state: paused;
+}
+.home-hero[data-scroll-active='true'] [data-hero-scroll] > .icon {
+  animation-play-state: running;
+}
+@keyframes hero-scroll-hint {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(3px);
+    opacity: 1;
+  }
+}
 /* All content is visible before JS; state transitions never gate DOM updates. */
 @media (prefers-reduced-motion: reduce) {
   *,

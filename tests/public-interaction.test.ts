@@ -54,6 +54,9 @@ it('keeps language navigation on the current filtered route and fragment after h
   history.replaceState({}, '', '/notes/go/a/#example');
   link.click();
   expect(link.getAttribute('href')).toBe('/en/notes/go/a/#example');
+  history.replaceState({}, '', '/legal/?from=footer#privacy');
+  link.click();
+  expect(link.getAttribute('href')).toBe('/en/legal/?from=footer#privacy');
 });
 
 it('select opens accessibly, survives rapid toggles, and closes when focus leaves without changing selection', () => {

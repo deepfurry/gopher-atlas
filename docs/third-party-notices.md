@@ -1,5 +1,31 @@
 # Third-party notices
 
+## Scope and historical permissions
+
+The root [BSD-3-Clause license](../LICENSE) applies to project-owned code, not
+automatically to publication content or third-party assets/code. Keep the notices
+below and all applicable dependency licenses when redistributing their material.
+This migration does not claim ownership of or relicense these third-party parts.
+
+The previous [DeepFurry MIT license](licenses/DeepFurry-MIT.txt) is preserved for
+versions released under it; existing MIT permissions are not withdrawn. The
+history/provenance review and the maintainer-authorized scope are recorded in
+[ADR 0017](decisions/0017-code-license-and-public-legal-notices.md).
+
+Inherited Public work from gofurry/gopher-atlas at
+`e1a623b20389422421a7d808134ee093b28b491d` retains its
+[MIT notice](../apps/web/public/licenses/legacy-MIT.txt) (Copyright (c) 2026 gofurry)
+and [attribution](../apps/web/public/legacy-attribution.txt). The historical
+[Sora](../apps/web/public/licenses/Sora-OFL.txt) and
+[Plus Jakarta Sans](../apps/web/public/licenses/PlusJakartaSans-OFL.txt) OFL notices
+remain intact even though those fonts and the compass artwork are no longer used.
+
+Original writing and editorial commentary remain with their authors/rights holders
+under any explicit content-specific permissions. External curated articles remain
+with their original rights holders; links and excerpts do not grant a new license.
+
+## shadcn/ui
+
 The Admin Button is adapted from shadcn/ui, under the MIT License:
 
 Copyright (c) 2023 shadcn
@@ -22,8 +48,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-Other dependency licenses remain with their packages, including the self-hosted
-Geist and JetBrains Mono font distributions.
+Other dependency licenses remain with their packages, including Admin's self-hosted
+Geist font distribution.
 
 ## Current Public assets
 
@@ -37,9 +63,12 @@ are compiled into HTML; [MIT license](../apps/web/public/licenses/Phosphor-MIT.t
 ships with the site. Motion 14.1.0 and StyleX 0.19.1 retain package MIT notices.
 
 The user supplied background.avif for the homepage: actual AVIF/AV1, 1920×1080,
-60,533 bytes, preserved without recompression. The image's copyright holder and
-license were not supplied and remain unknown. User direction to use the asset is
-not a claim of an open-source license. No alternate encoded fallback is shipped.
+60,533 bytes, preserved without recompression. The supplied listing source is
+[Wallhaven 0jz7gm](https://wallhaven.cc/w/0jz7gm). Wallhaven is the listing source,
+not an identified original creator. The original creator and permission for use
+on a public website remain unverified; no authorization is claimed. This image
+is explicitly outside the BSD-3-Clause license. It is retained unchanged in this
+task, pending the maintainer's rights verification. No alternate fallback is shipped.
 
 The earlier compass/Sora/Plus Jakarta Sans assets are no longer loaded or shipped.
 Historical MIT/OFL notices remain for inherited work; the legacy generator was

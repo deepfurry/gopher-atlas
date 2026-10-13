@@ -102,6 +102,7 @@ export function publicPages(p: Publication): PublicPage[] {
     '/',
     '/about/',
     '/contribute/',
+    '/legal/',
     '/search/',
     '/notes/',
     '/tags/',

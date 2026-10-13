@@ -178,6 +178,16 @@ it('reserves every English chrome route against historical redirects', () => {
     'public_page_conflict',
   );
 });
+it.each(['/legal/', '/en/legal/'])(
+  'reserves the source-owned legal route %s against publication redirects',
+  (path) => {
+    const s = fixture();
+    s.routes.push({ path, kind: 'redirect', contentId: 1 });
+    expect(() => publicPages(createPublication(s))).toThrow(
+      'public_page_conflict',
+    );
+  },
+);
 it('reserves detail and collection locale aliases without changing canonical pages or snapshots', () => {
   const s = fixture(),
     original = JSON.stringify(s);

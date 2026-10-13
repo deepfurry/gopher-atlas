@@ -1,5 +1,15 @@
 # Changelog
 
+## Public legal notices and code license (2026-10-13)
+
+- Add bilingual static Legal pages and one localized Footer link, describing
+  code/content/asset rights and the actual search, preference and comment behavior.
+- Adopt BSD-3-Clause for project-owned code while retaining historical MIT and
+  third-party MIT/OFL notices; record the provenance review and scope in ADR 0017.
+- Identify Wallhaven as the homepage image's listing source only; creator and
+  public-site permission remain unverified and outside the code license.
+- Refresh README's Public design guidance to the current Modern Geek Editorial UI.
+
 ## Public layout and interaction refinement (2026-10-13)
 
 - Tighten advanced filter spacing and align Topic reading headers; give Featured

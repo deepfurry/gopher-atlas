@@ -22,6 +22,7 @@ silently rewriting history. Routine implementation choices do not need an ADR.
 | [0014](0014-production-maintenance-commands.md)         | On-demand Linux Production update and stopped-writer backup                   | Accepted                             |
 | [0015](0015-fresh-start-domain-cutover.md)              | Fresh-start publication, no Production legacy import, domain-only cutover     | Accepted                             |
 | [0016](0016-public-editorial-redesign.md)               | Modern Geek Editorial Public design, StyleX and Astro 7                       | Accepted                             |
+| [0017](0017-code-license-and-public-legal-notices.md)   | Project-owned BSD-3-Clause code and scoped bilingual Public legal notices     | Accepted                             |
 
 New records include date, status, context, decision, alternatives, consequences
 and implementation scope. Earlier ADR phase boundaries describe their original

@@ -14,6 +14,8 @@ import aboutZh from '../content/chrome/about.zh.md?raw';
 import aboutEn from '../content/chrome/about.en.md?raw';
 import contributeZh from '../content/chrome/contribute.zh.md?raw';
 import contributeEn from '../content/chrome/contribute.en.md?raw';
+import legalZh from '../content/chrome/legal.zh.md?raw';
+import legalEn from '../content/chrome/legal.en.md?raw';
 interface Props {
   page:
     | 'home'
@@ -22,6 +24,7 @@ interface Props {
     | 'notes'
     | 'about'
     | 'contribute'
+    | 'legal'
     | 'search'
     | 'authors'
     | 'tags';
@@ -29,18 +32,21 @@ interface Props {
 }
 const { page, locale = 'zh' } = Astro.props,
   t = words[locale];
+const information = {
+  about: { zh: aboutZh, en: aboutEn },
+  contribute: { zh: contributeZh, en: contributeEn },
+  legal: { zh: legalZh, en: legalEn },
+};
 const body =
-  page === 'about'
-    ? locale === 'zh'
-      ? aboutZh
-      : aboutEn
-    : locale === 'zh'
-      ? contributeZh
-      : contributeEn;
+  page === 'about' || page === 'contribute' || page === 'legal'
+    ? information[page][locale]
+    : '';
+const title =
+  page === 'home' ? t.subtitle : page === 'legal' ? t.legalTitle : t[page];
 ---
 
 <Layout
-  title={page === 'home' ? t.subtitle : t[page]}
+  title={title}
   description={page === 'home'
     ? t.hero
     : page === 'authors'
@@ -53,7 +59,7 @@ const body =
             ? t.topicsIntro
             : page === 'notes'
               ? t.notesIntro
-              : t[page]}
+              : title}
   locale={locale}
   home={page === 'home'}
   searchIndex={page === 'about' || page === 'contribute'}
@@ -142,7 +148,7 @@ const body =
       <article class:list={['prose', stylex.attrs(s.prose).class]}>
         <>
           <span {...stylex.attrs(s.eyebrow)}>{page}</span>
-          <h1>{t[page]}</h1>
+          <h1>{title}</h1>
           <MarkdownBody source={body} />
         </>
       </article>

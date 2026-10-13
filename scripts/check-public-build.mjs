@@ -33,6 +33,7 @@ const allPaths = [
   '/',
   '/about/',
   '/contribute/',
+  '/legal/',
   '/search/',
   '/notes/',
   '/tags/',
@@ -75,6 +76,11 @@ for (const path of allPaths) {
       'footer a[href="https://github.com/deepfurry/gopher-atlas"]',
     ),
   );
+  const legalLinks = doc.querySelectorAll(
+    `footer a[href="${localized('/legal/', localeOf(path))}"]`,
+  );
+  assert.equal(legalLinks.length, 1, `One localized Legal entry: ${path}`);
+  assert.equal(legalLinks[0].textContent, words[localeOf(path)].legal);
   for (const link of doc.querySelectorAll('a[href^="/"]')) {
     const target = link.getAttribute('href').split(/[?#]/)[0];
     assert(
@@ -82,6 +88,35 @@ for (const path of allPaths) {
       `Broken generated link in ${path}: ${target}`,
     );
   }
+}
+for (const path of ['/legal/', '/en/legal/']) {
+  const doc = pageDocument(path);
+  assert.equal(
+    doc.querySelector('h1').textContent.trim(),
+    words[localeOf(path)].legalTitle,
+  );
+  assert.equal(doc.querySelectorAll('.markdown h2').length, 4);
+  assert.equal(doc.documentElement.lang, path === '/legal/' ? 'zh-CN' : 'en');
+  assert.equal(
+    doc.querySelector('link[rel=alternate][hreflang="zh-CN"]').href,
+    'https://gopheratlas.com/legal/',
+  );
+  assert.equal(
+    doc.querySelector('link[rel=alternate][hreflang=en]').href,
+    'https://gopheratlas.com/en/legal/',
+  );
+  assert.equal(
+    doc.querySelector('link[rel=alternate][hreflang=x-default]').href,
+    'https://gopheratlas.com/legal/',
+  );
+  assert(
+    doc.querySelector('.markdown a[href="https://wallhaven.cc/w/0jz7gm"]'),
+  );
+  assert(
+    !doc.querySelector(
+      'main[data-pagefind-body], [data-discussion], astro-island',
+    ),
+  );
 }
 for (const path of ['/', '/en/']) {
   const doc = pageDocument(path);

@@ -33,6 +33,6 @@ Curated Articles link to external writing and provide editorial notes. Topics ar
 
 ## Attribution and feedback
 
-GopherAtlas helps you find original sources; it does not replace them. Third-party articles remain the work and property of their original authors and publishers.
+GopherAtlas helps you find original sources; it does not replace them. Third-party articles remain the work and property of their original authors and publishers. See [Copyright, Privacy & Terms](/en/legal/) for the separate scope of code, original writing, and asset permissions.
 
 Recommend an article or report a broken link or inaccurate description through the [GitHub repository](https://github.com/deepfurry/gopher-atlas).

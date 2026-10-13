@@ -35,6 +35,9 @@ trim only black margins, retaining the baked-in text. Copy occupies a separate
 lower safe area. Header is 72 px; Footer follows the real content flow.
 Footer reads © 2026 DeepFurry & LibreCosta; builds after 2026 output the range
 2026–YYYY. `copyrightYears` is evaluated by Layout at build time, never a client timer.
+The same Footer link row includes one localized Legal link. `/legal/` and
+`/en/legal/` use the existing prose/Markdown layout without a separate legal UI;
+code licensing, content rights and asset permissions remain distinct (ADR 0017).
 Only artwork disables pointer events/selection; the image also declares
 draggable=false and -webkit-user-drag:none. Keep loading priority, preload and
 original AVIF bytes. Chinese Hero copy is “代码之内，自有旷野。” followed by

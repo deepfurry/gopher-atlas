@@ -8,6 +8,36 @@ afterEach(() => {
   document.body.replaceChildren();
   delete document.documentElement.dataset.locale;
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+it('marks the current Chinese heading in desktop and mobile reading outlines', () => {
+  let intersect!: IntersectionObserverCallback;
+  vi.stubGlobal(
+    'IntersectionObserver',
+    class {
+      constructor(callback: IntersectionObserverCallback) {
+        intersect = callback;
+      }
+      observe() {}
+    },
+  );
+  document.body.innerHTML =
+    '<nav class="toc"><a href="#开始">开始</a><a href="#next">Next</a></nav><details class="mobile-toc"><a href="#开始">开始</a></details><div class="markdown"><h2 id="开始">开始</h2><h2 id="next">Next</h2></div>';
+  mountChrome();
+  intersect(
+    [
+      {
+        isIntersecting: true,
+        target: document.getElementById('开始')!,
+      } as IntersectionObserverEntry,
+    ],
+    {} as IntersectionObserver,
+  );
+  expect(document.querySelectorAll('a[aria-current="true"]')).toHaveLength(2);
+  expect(
+    document.querySelector('a[href="#next"]')!.getAttribute('aria-current'),
+  ).toBe('false');
 });
 
 it('keeps language navigation on the current filtered route and fragment after history changes', () => {
@@ -24,6 +54,9 @@ it('keeps language navigation on the current filtered route and fragment after h
   history.replaceState({}, '', '/notes/go/a/#example');
   link.click();
   expect(link.getAttribute('href')).toBe('/en/notes/go/a/#example');
+  history.replaceState({}, '', '/legal/?from=footer#privacy');
+  link.click();
+  expect(link.getAttribute('href')).toBe('/en/legal/?from=footer#privacy');
 });
 
 it('select opens accessibly, survives rapid toggles, and closes when focus leaves without changing selection', () => {
@@ -63,6 +96,7 @@ it('mobile navigation closes outside, on Escape and on desktop resize; theme per
   menu.click();
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
   expect(menu.getAttribute('aria-expanded')).toBe('false');
+  expect(document.activeElement).toBe(menu);
   menu.click();
   window.dispatchEvent(new Event('resize'));
   expect(menu.getAttribute('aria-expanded')).toBe('false');

@@ -1,8 +1,11 @@
 ---
+import * as stylex from '@stylexjs/stylex';
+import { products as s } from '../styles/products.stylex';
 import PageHero from './PageHero.astro';
 import { words, localized, type Locale } from '../lib/i18n';
 import type { Publication } from '../lib/publication/indexes';
 import NoteGroupCard from './NoteGroupCard.astro';
+import Icon from './Icon.astro';
 interface Props {
   kind: 'topics' | 'notes';
   publication: Publication;
@@ -14,75 +17,52 @@ const { kind, publication: p, locale = 'zh' } = Astro.props,
 ---
 
 <PageHero
-  label={kind === 'topics' ? 'Topics' : 'Notes'}
+  label={kind === 'topics' ? '03 / TOPICS' : '01 / FIELD NOTES'}
   title={t[kind]}
   description={kind === 'topics' ? t.topicsIntro : t.notesIntro}
-  >{
-    kind === 'topics' && (
-      <>
-        <>
-          <a class="btn primary" href={localized('/articles/', locale)}>
-            {t.filterArticles}
-          </a>
-          <button data-copy-link>{t.copy}</button>
-        </>
-      </>
-    )
-  }</PageHero
->
-<section>
-  <div class="section-intro">
-    <span class="eyebrow">Directory</span><h2>
-      {
-        kind === 'topics'
-          ? `${topics.length} ${t.topicCount} - ${p.contentByType.get('curated_article')!.length} ${t.articleCount}`
-          : `${p.groups.length} ${t.group} - ${p.contentByType.get('note')!.length} ${t.noteCount}`
-      }
-    </h2><p>{kind === 'topics' ? t.topicHint : t.noteHint}</p>
-  </div>
-  <div class={kind === 'topics' ? 'topic-grid' : 'note-grid'}>
-    {
-      kind === 'topics'
-        ? topics.map((topic, index) => (
-            <article
-              class="subtle-panel topic-card"
-              lang={topic.language}
-              style={`--card-order:${index}`}
+/>
+<section aria-label={t[kind]}>
+  {
+    kind === 'topics'
+      ? topics.map((topic, index) => (
+          <article {...stylex.attrs(s.topicRow)} lang={topic.language}>
+            <span {...stylex.attrs(s.number)}>
+              {String(index + 1).padStart(2, '0')}
+            </span>
+            <div>
+              <h2 {...stylex.attrs(s.topicTitle)}>
+                <a href={localized(topic.canonicalPath, locale)}>
+                  {topic.title}
+                </a>
+              </h2>
+              <p {...stylex.attrs(s.summary)}>{topic.summary}</p>
+              <p {...stylex.attrs(s.meta)}>
+                {topic.topicEntries.length} {t.articleCount}
+              </p>
+            </div>
+            <a
+              href={localized(topic.canonicalPath, locale)}
+              aria-label={t.enterTopic + ': ' + topic.title}
             >
-              <>
-                <div class="small-meta">
-                  <>
-                    <span>{t.topic}</span>
-                    <span>
-                      {topic.topicEntries.length}{' '}
-                      {locale === 'zh' ? '篇' : 'articles'}
-                    </span>
-                  </>
-                </div>
-                <div>
-                  <h2>
-                    <a href={localized(topic.canonicalPath, locale)}>
-                      {topic.title}
-                    </a>
-                  </h2>
-                  <p>{topic.summary}</p>
-                </div>
-                <div class="actions">
-                  <a class="btn" href={localized(topic.canonicalPath, locale)}>
-                    {t.enterTopic}
-                  </a>
-                </div>
-              </>
-            </article>
-          ))
-        : p.groups.map((group, index) => (
-            <NoteGroupCard
-              group={group}
-              publication={p}
-              locale={locale}
-              order={index}
-            />
-          ))
-    }
-  </div>
+              <Icon name="arrowUpRight" />
+            </a>
+          </article>
+        ))
+      : p.groups.map((group, index) => (
+          <NoteGroupCard
+            group={group}
+            publication={p}
+            locale={locale}
+            order={index}
+          />
+        ))
+  }
+  {
+    !(kind === 'topics' ? topics.length : p.groups.length) && (
+      <p class="empty">
+        {t.noPublicContent}{' '}
+        <a href={localized('/articles/', locale)}>{t.browse}</a>
+      </p>
+    )
+  }
 </section>

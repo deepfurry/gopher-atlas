@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { JSDOM } from 'jsdom';
+import { copyrightYears } from '../apps/web/src/lib/copyright.ts';
 import { validateSnapshot, sha256 } from './snapshot.mjs';
 import {
   createPublication,
@@ -32,6 +33,7 @@ const allPaths = [
   '/',
   '/about/',
   '/contribute/',
+  '/legal/',
   '/search/',
   '/notes/',
   '/tags/',
@@ -54,14 +56,31 @@ for (const path of allPaths) {
   );
   assert.equal(doc.querySelectorAll('h1').length, 1, `One H1: ${path}`);
   assert(doc.querySelector('a.skip-link[href="#main"]'));
+  const dock = doc.querySelector('[data-scroll-dock]');
+  assert(dock?.hasAttribute('hidden') && dock.hasAttribute('inert'));
+  assert.equal(dock.getAttribute('aria-label'), words[localeOf(path)].scrollUp);
+  assert(dock.querySelector('svg[aria-hidden="true"] [data-scroll-progress]'));
+  assert(!doc.querySelector('[data-back-top]'));
   assert(!doc.querySelector('script[src*="api-client"], iframe, astro-island'));
   assert.equal(
     doc.querySelector('[data-language-link]')?.getAttribute('href'),
     localized(path, localeOf(path) === 'zh' ? 'en' : 'zh'),
   );
   assert(!doc.querySelector('footer').textContent.includes('CC-BY-NC'));
-  assert(doc.querySelector('footer').textContent.includes('DeepFurry'));
-  assert(!doc.querySelector('footer a[href*="github.com"]'));
+  assert.equal(
+    doc.querySelector('footer p').textContent.trim(),
+    `© ${copyrightYears(new Date().getFullYear())} DeepFurry & LibreCosta`,
+  );
+  assert(
+    doc.querySelector(
+      'footer a[href="https://github.com/deepfurry/gopher-atlas"]',
+    ),
+  );
+  const legalLinks = doc.querySelectorAll(
+    `footer a[href="${localized('/legal/', localeOf(path))}"]`,
+  );
+  assert.equal(legalLinks.length, 1, `One localized Legal entry: ${path}`);
+  assert.equal(legalLinks[0].textContent, words[localeOf(path)].legal);
   for (const link of doc.querySelectorAll('a[href^="/"]')) {
     const target = link.getAttribute('href').split(/[?#]/)[0];
     assert(
@@ -70,6 +89,122 @@ for (const path of allPaths) {
     );
   }
 }
+for (const path of ['/legal/', '/en/legal/']) {
+  const doc = pageDocument(path);
+  assert.equal(
+    doc.querySelector('h1').textContent.trim(),
+    words[localeOf(path)].legalTitle,
+  );
+  assert.equal(doc.querySelectorAll('.markdown h2').length, 4);
+  assert.equal(doc.documentElement.lang, path === '/legal/' ? 'zh-CN' : 'en');
+  assert.equal(
+    doc.querySelector('link[rel=alternate][hreflang="zh-CN"]').href,
+    'https://gopheratlas.com/legal/',
+  );
+  assert.equal(
+    doc.querySelector('link[rel=alternate][hreflang=en]').href,
+    'https://gopheratlas.com/en/legal/',
+  );
+  assert.equal(
+    doc.querySelector('link[rel=alternate][hreflang=x-default]').href,
+    'https://gopheratlas.com/legal/',
+  );
+  assert(
+    doc.querySelector('.markdown a[href="https://wallhaven.cc/w/0jz7gm"]'),
+  );
+  assert(
+    !doc.querySelector(
+      'main[data-pagefind-body], [data-discussion], astro-island',
+    ),
+  );
+}
+for (const path of ['/', '/en/']) {
+  const doc = pageDocument(path);
+  const heroImage = doc.querySelector('.home-hero img');
+  assert.equal(heroImage?.getAttribute('src'), '/images/background.avif');
+  assert.equal(heroImage.draggable, false);
+  assert.equal(heroImage.getAttribute('fetchpriority'), 'high');
+  assert.equal(
+    doc.querySelector('.home-hero h1').textContent.trim(),
+    path === '/'
+      ? '代码之内，自有旷野。'
+      : 'Within the code, the wild remains.',
+  );
+  assert.equal(
+    doc.querySelector('[data-hero-subtitle]').textContent.trim(),
+    path === '/'
+      ? '我们试着理解世界，也不愿停止想象。'
+      : 'We try to understand the world, yet never stop imagining.',
+  );
+  assert.equal(doc.querySelectorAll('.corner-link').length, 9);
+  assert.equal(
+    doc.querySelectorAll('#primary-navigation .corner-link').length,
+    7,
+  );
+  assert.equal(
+    doc.querySelectorAll('[data-hero-actions] .corner-link').length,
+    2,
+  );
+  assert(!doc.querySelector('.brand.corner-link, footer .corner-link'));
+  assert(
+    doc.querySelector('[data-language-link] > .corner-link > .corner-brackets'),
+  );
+  assert(
+    doc.querySelector('[data-theme-toggle] > .corner-link > .corner-brackets'),
+  );
+  const github = doc.querySelector('#primary-navigation a[target="_blank"]');
+  assert.equal(
+    github.querySelector('.corner-link').textContent.trim(),
+    'GitHub',
+  );
+  assert(github.querySelector(':scope > .icon'));
+  assert(!github.querySelector('.corner-link .icon'));
+  assert.equal(doc.querySelector('#main').getAttribute('tabindex'), '-1');
+  assert.equal(
+    heroImage?.getAttribute('alt'),
+    "There's no place like 127.0.0.1",
+  );
+  assert(!doc.querySelector('.home-hero').textContent.includes('127.0.0.1'));
+  assert(!doc.querySelector('.brand img'));
+  assert.deepEqual(
+    [...doc.querySelectorAll('[data-home-section]')].map(
+      (n) => n.dataset.homeSection,
+    ),
+    ['notes', 'articles', 'topics'],
+  );
+  const notes = snapshot.content
+    .filter((c) => c.type === 'note')
+    .sort((a, b) => b.lastPublishedAt - a.lastPublishedAt || b.id - a.id)
+    .slice(0, 4);
+  assert.deepEqual(
+    [...doc.querySelectorAll('[data-home-section="notes"] h3 a')].map(
+      (a) => a.textContent,
+    ),
+    notes.map((c) => c.title),
+  );
+}
+assert.equal(
+  sha256(readFileSync(`${out}/images/background.avif`)),
+  sha256(readFileSync('apps/web/public/images/background.avif')),
+);
+const curatedList = pageDocument('/articles/');
+for (const item of snapshot.content.filter(
+  (c) => c.type === 'curated_article',
+)) {
+  const row = curatedList.querySelector(`[data-article][data-id="${item.id}"]`);
+  assert(row.querySelector(`a[href="${item.canonicalPath}"]`));
+  assert(
+    row.querySelector(
+      `a[href="${item.payload.sourceUrl}"][rel="noopener noreferrer"]`,
+    ),
+  );
+  assert(row.dataset.searchText.includes(item.bodyMarkdown));
+  assert(!row.querySelector('.markdown'));
+}
+const notFound = new JSDOM(read('404.html')).window.document;
+assert.equal(notFound.querySelector('h1').textContent.trim(), '404');
+assert(notFound.querySelector('meta[name=robots]').content.includes('noindex'));
+assert(!existsSync(`${out}/__dev/blog-preview`));
 for (const path of ['/notes/', '/en/notes/']) {
   const doc = pageDocument(path);
   for (const group of p.groups) {
@@ -136,15 +271,24 @@ for (const item of snapshot.content) {
     ].filter(Boolean))
       assert(doc.querySelector('.source-meta').textContent.includes(value));
   }
-  if (item.type === 'topic')
+  if (item.type === 'topic') {
+    assert.equal(
+      doc.querySelectorAll('.article-card').length,
+      item.topicEntries.length,
+    );
+    assert.equal(
+      doc.querySelectorAll('[data-recommended="true"]').length,
+      item.payload.recommendedCount,
+    );
     assert.deepEqual(
-      [...doc.querySelectorAll('.topic-entries .article-card h2 a')].map((a) =>
+      [...doc.querySelectorAll('.topic-entries .article-card h3 a')].map((a) =>
         a.getAttribute('href'),
       ),
       p.topicTargets
         .get(item.id)
         .map((entry) => entry.content.payload.sourceUrl),
     );
+  }
 }
 assert.deepEqual(
   [...pageDocument('/notes/go/').querySelectorAll('.content-list h2 a')].map(
@@ -248,6 +392,11 @@ const walk = (dir) =>
 for (const path of walk(out)) {
   assert(!path.split('/').at(-1).startsWith('.env'));
   const bytes = readFileSync(path);
+  if (path.endsWith('.js'))
+    assert(
+      !/stylex\.create|virtual:stylex|react-dom/.test(bytes.toString()),
+      'Unexpected styling/hydration runtime',
+    );
   for (const marker of [
     'PRIVATE_DRAFT_ONLY',
     'PRIVATE_REVIEW_ONLY',

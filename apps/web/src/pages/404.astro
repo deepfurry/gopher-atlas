@@ -1,11 +1,23 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import * as stylex from '@stylexjs/stylex';
+import { layout as s } from '../styles/layout.stylex';
+import { products as p } from '../styles/products.stylex';
 ---
 
-<Layout title="页面未找到" noindex>
-  <article class="prose">
-    <h1>这条路径暂时没有内容。</h1><p>页面可能已撤下，或链接有误。</p><p>
-      <a href="/search/">搜索内容</a>，或<a href="/">回到知识地图</a>继续阅读。
+<Layout title="页面未找到 / Page not found" noindex>
+  <article {...stylex.attrs(s.prose, p.error)}>
+    <h1 {...stylex.attrs(p.errorCode)}>404</h1>
+    <p {...stylex.attrs(s.sectionTitle)}>这条路径暂时没有内容。</p>
+    <p {...stylex.attrs(s.description)}>页面可能已撤下，或链接有误。</p>
+    <p {...stylex.attrs(s.description)} lang="en">
+      Page not found. Try search, or start from home.
     </p>
+    <div {...stylex.attrs(s.actions)}>
+      <a {...stylex.attrs(s.textLink)} href="/">首页 / Home</a><a
+        {...stylex.attrs(s.textLink)}
+        href="/search/">搜索 / Search</a
+      >
+    </div>
   </article>
 </Layout>

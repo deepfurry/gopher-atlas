@@ -1,4 +1,5 @@
 import { words, localized, type Locale } from './i18n';
+import { createMotionScope } from './motion';
 interface SearchData {
   url: string;
   meta: { title?: string };
@@ -58,6 +59,8 @@ export function mountSearch(
   root: HTMLElement,
   load: () => Promise<SearchAPI> = loadPagefind,
 ) {
+  const motion = createMotionScope();
+  const statusMotion = createMotionScope();
   const locale = (document.documentElement.dataset.locale as Locale) || 'zh',
     t = words[locale];
   const form = root.querySelector<HTMLFormElement>('form')!;
@@ -72,12 +75,14 @@ export function mountSearch(
   let api: Promise<SearchAPI> | undefined;
   async function showPage(ticket: number) {
     more.disabled = true;
+    list.setAttribute('aria-busy', 'true');
     try {
       const page = await bounded(
         Promise.all(hits.slice(shown, shown + 10).map((hit) => hit.data())),
       );
       if (ticket !== epoch) return;
       const fragment = document.createDocumentFragment();
+      const added: HTMLElement[] = [];
       for (const data of page) {
         if (!safeResultURL(data.url)) throw new Error('search_result_invalid');
         const li = document.createElement('li'),
@@ -90,8 +95,11 @@ export function mountSearch(
         h2.append(link);
         li.append(h2, excerpt);
         fragment.append(li);
+        added.push(li);
       }
       list.append(fragment);
+      motion.enter(added);
+      statusMotion.cancel();
       shown += page.length;
       status.textContent = hits.length
         ? document.documentElement.dataset.locale === 'en'
@@ -106,22 +114,30 @@ export function mountSearch(
         api = undefined;
       }
     } finally {
-      if (ticket === epoch) more.disabled = false;
+      if (ticket === epoch) {
+        more.disabled = false;
+        list.setAttribute('aria-busy', 'false');
+      }
     }
   }
   async function search() {
     clearTimeout(timer);
     const ticket = ++epoch,
       query = input.value.trim();
+    motion.cancel();
+    statusMotion.cancel();
     list.replaceChildren();
     more.hidden = true;
     shown = 0;
     hits = [];
     if (!query) {
       status.textContent = t.searchHint;
+      list.setAttribute('aria-busy', 'false');
       return;
     }
+    list.setAttribute('aria-busy', 'true');
     status.textContent = t.searching;
+    statusMotion.enter([status], { duration: 0.16, distance: 0 });
     try {
       api ??= load();
       const found = await bounded((await bounded(api)).search(query));
@@ -132,6 +148,8 @@ export function mountSearch(
       if (ticket === epoch) {
         api = undefined;
         status.textContent = t.searchError;
+        statusMotion.cancel();
+        list.setAttribute('aria-busy', 'false');
       }
     }
   }
@@ -141,9 +159,13 @@ export function mountSearch(
   });
   input.addEventListener('input', () => {
     ++epoch;
+    motion.cancel();
+    statusMotion.cancel();
     clearTimeout(timer);
     more.hidden = true;
     timer = setTimeout(() => void search(), 300);
   });
-  more.addEventListener('click', () => void showPage(epoch));
+  more.addEventListener('click', () => {
+    if (!more.disabled) void showPage(epoch);
+  });
 }

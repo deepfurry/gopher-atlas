@@ -1,5 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import * as stylex from '@stylexjs/stylex';
+import { layout as s } from '../styles/layout.stylex';
+import { products as r } from '../styles/products.stylex';
 import Home from './Home.astro';
 import Articles from './Articles.astro';
 import ProductDirectory from './ProductDirectory.astro';
@@ -11,6 +14,8 @@ import aboutZh from '../content/chrome/about.zh.md?raw';
 import aboutEn from '../content/chrome/about.en.md?raw';
 import contributeZh from '../content/chrome/contribute.zh.md?raw';
 import contributeEn from '../content/chrome/contribute.en.md?raw';
+import legalZh from '../content/chrome/legal.zh.md?raw';
+import legalEn from '../content/chrome/legal.en.md?raw';
 interface Props {
   page:
     | 'home'
@@ -19,6 +24,7 @@ interface Props {
     | 'notes'
     | 'about'
     | 'contribute'
+    | 'legal'
     | 'search'
     | 'authors'
     | 'tags';
@@ -26,18 +32,21 @@ interface Props {
 }
 const { page, locale = 'zh' } = Astro.props,
   t = words[locale];
+const information = {
+  about: { zh: aboutZh, en: aboutEn },
+  contribute: { zh: contributeZh, en: contributeEn },
+  legal: { zh: legalZh, en: legalEn },
+};
 const body =
-  page === 'about'
-    ? locale === 'zh'
-      ? aboutZh
-      : aboutEn
-    : locale === 'zh'
-      ? contributeZh
-      : contributeEn;
+  page === 'about' || page === 'contribute' || page === 'legal'
+    ? information[page][locale]
+    : '';
+const title =
+  page === 'home' ? t.subtitle : page === 'legal' ? t.legalTitle : t[page];
 ---
 
 <Layout
-  title={page === 'home' ? t.subtitle : t[page]}
+  title={title}
   description={page === 'home'
     ? t.hero
     : page === 'authors'
@@ -50,14 +59,14 @@ const body =
             ? t.topicsIntro
             : page === 'notes'
               ? t.notesIntro
-              : t[page]}
+              : title}
   locale={locale}
   home={page === 'home'}
   searchIndex={page === 'about' || page === 'contribute'}
 >
   {
     page === 'home' ? (
-      <Home locale={locale} />
+      <Home locale={locale} publication={publication} />
     ) : page === 'articles' ? (
       <Articles publication={publication} locale={locale} />
     ) : page === 'topics' || page === 'notes' ? (
@@ -66,16 +75,23 @@ const body =
       <Search locale={locale} />
     ) : page === 'authors' || page === 'tags' ? (
       <section>
-        <header class="collection-heading">
-          <h1>{page === 'authors' ? t.authorsTitle : t.tagsTitle}</h1>
+        <header {...stylex.attrs(s.pageHeading)}>
+          <h1 {...stylex.attrs(s.title)}>
+            {page === 'authors' ? t.authorsTitle : t.tagsTitle}
+          </h1>
           <p class="lede">
             {page === 'authors' ? t.authorsIntro : t.tagsIntro}
           </p>
         </header>
-        <ul class="directory-list">
+        <ul
+          class:list={[
+            'directory-list',
+            stylex.attrs(r.directory, page === 'tags' && r.tags).class,
+          ]}
+        >
           {page === 'authors'
             ? publication.authors.map((author) => (
-                <li>
+                <li {...stylex.attrs(r.directoryItem, r.author)}>
                   <>
                     {author.avatarUrl && (
                       <img
@@ -88,22 +104,24 @@ const body =
                         referrerpolicy="no-referrer"
                       />
                     )}
-                    <h2>
-                      <a href={localized(`/authors/${author.slug}/`, locale)}>
-                        {author.displayName}
-                      </a>
-                    </h2>
-                    <p>
-                      {publication.contentByAuthor.get(author.id)!.length}{' '}
-                      {t.contentCount}
-                    </p>
+                    <div {...stylex.attrs(r.groupHeader)}>
+                      <h2 {...stylex.attrs(r.directoryTitle)}>
+                        <a href={localized(`/authors/${author.slug}/`, locale)}>
+                          {author.displayName}
+                        </a>
+                      </h2>
+                      <p>
+                        {publication.contentByAuthor.get(author.id)!.length}{' '}
+                        {t.contentCount}
+                      </p>
+                    </div>
                   </>
                 </li>
               ))
             : publication.tags.map((tag) => (
-                <li>
+                <li {...stylex.attrs(r.directoryItem)}>
                   <>
-                    <h2>
+                    <h2 {...stylex.attrs(r.directoryTitle)}>
                       <a href={localized(`/tags/${tag.slug}/`, locale)}>
                         {tag.name}
                       </a>
@@ -127,10 +145,10 @@ const body =
         )}
       </section>
     ) : (
-      <article class="prose">
+      <article class:list={['prose', stylex.attrs(s.prose).class]}>
         <>
-          <span class="eyebrow">{page}</span>
-          <h1>{t[page]}</h1>
+          <span {...stylex.attrs(s.eyebrow)}>{page}</span>
+          <h1>{title}</h1>
           <MarkdownBody source={body} />
         </>
       </article>

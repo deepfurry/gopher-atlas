@@ -169,8 +169,10 @@ Admin 生产构建后的 embed 测试和最终 Go 二进制编译。Linux CI 另
 
 ## 设计与工程上下文
 
-Public 延续旧站 Logo/视觉与暖纸/石墨主题，自托管 Sora/Plus Jakarta Sans，代码使用系统等宽字体，
-不使用 shadcn；Admin 为紧凑的 Base UI 工作台。见 [设计合同](contracts/design.md)、
+Public 采用 Modern Geek Editorial：GopherAtlas 文字字标、自托管 IBM Plex Sans / Mono、
+Phosphor 图标与深浅主题；黑色 AVIF Hero、编辑式内容流、StyleX 静态样式和克制的 Motion Mini
+组成当前视觉基准。Astro 7 保持静态输出，不使用 shadcn；Admin 为紧凑的 Base UI 工作台。
+见 [ADR 0016](docs/decisions/0016-public-editorial-redesign.md)、[设计合同](contracts/design.md)、
 [设计系统](docs/design-system.md)、[AGENTS.md](AGENTS.md)、[架构](.agents/architecture.md)
 及 [ADR](docs/decisions/README.md)。
 
@@ -309,7 +311,7 @@ synthetic secret-output scan。生产不配置 fixture fallback；内容桶始�
 `apps/web/src/lib/publication` 在构建时验证/索引公开实体与引用，模板不读取 Draft 或
 私有 API。详情直接使用 snapshot 的 `canonicalPath`；主流程为精选文章、话题专区、
 学习随笔，Post 只保留兼容。文章筛选每页 12 条，Note 分组卡片每页 4 条，辅助集合
-保持 24 条静态分页。另有 Tag、Author、about/contribute/search 和 404 页面。
+保持 24 条静态分页。另有 Tag、Author、about/contribute/legal/search 和 404 页面。
 Public 不需要运行中的 CMS 或 Node。Curated 展示来源与点评，标题和阅读全文跳转原文。
 
 构建命令一次生成 HTML、`_redirects`、RSS/sitemap/robots、Pagefind 和 build marker。
@@ -350,11 +352,16 @@ Legacy 导入先 plan 再 apply。必须显式指定当前 CMS 的 Admin owner �
 失败恢复与旧路由统计见 [Legacy 导入运维说明](docs/operations/legacy-import.md)。
 自动测试与浏览器演练使用可丢弃数据库；真实 Development apply 的目标与署名需明确。
 
-Public 的 Logo、首页、配色、文章筛选和 Topic/Notes 结构延续旧 GopherAtlas。
+Public 的字标、首页、配色和交互遵循 Modern Geek Editorial（ADR 0016）；
+文章筛选语义、Topic 推荐顺序与 Notes 分组阅读延续既有产品契约。
 `/en/` 覆盖站点自有页面与全部内容、话题、随笔、标签、作者及分页的 chrome 别名。
 语言切换保留当前页面、筛选条件与锚点；内容不自动翻译。详情别名共用原 canonical，
-不重复进入 sitemap/Pagefind，SQLite 中的旧 URL 不变。Public 交互和断点以旧站为准。
+不重复进入 sitemap/Pagefind，SQLite 中的旧 URL 不变。Public 交互和断点以当前设计契约为准。
 Note 阅读提供 TOC、代码复制、脚注、宽表格滚动与组内上下篇。
+
+`/legal/` 与 `/en/legal/` 是源文件维护的双语法律说明，各自使用 canonical，互设 hreflang，
+并进入 sitemap；页脚提供单个「法律与版权 / Legal」入口。页面区分代码、原创内容、精选外链
+及第三方素材，并按实际搜索、主题存储与评论实现说明隐私。Pagefind 的既有索引范围不变。
 
 Note 评论与 Reactions 使用 giscus。维护者已启用 GitHub Discussions，giscus 配置页
 确认仓库满足条件；`apps/web/src/config/discussion.ts` 使用公开的「博客评论」分类 ID。
@@ -367,4 +374,11 @@ Legacy Importer 保留为 Development 工具，不扩展生产入口，也不用
 
 ## License
 
-[MIT](LICENSE)。组件与字体来源见 [Third-party notices](docs/third-party-notices.md)。
+项目自有代码采用 [BSD-3-Clause](LICENSE)，署名为 `Copyright (c) 2026 DeepFurry`。
+第三方及历史继承代码保留原有许可；此前版本的 [DeepFurry MIT 声明](docs/licenses/DeepFurry-MIT.txt)
+亦予保留，不撤回既有 MIT 授权。核查范围与决定见 [ADR 0017](docs/decisions/0017-code-license-and-public-legal-notices.md)。
+
+代码许可证不自动覆盖原创文章、外部精选内容、图片、字体或图标。各自的权利与授权见
+[Third-party Notices](docs/third-party-notices.md)及[法律页源文](apps/web/src/content/chrome/legal.zh.md)。
+首页背景图来自 [Wallhaven 收录页面](https://wallhaven.cc/w/0jz7gm)；原作者及公开网站使用许可
+尚待核实，不属于 BSD-3-Clause 许可范围，本次保留原素材。

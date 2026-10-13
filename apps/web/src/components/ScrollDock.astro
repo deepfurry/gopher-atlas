@@ -1,0 +1,53 @@
+---
+import * as stylex from '@stylexjs/stylex';
+import { dock as s } from '../styles/scroll-dock.stylex';
+import { words, type Locale } from '../lib/i18n';
+import Icon from './Icon.astro';
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+---
+
+<button
+  {...stylex.attrs(s.root)}
+  type="button"
+  data-scroll-dock
+  hidden
+  inert
+  aria-hidden="true"
+  aria-label={words[locale].scrollUp}
+>
+  <svg
+    {...stylex.attrs(s.ring)}
+    viewBox="0 0 48 48"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <rect
+      {...stylex.attrs(s.track)}
+      x="1.75"
+      y="1.75"
+      width="44.5"
+      height="44.5"
+      rx="8.25"></rect>
+    <rect
+      {...stylex.attrs(s.progress)}
+      data-scroll-progress
+      x="1.75"
+      y="1.75"
+      width="44.5"
+      height="44.5"
+      rx="8.25"
+      pathLength="100"
+      stroke-dasharray="100"
+      stroke-dashoffset="100"></rect>
+  </svg>
+  <Icon name="arrowUp" />
+</button>
+<script>
+  import { mountScrollDock } from '../lib/scroll-dock';
+  document
+    .querySelectorAll<HTMLButtonElement>('[data-scroll-dock]')
+    .forEach(mountScrollDock);
+</script>

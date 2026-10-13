@@ -1,5 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import * as stylex from '@stylexjs/stylex';
+import { layout as s } from '../styles/layout.stylex';
 import { words, localized, type Locale } from '../lib/i18n';
 import ContentList from './ContentList.astro';
 import MarkdownBody from './MarkdownBody.astro';
@@ -21,8 +23,8 @@ const { author } = page;
   canonical={page.path}
   locale={locale}
 >
-  <div class="collection-layout">
-    <header class="collection-heading">
+  <div {...stylex.attrs(s.collection)}>
+    <header {...stylex.attrs(s.pageHeading)}>
       {
         author?.avatarUrl && (
           <img
@@ -36,7 +38,9 @@ const { author } = page;
           />
         )
       }
-      <h1>{page.title}</h1><p class="lede">{page.description}</p>
+      <h1 {...stylex.attrs(s.title)}>{page.title}</h1><p class="lede">
+        {page.description}
+      </p>
       {
         author && (
           <>

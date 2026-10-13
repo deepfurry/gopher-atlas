@@ -5,51 +5,155 @@ The P0-5.5 product rebuild preserves the current Admin Shell.
 
 ## Public implementation
 
-ADR 0012 and the original GopherAtlas define the product baseline. Public CSS is
-split into tokens, chrome, legacy hero, products, reading and motion; global.css contains
-base rules in a lower CSS layer so component/keyboard/mobile rules win correctly.
+ADR 0016 defines Modern Geek Editorial, replacing legacy visual fidelity while
+retaining ADR 0012's three product lines. Astro 7 renders static pages from the
+existing snapshot. The explicit unified Markdown processor and HTML whitespace
+compression preserve the established safety pipeline and inline spacing.
 
-| Token      | Light   | Dark    |
+StyleX's official Vite plugin compiles layout/home/products TS style modules into
+static CSS. Do not put stylex.create in Astro frontmatter. Use border longhands;
+border shorthand is not emitted by this compiler. Explicit CSS layer order keeps
+development's virtual stylesheet and built CSS consistent. Theme colors remain
+semantic custom properties selected by data-theme before paint. The dev-only
+virtual stylesheet/HMR import is stripped from static builds.
+
+| Token      | Dark    | Light   |
 | ---------- | ------- | ------- |
-| Background | #e4dbcf | #11161a |
-| Text       | #1f2526 | #ece8e1 |
-| Secondary  | #5f6668 | #bbb9b3 |
-| Accent     | #6d857f | #a6bbbd |
+| Background | #101215 | #f6f6f3 |
+| Text       | #e8e9e7 | #202326 |
+| Secondary  | #aeb4b9 | #62676b |
+| Accent     | #8495a6 | #657a8c |
+| Separator  | #30353a | #d5d8d8 |
 
-The official compass, Sora wordmark, Plus Jakarta Sans and small GitHub/theme icons
-are self-hosted with attribution/license files. The max 1440 px shell, 72 px header,
-hero proportions, warm light / graphite dark colors and editorial rows follow the
-old implementation. Theme defaults dark and persists explicitly; reduced motion
-stops hero motion. Mobile navigation is expandable, focusable and Escape-dismissed.
+IBM Plex Sans Latin 400/500/600 and Mono Latin 400 are bundled locally as WOFF2
+with swap; Chinese uses system fonts. Icon.astro selects trusted static Phosphor
+Regular SVGs. Neither fonts nor icons need a remote request or hydration.
 
-Public product components are Articles/CuratedCard, ProductDirectory, TopicBody and
-ContentDetail. Curated title/read actions lead externally. Topic recommendations
-occupy the leading recommendedCount entries with two-entry pagination. Notes show
-group metadata and four-entry pagination. Post routes remain compatible but hidden
-from primary UX, RSS and Pagefind.
+The 1200 px shell and 28/72 editorial grid stack below 768 px. The black Hero
+uses the original AVIF without recompression; contain and a mobile image frame
+trim only black margins, retaining the baked-in text. Copy occupies a separate
+lower safe area. Header is 72 px; Footer follows the real content flow.
+Footer reads © 2026 DeepFurry & LibreCosta; builds after 2026 output the range
+2026–YYYY. `copyrightYears` is evaluated by Layout at build time, never a client timer.
+The same Footer link row includes one localized Legal link. `/legal/` and
+`/en/legal/` use the existing prose/Markdown layout without a separate legal UI;
+code licensing, content rights and asset permissions remain distinct (ADR 0017).
+Only artwork disables pointer events/selection; the image also declares
+draggable=false and -webkit-user-drag:none. Keep loading priority, preload and
+original AVIF bytes. Chinese Hero copy is “代码之内，自有旷野。” followed by
+“我们试着理解世界，也不愿停止想象。”; English and CTA wording stay unchanged.
+Home Notes sort by lastPublishedAt; group order and Topic sequence are unchanged.
 
-Note reading restores the full-width legacy heading and 8 px panel, with a 240 px
-TOC beside the body, 17 px / 1.9 body, restrained H2/H3, Shiki
-light/dark code with language/copy controls, scrollable code/tables, safe images,
-footnotes and same-group previous/next links. Below 1100 px the TOC is inline.
-Curated rationale and Topic guides use the same parser without forced TOCs.
+Curated rows have external source/title and internal editorial links. Search text
+retains published rationale/source authors/tags even though long rationale now
+lives in details. Advanced filter conditions restore on load and popstate, with a
+visible summary when collapsed. Groups retain four-item paging and full-group
+links. Topics render each entry once and mark the recommendedCount prefix.
+Advanced filters have no decorative bottom border: the final tag group has no
+bottom margin, followed by 14 px padding and a local 12 px action gap. Hidden
+More Tags controls reserve no space; other shared action groups are unchanged.
+Topic reading headings and counts share a wrapping baseline row. The number/
+Featured column is 84 px; below 768 px it becomes a compact row above the article.
 
-Seven site-owned /en/ pages translate static guidance. All content and auxiliary
-collection pages also have /en/ chrome aliases, including pagination. The language
-control preserves the current path/query/fragment; canonical detail routes and
-Markdown remain unchanged, aliases stay outside sitemap/Pagefind.
+Note bodies are 740 px with a 210 px sticky TOC at 104 px from the viewport top;
+below 1100 px the TOC becomes collapsible. Anchor offset is 96 px. Header group
+links and end-of-article previous/next/group links replace the floating toolbar.
+Shared safe Markdown/Shiki, copy controls, table overflow, footnotes and lazy
+Giscus remain. The same template serves private/no-store/noindex Draft Preview.
 
-The legacy transition is 500 ms. PublicSelect uses the old SVG chevron, 48 px
-trigger, 288 px scrollable menu and opacity/8 px translate transition. Closed lists
-are inert/aria-hidden immediately while the visual transition completes.
-Header subtitle remains visible at 768 px; Topic grid is 1/2/3 columns at
-1024/1280 px. Article Hero splits at 768 px and filter fields at 1280 px.
-Home hero-rise enters at 80/180/300/380 ms (780 ms duration), the visual at 440 ms.
-Page/card/stats entries use 820 ms; reduced motion disables them. The footer uses
-Copyright 2026[-current year] DeepFurry with contribution/about/search/RSS links.
-Giscus uses public configuration,
-lazy Note-only loading, stable note terms and theme messages; the disabled/error
-states never obstruct reading. It is disabled in transient Draft Preview.
+Search, author/tag directories, collections, About/Contribute and 404 use this
+type/grid system. Locale aliases preserve authored Markdown, canonical routes
+and query/fragment navigation. Post compatibility remains outside normal discovery.
+Motion mini uses independent scopes for each operated region: Curated results,
+each Note group, Pagefind results/status, each Select and ScrollDock. DOM state
+changes immediately; a new operation cancels old animation work and restores its
+inline opacity/transform. Curated/Search results enter for 200 ms / 4 px; only appended Pagefind
+rows animate on load-more. Unchanged filter results do not reanimate. Select opens
+for 180 ms and closes for 160 ms, becoming inert/aria-hidden before visual exit.
+Reduced-motion changes and pagehide settle animations, including pending exits.
+No-JS authored content remains visible; no CSS entrance hides it before script load.
+Notes use 160 ms opacity only, with no Y displacement. Each multi-page list
+reserves its own largest measured four-item page so the tail page's controls and
+the following group stay still. Measure real rows synchronously without clones,
+restore the current page before paint, and recompute on width/font changes.
+Single-page groups and no-JS lists have no reserved height.
+
+Normal Astro dev does not generate the complete Pagefind index. Validate Search
+with `pnpm --filter @gopheratlas/web preview` after the fixture build in `make check`;
+an unavailable index in dev alone is not a production search failure.
+
+Homepage entrance uses independent sibling groups, inspired by the grouping and
+cubic-bezier(0.4,0,0.2,1) easing of [DeepFurry](https://github.com/deepfurry/website/blob/main/src/styles/global.css):
+brand 0/380 ms, desktop nav or mobile controls 90/380 ms, eyebrow 160/450 ms,
+H1 300/550 ms, subtitle 460/470 ms, CTA group 620/450 ms, scroll hint 780/420 ms
+(start/duration). The maximum displacement is 11 px on H1; other groups use 5–7 px.
+Do not animate header-inner/hero-copy along with their children. Other pages keep
+the existing immediate 320 ms header fade. Focus or pointer interaction finishes
+the Hero entrance immediately. Pagehide/reduced motion restore CSS; bfcache resume
+does not replay it. There are no entrance timers or hidden SSR styles.
+
+Only the scroll hint's Phosphor arrow pulses 0→3→0 px and 0.7→1→0.7 opacity every
+2.6 s after its entrance. IntersectionObserver pauses it outside Hero; pagehide or
+a hidden document pauses it too. Reduced motion disables it. Text/anchor stay still,
+and the existing narrow-screen hiding rule remains.
+
+Native same-origin cross-document navigation opts into a 180 ms root crossfade
+only under prefers-reduced-motion: no-preference. There is no ClientRouter or
+navigation interception. Unsupported browsers navigate normally. This follows
+the [native View Transition contract](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@view-transition).
+Theme changes separately use `document.startViewTransition` and a native 420 ms
+clip-path circle on the new root snapshot (cubic-bezier(0.22,1,0.36,1)), centered
+on the theme button and sized to the farthest viewport corner. Only
+`html[data-theme-transition='reveal']` overrides snapshot stacking/default fades.
+Both directions put the new theme above the old one. Repeat clicks are suppressed
+while active. No API/reduced motion/hidden documents switch immediately; failed
+snapshots/animations, resize, pagehide/pageswap and reduced-motion changes settle
+and remove the marker. Each accepted change updates DOM, optional preference
+storage and the Giscus theme event once, even if a skipped callback runs late.
+
+### Public focus and scroll controls
+
+Single Focus Indicator Contract: controls.css overrides only the search input and
+Select trigger focus. A 1 px border plus contiguous 1 px inset in --ring forms a
+single 2 px edge, with no outer outline/glow or layout shift. Search appearance
+is reset so browser-native decoration does not add a second edge. Global
+:focus-visible remains for links, buttons and keyboard controls; listbox options
+use an inset outline and surface highlight. Do not add a second focus ring to
+these fields in component CSS. Admin's Base UI system is independent.
+
+The main#main[tabindex=-1] skip target keeps focus behavior but omits its own outline.
+Investigation reproduced a page-wide line at the main/footer boundary after
+keyboard skip-link focus: computed outline was 2 px solid --ring, offset 4 px,
+with no main/Hero border, shadow or active view-transition animation. Removing only
+that outline addresses this observed path; standalone F12/devtools focus transfer
+was not established in the in-app browser. Ordinary controls retain focus styling.
+
+The five primary navigation links, theme/locale entrances and two Hero CTAs opt into corner-link.
+Four independent 8 px L corners use 1.6 px strokes, 2.5 px radii and --ring (including
+the fixed-black Hero/header override). They expand 2 px without changing text or
+layout, enter in 180 ms and leave in 140 ms. Keyboard focus uses these corners
+instead of a second outer outline; pointer hover is restricted to fine hover
+devices. Reduced motion has no transition. Preserve aria-current underlining;
+brand, footer, content links and ScrollDock do not opt in. GitHub's single anchor
+wraps text corners and an external arrow: the arrow stays outside the corners.
+Theme/locale use an internal corner span activated by the whole control's hover
+or focus-visible, with no second outline. Theme keeps its 44 px hit target; locale
+adds hit padding offset by margin, preserving navigation spacing.
+
+ScrollDock.astro and scroll-dock.stylex.ts render a 48×48 px button, 10 px corners
+and a static SVG rounded-square track with a 3.5 px progress stroke. Its TS
+controller follows GoFurry Card's ScrollDock distance semantics: progress is
+scrollY / (scrollHeight - innerHeight), clamped to 0–1; click subtracts 25% of that
+total range. A passive scroll listener batches updates with requestAnimationFrame,
+and ResizeObserver handles result changes, images and comments changing page height.
+Short ranges (<=320 px) and the first 72 px hide the dock; hidden controls are inert.
+The translated accessible name includes progress. Motion handles show/hide only;
+scrolling remains browser-native and reduced motion uses instant scrolling.
+
+scrollbars.css hides only the document scrollbar chrome. Internal listbox, code,
+table and TOC scrollports use thin semantic-color thumbs. Dock offsets include
+mobile safe areas; Toast sits above the dock at 84 px plus the bottom safe area.
+Hover remains 180 ms. No body overflow lock, custom wheel handling or scroll library.
 
 ## Admin implementation
 

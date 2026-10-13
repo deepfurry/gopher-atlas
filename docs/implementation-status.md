@@ -1,5 +1,9 @@
 # Implementation scope
 
+Public presentation now follows ADR 0016 (2026-10-13): Modern Geek Editorial,
+Astro 7.3.8, StyleX, IBM Plex and the user-supplied AVIF Hero. Earlier visual
+fidelity evidence below is historical; content/publication phase scope is unchanged.
+
 Current operator decision (2026-09-22): Production generation 1 is synced and the
 Worker homepage is accessible. The blog starts afresh; no Production legacy import
 is planned. P0-6 covers domain cutover and new-site acceptance only (ADR 0015); the operator

@@ -1,6 +1,10 @@
 ---
+import * as stylex from '@stylexjs/stylex';
+import { layout as s } from '../styles/layout.stylex';
+import { products as r } from '../styles/products.stylex';
 import { displayDate, words, localized, type Locale } from '../lib/i18n';
 import { type Publication } from '../lib/publication/indexes';
+import Icon from './Icon.astro';
 interface Props {
   group: Publication['groups'][number];
   publication: Publication;
@@ -12,23 +16,41 @@ const { group, publication: p, locale, order = 0 } = Astro.props,
 ---
 
 <article
-  class="subtle-panel note-group"
+  class:list={['note-group', stylex.attrs(s.editorial, r.group).class]}
   data-paged="4"
-  style={`--card-order:${order}`}
 >
-  <header class="note-group-heading">
-    <h2>
-      <a href={localized(`/notes/${group.slug}/`, locale)}>{group.name}</a>
+  <header {...stylex.attrs(r.groupHeader)}>
+    <p {...stylex.attrs(s.eyebrow)}>
+      {String(order + 1).padStart(2, '0')} / COLLECTION
+    </p>
+    <h2 {...stylex.attrs(s.sectionTitle)}>
+      <a href={localized('/notes/' + group.slug + '/', locale)}>{group.name}</a>
     </h2>
-    <span class="small-meta"
-      >{group.content.length}
+    <p {...stylex.attrs(s.description)}>{group.description}</p>
+    <p {...stylex.attrs(r.meta)}>{group.content.length} {t.noteCount}</p>
+  </header>
+  <div>
+    <div data-page-list={group.content.length > 4 ? '' : undefined}>
       {
-        locale === 'zh' ? '篇' : group.content.length === 1 ? 'note' : 'notes'
-      }</span
-    >
+        group.content.map((note) => (
+          <a
+            {...stylex.attrs(r.readingLink)}
+            href={localized(note.canonicalPath, locale)}
+            data-page-item
+            lang={note.language}
+          >
+            <strong {...stylex.attrs(r.readingTitle)}>{note.title}</strong>
+            <span {...stylex.attrs(r.meta)}>
+              {displayDate(note.firstPublishedAt, locale)} /{' '}
+              {p.authorById.get(note.authorId)!.displayName}
+            </span>
+          </a>
+        ))
+      }
+    </div>
     {
       group.content.length > 4 && (
-        <div class="paged-controls">
+        <div {...stylex.attrs(r.controls)}>
           <>
             <button data-prev>{t.previous}</button>
             <span data-page-label />
@@ -37,24 +59,11 @@ const { group, publication: p, locale, order = 0 } = Astro.props,
         </div>
       )
     }
-  </header>
-  <p class="description">{group.description}</p>
-  <div class="reading-links">
-    {
-      group.content.map((note) => (
-        <a
-          class="reading-link"
-          href={localized(note.canonicalPath, locale)}
-          data-page-item
-          lang={note.language}
-        >
-          <strong>{note.title}</strong>
-          <small>
-            {displayDate(note.firstPublishedAt, locale)} ·{' '}
-            {p.authorById.get(note.authorId)!.displayName}
-          </small>
-        </a>
-      ))
-    }
+    <a
+      {...stylex.attrs(s.textLink)}
+      href={localized('/notes/' + group.slug + '/', locale)}
+      >{locale === 'zh' ? '全部组内文章' : 'All notes in this collection'}
+      <Icon name="arrowRight" /></a
+    >
   </div>
 </article>

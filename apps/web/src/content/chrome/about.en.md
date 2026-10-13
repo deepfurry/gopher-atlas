@@ -1,6 +1,6 @@
 ## Positioning
 
-GopherAtlas is a curated atlas of quality writing for Go developers, focused on ideas with lasting value.
+GopherAtlas is a technical publication for Go developers. Original learning notes from our team come first, alongside carefully selected external writing and ordered topic reading paths. We document engineering practice and keep the thinking behind it.
 
 We prioritize careful selection, useful organization, and clear reading paths over the number of links collected. Curated articles lead to the original source; our text explains why a piece deserves your attention. Learning Notes are original writing, organized into groups for continuous reading.
 
@@ -33,6 +33,6 @@ Curated Articles link to external writing and provide editorial notes. Topics ar
 
 ## Attribution and feedback
 
-GopherAtlas helps you find original sources; it does not replace them. Third-party articles remain the work and property of their original authors and publishers.
+GopherAtlas helps you find original sources; it does not replace them. Third-party articles remain the work and property of their original authors and publishers. See [Copyright, Privacy & Terms](/en/legal/) for the separate scope of code, original writing, and asset permissions.
 
 Recommend an article or report a broken link or inaccurate description through the [GitHub repository](https://github.com/deepfurry/gopher-atlas).

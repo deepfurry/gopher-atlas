@@ -1,5 +1,51 @@
 # Changelog
 
+## Public legal notices and code license (2026-10-13)
+
+- Add bilingual static Legal pages and one localized Footer link, describing
+  code/content/asset rights and the actual search, preference and comment behavior.
+- Adopt BSD-3-Clause for project-owned code while retaining historical MIT and
+  third-party MIT/OFL notices; record the provenance review and scope in ADR 0017.
+- Identify Wallhaven as the homepage image's listing source only; creator and
+  public-site permission remain unverified and outside the code license.
+- Refresh README's Public design guidance to the current Modern Geek Editorial UI.
+
+## Public layout and interaction refinement (2026-10-13)
+
+- Tighten advanced filter spacing and align Topic reading headers; give Featured
+  a full-width number column and stack it on mobile.
+- Stabilize Note group paging with measured per-group height and opacity-only motion.
+- Scope GitHub corners to text and add matching theme/locale focus feedback.
+- Reveal theme changes with an optional native circle, preserving navigation fades,
+  reduced motion, interruption recovery and preference/Giscus synchronization.
+- Credit DeepFurry & LibreCosta with build-time copyright year ranges.
+
+## Public Hero polish (2026-10-13)
+
+- Freeze the approved Chinese Hero copy and prevent background-image dragging.
+- Remove only the noninteractive main skip target's page-sized focus outline.
+- Stage homepage sibling entrances over 1.2 seconds, pause the subtle scroll-arrow
+  pulse offscreen, and add rounded corner feedback to primary links and Hero CTAs.
+
+## Public interaction polish (2026-10-13)
+
+- Replace Back to Top with a square progress ScrollDock and proportional upward
+  scrolling; hide document scrollbar chrome and refine internal scrollbars.
+- Standardize single-edge input/Select focus without removing keyboard indicators.
+- Add cancellable Motion mini feedback for filtering, paging, search, Select and
+  ScrollDock; use optional native document crossfades with reduced-motion support.
+
+## Public editorial redesign (2026-10-13)
+
+- Redesign all Public surfaces with IBM Plex, static Phosphor SVGs, a supplied
+  AVIF Hero and original Notes first. Preserve published data, routes and safety.
+- Adopt StyleX external style modules and restrained Motion mini; remove unused
+  Public Tailwind/React integration and legacy compass/font assets.
+- Upgrade Public to Astro 7.3.8 while retaining unified Markdown and static output.
+- Keep full Curated filter/search semantics and editorial links; render Topic
+  reading lists once; move Note group navigation to the heading and reading end.
+- Update Public design contracts and ADR 0016; Admin and CMS are unchanged.
+
 ## Public comments configuration
 
 - Enable Note giscus with the operator-provided public Blog Comments category ID;

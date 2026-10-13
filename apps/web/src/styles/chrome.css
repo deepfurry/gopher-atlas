@@ -2,10 +2,22 @@
 .home-hero img {
   -webkit-user-drag: none;
 }
-/* Opt-in B brackets: five primary links and the two Hero CTAs only.
+/* Opt-in B brackets: primary links, theme/locale controls and two Hero CTAs.
    Absolute decorations preserve text placement, hit targets and nav wrapping. */
 .corner-link {
   position: relative;
+}
+.corner-trigger > .corner-link {
+  display: inline-flex;
+  align-items: center;
+}
+.language-toggle {
+  padding: 10px;
+  margin: -10px;
+}
+/* The GitHub arrow stays outside the text's corners, inside the same link. */
+.inline-link.corner-trigger {
+  --corner-offset: -5px;
 }
 .corner-brackets {
   position: absolute;
@@ -29,7 +41,7 @@
 }
 .corner-link::before {
   top: -4px;
-  left: -8px;
+  left: var(--corner-offset, -8px);
   border-top-width: 1.6px;
   border-left-width: 1.6px;
   border-top-left-radius: 2.5px;
@@ -37,7 +49,7 @@
 }
 .corner-link::after {
   top: -4px;
-  right: -8px;
+  right: var(--corner-offset, -8px);
   border-top-width: 1.6px;
   border-right-width: 1.6px;
   border-top-right-radius: 2.5px;
@@ -45,7 +57,7 @@
 }
 .corner-brackets::before {
   bottom: -4px;
-  left: -8px;
+  left: var(--corner-offset, -8px);
   border-bottom-width: 1.6px;
   border-left-width: 1.6px;
   border-bottom-left-radius: 2.5px;
@@ -53,19 +65,24 @@
 }
 .corner-brackets::after {
   bottom: -4px;
-  right: -8px;
+  right: var(--corner-offset, -8px);
   border-bottom-width: 1.6px;
   border-right-width: 1.6px;
   border-bottom-right-radius: 2.5px;
   transform: translate(-2px, -2px);
 }
-.corner-link:focus-visible {
+.corner-link:focus-visible,
+.corner-trigger:focus-visible {
   outline: none;
 }
 .corner-link:focus-visible::before,
 .corner-link:focus-visible::after,
 .corner-link:focus-visible > .corner-brackets::before,
-.corner-link:focus-visible > .corner-brackets::after {
+.corner-link:focus-visible > .corner-brackets::after,
+.corner-trigger:focus-visible > .corner-link::before,
+.corner-trigger:focus-visible > .corner-link::after,
+.corner-trigger:focus-visible > .corner-link > .corner-brackets::before,
+.corner-trigger:focus-visible > .corner-link > .corner-brackets::after {
   opacity: 1;
   transform: translate(0, 0);
   transition-duration: 180ms;
@@ -74,7 +91,11 @@
   .corner-link:hover::before,
   .corner-link:hover::after,
   .corner-link:hover > .corner-brackets::before,
-  .corner-link:hover > .corner-brackets::after {
+  .corner-link:hover > .corner-brackets::after,
+  .corner-trigger:hover > .corner-link::before,
+  .corner-trigger:hover > .corner-link::after,
+  .corner-trigger:hover > .corner-link > .corner-brackets::before,
+  .corner-trigger:hover > .corner-link > .corner-brackets::after {
     opacity: 1;
     transform: translate(0, 0);
     transition-duration: 180ms;

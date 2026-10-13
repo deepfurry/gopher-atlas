@@ -1,5 +1,6 @@
 import { words, alternateChrome, type Locale } from './i18n';
-import { createMotionScope } from './motion';
+import { mountNotePagination } from './note-pagination';
+import { mountTheme } from './theme';
 export function mountChrome() {
   const root = document.documentElement,
     t = words[(root.dataset.locale as Locale) || 'zh'];
@@ -58,20 +59,10 @@ export function mountChrome() {
       if (heading) observer.observe(heading);
     });
   }
-  document
-    .querySelector('[data-theme-toggle]')
-    ?.addEventListener('click', () => {
-      const theme = root.dataset.theme === 'light' ? 'dark' : 'light';
-      root.dataset.theme = theme;
-      try {
-        localStorage.setItem('gopheratlas-theme', theme);
-      } catch {
-        /* Optional preference storage. */
-      }
-      window.dispatchEvent(
-        new CustomEvent('gopheratlas-theme', { detail: theme }),
-      );
-    });
+  const themeButton = document.querySelector<HTMLButtonElement>(
+    '[data-theme-toggle]',
+  );
+  if (themeButton) mountTheme(themeButton);
   const toggle =
       document.querySelector<HTMLButtonElement>('[data-menu-toggle]'),
     nav = document.querySelector<HTMLElement>('#primary-navigation');
@@ -146,33 +137,7 @@ export function mountChrome() {
   window.addEventListener('scroll', updateScroll, { passive: true });
   window.addEventListener('resize', updateScroll);
   updateScroll();
-  document.querySelectorAll<HTMLElement>('[data-paged]').forEach((section) => {
-    const motion = createMotionScope();
-    const items = [
-        ...section.querySelectorAll<HTMLElement>('[data-page-item]'),
-      ],
-      size = Number(section.dataset.paged) || 4;
-    const prev = section.querySelector<HTMLButtonElement>('[data-prev]'),
-      next = section.querySelector<HTMLButtonElement>('[data-next]'),
-      label = section.querySelector('[data-page-label]');
-    let page = 0;
-    const render = (animate = true) => {
-      motion.cancel();
-      items.forEach((item, i) => (item.hidden = Math.floor(i / size) !== page));
-      if (prev) prev.disabled = page === 0;
-      if (next) next.disabled = (page + 1) * size >= items.length;
-      if (label)
-        label.textContent = `${page + 1} / ${Math.max(1, Math.ceil(items.length / size))}`;
-      if (animate) motion.enter(items.filter((item) => !item.hidden));
-    };
-    prev?.addEventListener('click', () => {
-      page = Math.max(0, page - 1);
-      render();
-    });
-    next?.addEventListener('click', () => {
-      page = Math.min(Math.ceil(items.length / size) - 1, page + 1);
-      render();
-    });
-    render(false);
-  });
+  document
+    .querySelectorAll<HTMLElement>('[data-paged]')
+    .forEach(mountNotePagination);
 }

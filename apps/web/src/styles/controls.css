@@ -61,6 +61,15 @@ input[type='search']:focus,
 .load-tags {
   margin-top: 12px;
 }
+.load-tags:has(> button[hidden]) {
+  display: none;
+}
+.filters [data-advanced-filters] .filter-set:last-child {
+  margin-bottom: 0;
+}
+.filters .actions {
+  gap: 12px;
+}
 .public-select {
   position: relative;
 }

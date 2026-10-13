@@ -126,10 +126,8 @@ export const products = stylex.create({
   },
   advanced: { marginTop: 20 },
   advancedBody: {
-    paddingBlock: 24,
-    borderBottomWidth: 1,
-    borderBottomStyle: 'solid',
-    borderBottomColor: 'var(--line)',
+    paddingTop: 24,
+    paddingBottom: 14,
   },
   resultsHeading: {
     color: 'var(--text-muted)',
@@ -198,19 +196,37 @@ export const products = stylex.create({
     '@media (max-width: 479px)': { gridTemplateColumns: 'minmax(0, 1fr)' },
   },
   topicGuide: { maxWidth: 740, marginBottom: 56 },
+  readingHeading: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+    gap: '8px 24px',
+    marginBottom: 20,
+  },
+  readingHeadingTitle: { marginTop: 0 },
   readingEntry: {
     display: 'grid',
-    gridTemplateColumns: '36px minmax(0, 1fr)',
+    gridTemplateColumns: '84px minmax(0, 1fr)',
     gap: 20,
     borderTopWidth: 1,
     borderTopStyle: 'solid',
     borderTopColor: 'var(--line)',
+    '@media (max-width: 767px)': {
+      gridTemplateColumns: 'minmax(0, 1fr)',
+      gap: 0,
+    },
   },
   entryNumber: {
     paddingTop: 32,
     fontSize: 12,
     fontFamily: 'var(--font-mono)',
     color: 'var(--text-muted)',
+    '@media (max-width: 767px)': {
+      display: 'flex',
+      gap: 12,
+      paddingTop: 20,
+    },
   },
   error: { paddingBlock: 'clamp(48px, 10vw, 140px)' },
   errorCode: {

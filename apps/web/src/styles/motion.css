@@ -12,6 +12,19 @@
     pointer-events: none;
   }
 }
+/* Same-document theme reveal only; navigation keeps the 180 ms root fade. */
+html[data-theme-transition='reveal']::view-transition-group(root),
+html[data-theme-transition='reveal']::view-transition-old(root),
+html[data-theme-transition='reveal']::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+html[data-theme-transition='reveal']::view-transition-old(root) {
+  z-index: 1;
+}
+html[data-theme-transition='reveal']::view-transition-new(root) {
+  z-index: 2;
+}
 /* The scroll label stays still. JS enables this only after its entrance; the
    paused state retains phase while the Hero is outside the viewport. */
 .home-hero[data-scroll-ready='true'] [data-hero-scroll] > .icon {

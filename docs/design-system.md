@@ -33,6 +33,8 @@ The 1200 px shell and 28/72 editorial grid stack below 768 px. The black Hero
 uses the original AVIF without recompression; contain and a mobile image frame
 trim only black margins, retaining the baked-in text. Copy occupies a separate
 lower safe area. Header is 72 px; Footer follows the real content flow.
+Footer reads © 2026 DeepFurry & LibreCosta; builds after 2026 output the range
+2026–YYYY. `copyrightYears` is evaluated by Layout at build time, never a client timer.
 Only artwork disables pointer events/selection; the image also declares
 draggable=false and -webkit-user-drag:none. Keep loading priority, preload and
 original AVIF bytes. Chinese Hero copy is “代码之内，自有旷野。” followed by
@@ -44,6 +46,11 @@ retains published rationale/source authors/tags even though long rationale now
 lives in details. Advanced filter conditions restore on load and popstate, with a
 visible summary when collapsed. Groups retain four-item paging and full-group
 links. Topics render each entry once and mark the recommendedCount prefix.
+Advanced filters have no decorative bottom border: the final tag group has no
+bottom margin, followed by 14 px padding and a local 12 px action gap. Hidden
+More Tags controls reserve no space; other shared action groups are unchanged.
+Topic reading headings and counts share a wrapping baseline row. The number/
+Featured column is 84 px; below 768 px it becomes a compact row above the article.
 
 Note bodies are 740 px with a 210 px sticky TOC at 104 px from the viewport top;
 below 1100 px the TOC becomes collapsible. Anchor offset is 96 px. Header group
@@ -57,11 +64,20 @@ and query/fragment navigation. Post compatibility remains outside normal discove
 Motion mini uses independent scopes for each operated region: Curated results,
 each Note group, Pagefind results/status, each Select and ScrollDock. DOM state
 changes immediately; a new operation cancels old animation work and restores its
-inline opacity/transform. Results enter for 200 ms / 4 px; only appended Pagefind
+inline opacity/transform. Curated/Search results enter for 200 ms / 4 px; only appended Pagefind
 rows animate on load-more. Unchanged filter results do not reanimate. Select opens
 for 180 ms and closes for 160 ms, becoming inert/aria-hidden before visual exit.
 Reduced-motion changes and pagehide settle animations, including pending exits.
 No-JS authored content remains visible; no CSS entrance hides it before script load.
+Notes use 160 ms opacity only, with no Y displacement. Each multi-page list
+reserves its own largest measured four-item page so the tail page's controls and
+the following group stay still. Measure real rows synchronously without clones,
+restore the current page before paint, and recompute on width/font changes.
+Single-page groups and no-JS lists have no reserved height.
+
+Normal Astro dev does not generate the complete Pagefind index. Validate Search
+with `pnpm --filter @gopheratlas/web preview` after the fixture build in `make check`;
+an unavailable index in dev alone is not a production search failure.
 
 Homepage entrance uses independent sibling groups, inspired by the grouping and
 cubic-bezier(0.4,0,0.2,1) easing of [DeepFurry](https://github.com/deepfurry/website/blob/main/src/styles/global.css):
@@ -82,6 +98,15 @@ Native same-origin cross-document navigation opts into a 180 ms root crossfade
 only under prefers-reduced-motion: no-preference. There is no ClientRouter or
 navigation interception. Unsupported browsers navigate normally. This follows
 the [native View Transition contract](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@view-transition).
+Theme changes separately use `document.startViewTransition` and a native 420 ms
+clip-path circle on the new root snapshot (cubic-bezier(0.22,1,0.36,1)), centered
+on the theme button and sized to the farthest viewport corner. Only
+`html[data-theme-transition='reveal']` overrides snapshot stacking/default fades.
+Both directions put the new theme above the old one. Repeat clicks are suppressed
+while active. No API/reduced motion/hidden documents switch immediately; failed
+snapshots/animations, resize, pagehide/pageswap and reduced-motion changes settle
+and remove the marker. Each accepted change updates DOM, optional preference
+storage and the Giscus theme event once, even if a skipped callback runs late.
 
 ### Public focus and scroll controls
 
@@ -100,13 +125,17 @@ with no main/Hero border, shadow or active view-transition animation. Removing o
 that outline addresses this observed path; standalone F12/devtools focus transfer
 was not established in the in-app browser. Ordinary controls retain focus styling.
 
-Only the five primary navigation links and two Hero CTAs opt into corner-link.
+The five primary navigation links, theme/locale entrances and two Hero CTAs opt into corner-link.
 Four independent 8 px L corners use 1.6 px strokes, 2.5 px radii and --ring (including
 the fixed-black Hero/header override). They expand 2 px without changing text or
 layout, enter in 180 ms and leave in 140 ms. Keyboard focus uses these corners
 instead of a second outer outline; pointer hover is restricted to fine hover
 devices. Reduced motion has no transition. Preserve aria-current underlining;
-brand, locale, theme, footer, content links and ScrollDock do not opt in.
+brand, footer, content links and ScrollDock do not opt in. GitHub's single anchor
+wraps text corners and an external arrow: the arrow stays outside the corners.
+Theme/locale use an internal corner span activated by the whole control's hover
+or focus-visible, with no second outline. Theme keeps its 44 px hit target; locale
+adds hit padding offset by margin, preserving navigation spacing.
 
 ScrollDock.astro and scroll-dock.stylex.ts render a 48×48 px button, 10 px corners
 and a static SVG rounded-square track with a 3.5 px progress stroke. Its TS

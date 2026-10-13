@@ -30,22 +30,24 @@ const { group, publication: p, locale, order = 0 } = Astro.props,
     <p {...stylex.attrs(r.meta)}>{group.content.length} {t.noteCount}</p>
   </header>
   <div>
-    {
-      group.content.map((note) => (
-        <a
-          {...stylex.attrs(r.readingLink)}
-          href={localized(note.canonicalPath, locale)}
-          data-page-item
-          lang={note.language}
-        >
-          <strong {...stylex.attrs(r.readingTitle)}>{note.title}</strong>
-          <span {...stylex.attrs(r.meta)}>
-            {displayDate(note.firstPublishedAt, locale)} /{' '}
-            {p.authorById.get(note.authorId)!.displayName}
-          </span>
-        </a>
-      ))
-    }
+    <div data-page-list={group.content.length > 4 ? '' : undefined}>
+      {
+        group.content.map((note) => (
+          <a
+            {...stylex.attrs(r.readingLink)}
+            href={localized(note.canonicalPath, locale)}
+            data-page-item
+            lang={note.language}
+          >
+            <strong {...stylex.attrs(r.readingTitle)}>{note.title}</strong>
+            <span {...stylex.attrs(r.meta)}>
+              {displayDate(note.firstPublishedAt, locale)} /{' '}
+              {p.authorById.get(note.authorId)!.displayName}
+            </span>
+          </a>
+        ))
+      }
+    </div>
     {
       group.content.length > 4 && (
         <div {...stylex.attrs(r.controls)}>

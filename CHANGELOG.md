@@ -1,5 +1,15 @@
 # Changelog
 
+## Public layout and interaction refinement (2026-10-13)
+
+- Tighten advanced filter spacing and align Topic reading headers; give Featured
+  a full-width number column and stack it on mobile.
+- Stabilize Note group paging with measured per-group height and opacity-only motion.
+- Scope GitHub corners to text and add matching theme/locale focus feedback.
+- Reveal theme changes with an optional native circle, preserving navigation fades,
+  reduced motion, interruption recovery and preference/Giscus synchronization.
+- Credit DeepFurry & LibreCosta with build-time copyright year ranges.
+
 ## Public Hero polish (2026-10-13)
 
 - Freeze the approved Chinese Hero copy and prevent background-image dragging.

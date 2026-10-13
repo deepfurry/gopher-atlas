@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { JSDOM } from 'jsdom';
+import { copyrightYears } from '../apps/web/src/lib/copyright.ts';
 import { validateSnapshot, sha256 } from './snapshot.mjs';
 import {
   createPublication,
@@ -65,7 +66,10 @@ for (const path of allPaths) {
     localized(path, localeOf(path) === 'zh' ? 'en' : 'zh'),
   );
   assert(!doc.querySelector('footer').textContent.includes('CC-BY-NC'));
-  assert(doc.querySelector('footer').textContent.includes('DeepFurry'));
+  assert.equal(
+    doc.querySelector('footer p').textContent.trim(),
+    `© ${copyrightYears(new Date().getFullYear())} DeepFurry & LibreCosta`,
+  );
   assert(
     doc.querySelector(
       'footer a[href="https://github.com/deepfurry/gopher-atlas"]',
@@ -97,20 +101,29 @@ for (const path of ['/', '/en/']) {
       ? '我们试着理解世界，也不愿停止想象。'
       : 'We try to understand the world, yet never stop imagining.',
   );
-  assert.equal(doc.querySelectorAll('.corner-link').length, 7);
+  assert.equal(doc.querySelectorAll('.corner-link').length, 9);
   assert.equal(
     doc.querySelectorAll('#primary-navigation .corner-link').length,
-    5,
+    7,
   );
   assert.equal(
     doc.querySelectorAll('[data-hero-actions] .corner-link').length,
     2,
   );
+  assert(!doc.querySelector('.brand.corner-link, footer .corner-link'));
   assert(
-    !doc.querySelector(
-      '.brand.corner-link, [data-language-link].corner-link, footer .corner-link',
-    ),
+    doc.querySelector('[data-language-link] > .corner-link > .corner-brackets'),
   );
+  assert(
+    doc.querySelector('[data-theme-toggle] > .corner-link > .corner-brackets'),
+  );
+  const github = doc.querySelector('#primary-navigation a[target="_blank"]');
+  assert.equal(
+    github.querySelector('.corner-link').textContent.trim(),
+    'GitHub',
+  );
+  assert(github.querySelector(':scope > .icon'));
+  assert(!github.querySelector('.corner-link .icon'));
   assert.equal(doc.querySelector('#main').getAttribute('tabindex'), '-1');
   assert.equal(
     heroImage?.getAttribute('alt'),

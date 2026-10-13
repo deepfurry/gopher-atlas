@@ -43,8 +43,12 @@ const entries = previewEntries ?? p.topicTargets.get(item.id) ?? [];
   <MarkdownBody source={item.bodyMarkdown} />
 </article>
 <section class="topic-entries">
-  <h2 {...stylex.attrs(l.sectionTitle)}>{t.readingOrder}</h2>
-  <p {...stylex.attrs(s.meta)}>{entries.length} {t.articleCount}</p>
+  <header {...stylex.attrs(s.readingHeading)}>
+    <h2 {...stylex.attrs(l.sectionTitle, s.readingHeadingTitle)}>
+      {t.readingOrder}
+    </h2>
+    <p {...stylex.attrs(s.meta)}>{entries.length} {t.articleCount}</p>
+  </header>
   <ol {...stylex.attrs(s.list)}>
     {
       entries.map((entry, order) => (

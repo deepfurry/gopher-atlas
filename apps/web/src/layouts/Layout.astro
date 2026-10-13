@@ -4,6 +4,7 @@ import * as stylex from '@stylexjs/stylex';
 import { layout as s } from '../styles/layout.stylex';
 import Icon from '../components/Icon.astro';
 import ScrollDock from '../components/ScrollDock.astro';
+import { copyrightYears } from '../lib/copyright';
 import {
   words,
   localeOf,
@@ -188,26 +189,36 @@ const year = new Date().getFullYear();
             ))
           }
           <a
-            class="inline-link corner-link"
+            class="inline-link corner-trigger"
             href={github}
             target="_blank"
             rel="noopener noreferrer"
-            >GitHub<span class="corner-brackets" aria-hidden="true"></span>
+            ><span class="corner-link"
+              >GitHub<span class="corner-brackets" aria-hidden="true"
+              ></span></span
+            >
             <Icon name="arrowUpRight" /></a
           >
           <button
-            class:list={['theme-toggle', stylex.attrs(s.iconButton).class]}
+            class:list={[
+              'theme-toggle',
+              'corner-trigger',
+              stylex.attrs(s.iconButton).class,
+            ]}
             data-theme-toggle
             aria-label={t.theme}
             title={t.theme}
           >
-            <span class="dark-icon"><Icon name="sun" /></span><span
-              class="light-icon"><Icon name="moon" /></span
+            <span class="corner-link"
+              ><span class="dark-icon"><Icon name="sun" /></span><span
+                class="light-icon"><Icon name="moon" /></span
+              ><span class="corner-brackets" aria-hidden="true"></span></span
             >
           </button>
           {
             !noindex && (
               <a
+                class="corner-trigger language-toggle"
                 data-language-link
                 href={alternateChrome(
                   Astro.url.pathname,
@@ -215,7 +226,10 @@ const year = new Date().getFullYear();
                 )}
                 lang={locale === 'zh' ? 'en' : 'zh-CN'}
               >
-                {locale === 'zh' ? 'EN' : '中'}
+                <span class="corner-link">
+                  {locale === 'zh' ? 'EN' : '中'}
+                  <span class="corner-brackets" aria-hidden="true" />
+                </span>
               </a>
             )
           }
@@ -236,7 +250,9 @@ const year = new Date().getFullYear();
     </main>
     <footer class:list={['site-footer', stylex.attrs(s.footer).class]}>
       <div {...stylex.attrs(s.shell, s.footerInner)}>
-        <p {...stylex.attrs(s.mono)}>© {year} DeepFurry</p>
+        <p {...stylex.attrs(s.mono)}>
+          © {copyrightYears(year)} DeepFurry &amp; LibreCosta
+        </p>
         <nav
           {...stylex.attrs(s.footerLinks)}
           aria-label={locale === 'zh' ? '页脚导航' : 'Footer'}

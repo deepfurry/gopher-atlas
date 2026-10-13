@@ -18,6 +18,8 @@ published data, route, safety and editorial semantics stay unchanged.
   opaque reading surface after it. Brand links home; short Articles/Topics/Notes,
   Search, GitHub, theme and locale controls remain. Mobile menu closes on Escape
   and restores focus. Footer follows the whole content flow, without a border.
+  Its build-time copyright is © 2026 DeepFurry & LibreCosta, using 2026–YYYY
+  after 2026. No runtime date script or additional organization links.
 - Hero uses the supplied 1920×1080 AVIF, unchanged. Its baked-in localhost text
   is never duplicated as visible HTML. Use contain; mobile may trim surrounding
   black space but must retain every character. Alt text supplies equivalent
@@ -50,8 +52,9 @@ published data, route, safety and editorial semantics stay unchanged.
   links/buttons keep visible keyboard focus; never globally disable focus-visible.
   Listbox options retain keyboard highlighting and an inset focus indicator.
   The noninteractive main#main[tabindex=-1] skip target alone omits its page-sized
-  outline. Five primary nav links and two Hero CTAs use B rounded corner brackets
-  as their sole focus indicator; brand, locale, theme and other links do not.
+  outline. Five primary nav links, theme/locale entrances and two Hero CTAs use B
+  rounded corner brackets as their sole focus indicator. GitHub frames its text
+  inside one link, leaving the arrow outside; brand and other links do not opt in.
 - ScrollDock replaces Back to Top: 48 px square, 10 px corners, 3.5 px progress
   stroke, Phosphor arrow and existing theme tokens. Click scrolls up 25% of the
   total scrollable distance. Hide when that distance is <=320 px or scrollY <=72.
@@ -69,6 +72,14 @@ published data, route, safety and editorial semantics stay unchanged.
 - Native same-origin cross-document View Transitions may crossfade for 180 ms
   when motion is allowed; unsupported browsers keep ordinary navigation. No
   ClientRouter, client route interception or replacement of history/scroll semantics.
+- Same-document theme changes may reveal the new theme from the button center
+  for 420 ms. Scope snapshot animation/stacking overrides to the temporary theme
+  transition marker; preserve cross-document fades. Unsupported APIs, reduced
+  motion and interrupted transitions settle instantly with one preference/event
+  update per accepted click. The black Hero remains unchanged.
+- Notes paging uses a 160 ms opacity change without vertical movement. Reserve
+  each multi-page group's largest measured page height, remeasure at new widths
+  and after fonts load, and leave single-page/SSR lists unreserved.
 
 ## Admin: dense, calm editorial workspace
 

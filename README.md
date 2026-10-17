@@ -12,7 +12,9 @@ Public 兼容读取 snapshot v1/v2，通过统一模型构建阅读页面、静�
 2026-10-17，真实生产备份的 B3 离线迁移演练通过；用户确认 main/CMS 已升级至
 `ad73db37c70946c8f8b5087103b462f53822a6c3`，SQLite Schema 4、`taxonomy_state.ready=1`、
 CMS generation 15，生产数据本地 v2 导出及服务健康检查通过。更新后备份为 `20261017T145739Z.nizHXb`。
-公开站 generation 15 的 Marker 验收仍待确认；B3 离线演练不等于完成生产灾难恢复演练。
+用户另行确认公开站 Marker 为 Snapshot v2、generation 15、commit `ad73db3`，
+完整字段及快照哈希见[公开 Marker 验收补记](docs/operations/production-runbook.md#公开-marker-验收补记)。
+B3 离线演练及公开同步验收均不等于完成生产灾难恢复演练。
 实操命令及验收边界见 [生产操作手册](docs/operations/production-runbook.md)。
 首次 generation → snapshot → Hook → marker 已跑通；正式域名已接入新 Worker。
 详见 [阶段范围](docs/implementation-status.md)。

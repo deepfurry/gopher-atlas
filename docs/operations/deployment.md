@@ -27,7 +27,7 @@ resolved GitHub egress through Mihomo, and verified generation 1 synced plus the
 Worker homepage. See the [Production runbook](production-runbook.md) for repeatable
 commands and the distinction between confirmed and outstanding acceptance.
 
-Current operator-confirmed state (2026-10-17): main and CMS are
+Operator-confirmed B2 upgrade (2026-10-17): main and CMS were
 `ad73db37c70946c8f8b5087103b462f53822a6c3`; SQLite was upgraded from schema 3 to 4,
 `taxonomy_state.ready=1`, and publication generation advanced from 14 to 15.
 Counts are 13 content items, 15 Revisions, 14 tags, 4 Note groups and 11 historical
@@ -35,8 +35,12 @@ routes. Integrity is `ok`, foreign-key errors are zero, and local production-dat
 Snapshot v2 export validation passed. `make prod-update` succeeded, systemd is
 active and healthz/readyz are healthy. The post-update backup is
 `20261017T145739Z.nizHXb`. The real-backup B3 offline migration rehearsal passed;
-Production disaster recovery has not been demonstrated. Public generation 15
-Marker acceptance remains **unconfirmed**; CMS health does not establish it.
+Production disaster recovery has not been demonstrated. The operator separately
+confirmed the Public Marker with schemaVersion 2, generation 15 and commit
+`ad73db37c70946c8f8b5087103b462f53822a6c3`; the exact snapshot hash and all four
+fields are recorded in the [Marker acceptance supplement](production-runbook.md#公开-marker-验收补记).
+This confirms that public build, not disaster recovery; CMS health alone does not
+establish public synchronization.
 
 ## Binary and unit
 

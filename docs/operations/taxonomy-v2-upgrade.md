@@ -14,7 +14,9 @@ publication generation 14→15；内容 13、Revision 15、标签 14、分组 4�
 `make prod-update` 成功，systemd active，healthz/readyz 正常。
 更新后备份为 `20261017T145739Z.nizHXb`。
 
-**公开站 generation 15 Marker 验收仍待确认，生产灾难恢复演练也未完成。**
+**用户已另行确认公开站 Snapshot v2 / generation 15 Marker，commit 为 `ad73db3`；
+生产灾难恢复演练仍未完成。** 四个完整字段及快照哈希见
+[公开 Marker 验收补记](production-runbook.md#公开-marker-验收补记)。
 离线迁移演练、CMS 部署、本地导出、公开同步与灾难恢复必须分别记录，不能互相代替。
 完整时间线见[生产操作手册](production-runbook.md)。以下保留可审查的操作流程，
 不是要求对已完成初始化的生产库重新执行 apply；后续生产操作仍须单独授权。

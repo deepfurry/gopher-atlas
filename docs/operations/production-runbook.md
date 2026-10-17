@@ -53,12 +53,28 @@ taxonomy 数据操作改用正确服务账户及受控权限，工具须可执�
 把 DB 改属 `ops` 或公开备份目录绕过权限。具体边界见
 [分类升级权限说明](taxonomy-v2-upgrade.md#linux-服务账户与迁移文件权限)。
 
-**公开站 generation 15 同步仍待确认。** 在 CMS 迁移前，B2 main 的 Cloudflare
+### 公开 Marker 验收补记
+
+在 CMS 迁移前，B2 main 的 Cloudflare
 构建已成功，公开 Marker 为 commit `ad73db3`、Snapshot v1、generation 14，快照哈希
-与前次一致；这是旧输入兼容证据。随后 CMS 升级成功和本地 v2 导出均不能证明线上
-已切到 v2。须另行取得 `/.well-known/gopheratlas-build.json`，核对 schemaVersion、
-generation 与对应发布任务的 snapshotSha256；若期间有新发布，按最新 generation 验收。
-生产灾难恢复、从更新后备份恢复服务与外部发布状态的验收也仍待完成。
+与前次一致；这是旧输入兼容证据。
+
+用户随后实际核验公开站 `/.well-known/gopheratlas-build.json`，确认以下字段：
+
+```json
+{
+  "schemaVersion": 2,
+  "generation": 15,
+  "snapshotSha256": "145539eddc064169a33c250b50ca1d42e3dcab2b7347a9015062375d0b8de4ce",
+  "commitSha": "ad73db37c70946c8f8b5087103b462f53822a6c3"
+}
+```
+
+**公开站 Snapshot v2 / generation 15 Marker 验收已确认。** 此处依据用户提供的
+实际核验结果补记，文档更新未重新连接生产环境；CMS 健康检查和本地导出仍不能
+单独替代公开 Marker 验收。后续发布应按对应 generation、快照哈希和 commit 重新核验。
+生产灾难恢复、从更新后备份恢复服务及恢复后的外部发布状态验收仍待完成，
+不能由 B3 离线迁移演练或本次公开同步确认推定通过。
 
 ## 日常更新
 

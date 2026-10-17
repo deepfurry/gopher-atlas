@@ -61,8 +61,11 @@ validation passed, and prod-update/systemd/health/readiness checks succeeded.
 The reported post-update backup is
 `/srv/gopheratlas/backups/20261017T145739Z.nizHXb/`.
 Its successful creation is recorded separately from restoration: no Production
-restore from that backup has been demonstrated. Public generation 15 Marker
-acceptance also remains unconfirmed.
+restore from that backup has been demonstrated. The operator separately confirmed
+the Public Marker for Snapshot v2 / generation 15 / commit `ad73db3`; see the
+[exact Marker evidence](production-runbook.md#公开-marker-验收补记).
+Public synchronization does not demonstrate restoration of this backup, service
+recovery, or recovery of external publication state after a disaster.
 
 Keep root-only backup protection. For an authorized rehearsal, prepare a separate
 controlled copy accessible to the selected service account; do not loosen the

@@ -197,10 +197,25 @@ TanStack Query owns caches and cursor pagination; table data references are stab
 during lazy navigation. No page-index reset competes with the server cursor.
 Search, dashboard counts and local filters explicitly describe their loaded scope.
 
-The editor prioritizes title and Markdown. Its 320 px inspector groups 基础 / 类型 /
-搜索展示; below 1100 px it stacks and at 360 px uses one column. 历史与路径 has a
-separate view. The sticky header exposes save/workflow actions; the more menu
+The editor prioritizes title and Markdown. A2 replaces the original 320 px
+inspector with vertical title/summary/Markdown then grouped properties for Note,
+Curated, Topic and compatibility Post, including ultrawide desktops. The writing
+area uses the full workspace width; properties have no outer viewport height cap
+or independent scroll. Existing internal choice-list scrolling remains. 历史与路径 has a
+separate, unchanged Revision layout. The sticky header exposes save/workflow actions; the more menu
 contains direct publish/unpublish/archive with explicit confirmations.
+
+The Markdown toolbar's 进入专注模式 / 退出专注模式 button fixes the same editor
+container to the viewport (100dvh, z-index 50, below dialog backdrop 60/popup 61).
+UIW's 100% height follows the pane: normally 560–800 px on desktop, then the
+remaining viewport height in focus mode. Wide split uses equal columns; below
+768 px it stacks. The shell/background is inert and scroll-locked temporarily;
+Base UI asset dialogs keep their own focus and Escape behavior. Escape from the
+editor exits and returns focus to the toggle. Body/mode/session/permission changes
+still invalidate insertion captures, while focus toggles preserve the instance,
+selection, native undo and capture. The compact live status reads the sole queue:
+已保存 / 等待保存 / 正在保存 / 保存失败 / 版本冲突, with an exit-to-recover hint on
+failure/conflict. No focus preference is persisted and no alternate save is added.
 
 The unchanged autosave queue serializes full snapshots and versions. Ctrl/Cmd+S,
 submit and direct publish flush that queue. Conflict stops retries, preserves
@@ -267,7 +282,7 @@ entry/recommendation/order columns for Topic, and group/order columns for Notes.
 Filters/sorts state when they cover loaded rows only.
 
 Curated emphasizes title/summary/rationale and an original-source/curation inspector.
-Topic emphasizes guide plus a wider ordered-list inspector; recommendation and
+Topic emphasizes guide followed by its ordered-list properties; recommendation and
 ordinary entries form one list with a boundary. Dragging and keyboard move controls
 serialize into the same full Draft snapshot. Notes preserve the large Markdown
 workspace and infer shared groups. All existing save/conflict/workflow controls,

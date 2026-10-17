@@ -1,4 +1,10 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import MDEditor, {
   commands,
   type RefMDEditor,
@@ -19,11 +25,22 @@ import {
   CodeSimple,
   Eye,
   Columns,
+  ArrowsOut,
+  ArrowsIn,
 } from '@phosphor-icons/react';
 import { MarkdownFeedback, MarkdownPreview } from '@/shared/markdown';
 import { useDebounced } from '@/hooks/use-debounced';
 import { useTheme } from '@/app/theme';
 import { Tabs, TabPanel } from '@/components/ui/tabs';
+import { IconButton } from '@/components/ui/button';
+import type { SaveStatus } from './autosave';
+const saveLabels: Record<SaveStatus, string> = {
+  saved: '已保存',
+  pending: '等待保存',
+  saving: '正在保存',
+  error: '保存失败',
+  conflict: '版本冲突',
+};
 const toolbar = [
   [commands.heading2, '二级标题', TextHTwo],
   [commands.heading3, '三级标题', TextHThree],
@@ -56,15 +73,22 @@ export function MarkdownEditor({
   onChange,
   readOnly = false,
   tools,
+  saveStatus,
 }: {
   value: string;
   onChange: (value: string) => void;
   readOnly?: boolean;
   tools?: (capture: () => MarkdownInsertion) => ReactNode;
+  saveStatus?: SaveStatus;
 }) {
   const [mode, setMode] = useState('source'),
+    [focusMode, setFocusMode] = useState(false),
     stable = useDebounced(value),
     { resolved } = useTheme();
+  const focused = focusMode && !readOnly;
+  const root = useRef<HTMLElement>(null);
+  const focusButton = useRef<HTMLButtonElement>(null);
+  const wasFocused = useRef(false);
   const editor = useRef<RefMDEditor>(null);
   const visited = useRef<HTMLTextAreaElement | null>(null);
   const revision = useRef(0);
@@ -74,6 +98,63 @@ export function MarkdownEditor({
       revision.current++;
     };
   }, [value, mode, readOnly]);
+  useLayoutEffect(() => {
+    if (!focused || !root.current) return;
+    const element = root.current;
+    // Inert siblings along the ancestor path, never the editor or new dialog
+    // portals. Restore the previous attributes, including on session unmount.
+    const background = new Map<Element, boolean>();
+    const parents: HTMLElement[] = [];
+    let child: HTMLElement = element;
+    while (child.parentElement) {
+      const parent = child.parentElement;
+      parents.push(parent);
+      for (const sibling of parent.children) {
+        if (sibling === child) continue;
+        background.set(sibling, sibling.hasAttribute('inert'));
+        sibling.setAttribute('inert', '');
+      }
+      if (parent === document.body) break;
+      child = parent;
+    }
+    // Prevent wheel/touch chaining into the underlying workspace.
+    const scroll = parents.map(
+      (parent) => [parent, parent.style.overflow] as const,
+    );
+    scroll.forEach(([parent]) => {
+      parent.style.overflow = 'hidden';
+    });
+    const activeDialog = () =>
+      document.querySelector('[role="dialog"], [role="alertdialog"]');
+    const containFocus = (event: FocusEvent) => {
+      if (!element.contains(event.target as Node) && !activeDialog())
+        focusButton.current?.focus({ preventScroll: true });
+    };
+    document.addEventListener('focusin', containFocus);
+    const textarea = editor.current?.textarea;
+    const top = textarea?.scrollTop;
+    textarea?.focus({ preventScroll: true });
+    if (textarea && top !== undefined) textarea.scrollTop = top;
+    return () => {
+      document.removeEventListener('focusin', containFocus);
+      background.forEach((inert, sibling) => {
+        if (!inert) sibling.removeAttribute('inert');
+      });
+      scroll.forEach(([parent, overflow]) => {
+        parent.style.overflow = overflow;
+      });
+    };
+  }, [focused]);
+  useEffect(() => {
+    // After React restores the commit's selection, return keyboard access to
+    // the toggle. Do not focus a disappearing button on session unmount.
+    if (wasFocused.current && !focused)
+      focusButton.current?.focus({ preventScroll: true });
+    wasFocused.current = focused;
+  }, [focused]);
+  useEffect(() => {
+    if (readOnly) setFocusMode(false);
+  }, [readOnly]);
   const capture = (): MarkdownInsertion => {
     const textarea = editor.current?.textarea;
     const api = editor.current?.commandOrchestrator?.textApi;
@@ -130,8 +211,8 @@ export function MarkdownEditor({
       preview="edit"
       commands={toolbar}
       extraCommands={extra}
-      height={560}
-      minHeight={300}
+      height="100%"
+      minHeight={0}
       visibleDragbar={false}
       highlightEnable={false}
       hideToolbar={readOnly}
@@ -153,17 +234,77 @@ export function MarkdownEditor({
   );
   return (
     <section
+      ref={root}
       className="markdown-editor"
-      aria-label="Markdown 编辑器"
+      aria-label={focused ? 'Markdown 编辑器 · 专注模式' : 'Markdown 编辑器'}
+      data-focus-mode={focused || undefined}
       data-color-mode={resolved}
+      onKeyDown={(event) => {
+        // React events from portalled asset dialogs bubble here too. Let Base
+        // UI own their Escape/focus handling before considering the workspace.
+        if (!focused || !event.currentTarget.contains(event.target as Node))
+          return;
+        if (event.key === 'Escape' && !event.defaultPrevented) {
+          event.preventDefault();
+          event.stopPropagation();
+          setFocusMode(false);
+        }
+        if (
+          (event.ctrlKey || event.metaKey) &&
+          event.key.toLowerCase() === 'k'
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        if (event.key === 'Tab' && !event.defaultPrevented) {
+          const stops = [
+            ...event.currentTarget.querySelectorAll<HTMLElement>(
+              'button, a[href], input, textarea, select, [tabindex]',
+            ),
+          ].filter(
+            (node) =>
+              node.tabIndex >= 0 &&
+              !node.matches(':disabled') &&
+              node.getClientRects().length > 0,
+          );
+          const edge = event.shiftKey ? stops[0] : stops.at(-1);
+          if (document.activeElement === edge) {
+            event.preventDefault();
+            (event.shiftKey ? stops.at(-1) : stops[0])?.focus();
+          }
+        }
+      }}
     >
       <div className="markdown-tools">
         {tools?.(capture)}
         <span className="caption">
           {new TextEncoder().encode(value).length.toLocaleString('zh-CN')} 字节
         </span>
+        {focused && saveStatus && (
+          <span
+            className={`focus-save-status caption save-${saveStatus}`}
+            role="status"
+            aria-label="自动保存状态"
+          >
+            {saveLabels[saveStatus]}
+            {(saveStatus === 'conflict' || saveStatus === 'error') &&
+              ' · 请退出专注模式处理'}
+          </span>
+        )}
+        {!readOnly && (
+          <IconButton
+            ref={focusButton}
+            label={focused ? '退出专注模式' : '进入专注模式'}
+            title={focused ? '退出专注模式（Esc）' : '进入专注模式'}
+            aria-pressed={focused}
+            onClick={() => setFocusMode(!focused)}
+          >
+            {focused ? <ArrowsIn /> : <ArrowsOut />}
+          </IconButton>
+        )}
       </div>
       <Tabs
+        className="markdown-modes"
         label="编辑模式"
         value={mode}
         onValueChange={setMode}

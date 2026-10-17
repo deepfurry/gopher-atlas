@@ -43,3 +43,20 @@ the running local Admin in both themes and at desktop/narrow widths, including
 keyboard navigation and destructive confirmations. Use disposable local data,
 never production credentials or services. Run the repository check and embed
 build gates before committing.
+
+## A2 amendment — Writing Workspace & Focus Mode (2026-10-17)
+
+The frozen A2 design supersedes the original 320 px inspector and Topic-specific
+wide split for editable Drafts. Note, Curated, Topic and compatibility Post now
+place title, summary and full-width Markdown above the unchanged grouped
+properties. Properties use document flow without an outer height-capped scroll
+area. The independent Revision layout and workflow permissions do not change.
+
+Focus mode is a fixed viewport presentation of the existing Markdown component,
+not native Fullscreen or a second/portalled editor. Toggle does not change its
+key, insertion revision, mode or Draft. Source/preview/split, tools and image
+dialogs stay available; dialogs retain focus/Escape priority above the editor.
+Background controls become inert and scroll is locked only while focused, with
+cleanup on exit/unmount. One AutosaveQueue still owns all writes, versions and
+conflict recovery; focus mode only displays its status and retains Ctrl/Cmd+S.
+No preferences, API, Public or publication semantics are added.

@@ -507,6 +507,7 @@ function DraftWorkspace({
                           })
                         }
                         readOnly={locked}
+                        saveStatus={save.status}
                         tools={
                           locked
                             ? undefined

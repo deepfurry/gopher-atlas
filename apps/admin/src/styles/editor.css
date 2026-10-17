@@ -60,15 +60,16 @@
 .editor-workspace-tabs > .ui-tabs {
   margin-bottom: 18px;
 }
-.editor-layout,
+.editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
 .revision-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
   gap: 20px;
   align-items: start;
-}
-.editor-layout.editor-topic {
-  grid-template-columns: minmax(0, 3fr) minmax(360px, 2fr);
 }
 .editor-body-label {
   padding: 0 24px;
@@ -110,11 +111,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-@media (max-width: 1100px) {
-  .editor-layout.editor-topic {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
 .editor-fieldset {
   padding: 0;
   border: 0;
@@ -148,6 +144,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  flex-wrap: wrap;
   padding: 0 16px 8px;
 }
 .markdown-tools > .caption {
@@ -164,25 +161,28 @@
 .editor-panes {
   display: grid;
   min-width: 0;
+  height: clamp(560px, 65dvh, 800px);
 }
 .mode-split {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 .editor-panes > section {
-  height: 560px;
-  min-height: 300px;
+  min-height: 0;
   overflow: auto;
 }
 .mode-split > section {
   border-left: 1px solid var(--border);
 }
 .w-md-editor {
+  min-height: 0;
+  min-width: 0;
   border: 0;
   border-radius: 0 !important;
   --color-canvas-default: var(--surface);
   background: var(--surface) !important;
 }
 .w-md-editor .w-md-editor-toolbar {
+  flex-shrink: 0;
   background: var(--surface-muted);
   padding: 4px 10px;
 }
@@ -203,6 +203,45 @@
 }
 .markdown-feedback {
   padding: 0 16px;
+}
+.markdown-editor[data-focus-mode] {
+  position: fixed;
+  inset: 0;
+  z-index: 50; /* Above Shell/header, below Base UI dialog backdrop (60). */
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface);
+  padding-top: max(8px, env(safe-area-inset-top));
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.markdown-editor[data-focus-mode] > .markdown-tools {
+  flex-shrink: 0;
+}
+.markdown-editor[data-focus-mode] > .markdown-modes {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.markdown-editor[data-focus-mode] .markdown-modes > .ui-tabs {
+  flex-shrink: 0;
+}
+.markdown-editor[data-focus-mode] .markdown-modes > [role='tabpanel'] {
+  flex: 1;
+  min-height: 0;
+}
+.markdown-editor[data-focus-mode] .editor-panes {
+  height: 100%;
+}
+.markdown-editor[data-focus-mode] > .markdown-feedback {
+  max-height: 25dvh;
+  overflow: auto;
+}
+.focus-save-status.save-error,
+.focus-save-status.save-conflict {
+  color: var(--error);
 }
 .metadata-rail {
   min-width: 0;
@@ -235,9 +274,6 @@
   display: grid;
   gap: 14px;
   padding: 16px;
-  max-height: calc(100dvh - 280px);
-  overflow-y: auto;
-  min-height: 300px;
 }
 [hidden] {
   display: none !important;
@@ -485,18 +521,11 @@
   padding-top: 8px;
   margin-top: 8px;
 }
-@media (min-width: 1600px) {
-  .editor-layout {
-    grid-template-columns: minmax(0, 1fr) 320px;
-  }
-}
 @media (max-width: 1100px) {
-  .editor-layout,
   .revision-layout {
     grid-template-columns: minmax(0, 1fr);
   }
   .inspector-panel {
-    max-height: none;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .inspector-panel > .selector,
@@ -516,6 +545,8 @@
   }
   .mode-split {
     grid-template-columns: 1fr;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    height: 960px;
   }
   .mode-split > section {
     border-left: 0;

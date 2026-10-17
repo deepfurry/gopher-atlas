@@ -1,7 +1,8 @@
 # 生产部署与发布操作手册
 
-本手册记录 2026-09-22 用户在实际服务器执行并提供终端输出、后台及 Public
-截图验证的流程。仅有 Development / Production；不需要额外环境或代理服务。
+本手册保留 2026-09-22 的实际安装、发布与域名切换记录，并补充用户于
+2026-10-17 确认的 B2/B3 生产升级结果。仅有 Development / Production；
+不需要额外环境或代理服务。历史记录不代表后续 generation 已验收。
 
 ## 当前已验证的部署
 
@@ -10,7 +11,7 @@
 ├── repo/                    # main，生产发布快照
 ├── bin/gopheratlas-cms       # 内嵌 Admin 的 Go 二进制
 ├── config/cms.env           # 私有配置，不提交仓库
-├── data/gopheratlas.db      # SQLite，schema 3
+├── data/gopheratlas.db      # SQLite，schema 4，taxonomy_state.ready=1
 ├── logs/
 └── backups/                 # root-only，按时间保存
 ```
@@ -26,12 +27,46 @@
 
 具体私有主机名、Tailnet IP、凭据及 Deploy Hook URL 不记录在本手册中。
 
+## B2/B3 升级记录（2026-10-17）
+
+真实生产一致性备份先在独立本地副本完成 B3 离线迁移演练：plan 无冲突，
+00004 前后 fingerprint 一致，历史业务数据保留，重复 apply 被拒绝，v2 导出、
+B1 校验及 Astro 静态构建通过。该演练不等于生产灾难恢复演练。
+
+随后用户确认实际生产执行结果如下；本次文档收尾未连接服务器或重新执行操作：
+
+| 项目                   | 已确认结果                                                   |
+| ---------------------- | ------------------------------------------------------------ |
+| main / CMS 提交        | `ad73db37c70946c8f8b5087103b462f53822a6c3`                   |
+| SQLite / 分类初始化    | Schema 3 → 4；`taxonomy_state.ready=1`                       |
+| Publication generation | 14 → 15                                                      |
+| 数据数量               | 内容 13、Revision 15、标签 14、随笔分组 4、历史路由 11       |
+| 数据库检查             | `integrity_check=ok`；外键错误 0                             |
+| 本地导出               | 生产数据 Snapshot v2 导出验证通过                            |
+| CMS 更新               | `make prod-update` 成功；systemd active；healthz/readyz 正常 |
+| 更新后备份             | `20261017T145739Z.nizHXb`                                    |
+
+实际遇到 Linux 权限边界：生产 DB 由 `gopheratlas` 服务账户访问，`ops` 不能
+直接运行数据库迁移。构建与日常 `prod-update` 仍由仓库所属用户执行；Goose 和
+taxonomy 数据操作改用正确服务账户及受控权限，工具须可执行、迁移 SQL 须可读，
+各级父目录须可遍历，DB/WAL/SHM 与报告目录权限也要核对。不能通过 `chmod 777`、
+把 DB 改属 `ops` 或公开备份目录绕过权限。具体边界见
+[分类升级权限说明](taxonomy-v2-upgrade.md#linux-服务账户与迁移文件权限)。
+
+**公开站 generation 15 同步仍待确认。** 在 CMS 迁移前，B2 main 的 Cloudflare
+构建已成功，公开 Marker 为 commit `ad73db3`、Snapshot v1、generation 14，快照哈希
+与前次一致；这是旧输入兼容证据。随后 CMS 升级成功和本地 v2 导出均不能证明线上
+已切到 v2。须另行取得 `/.well-known/gopheratlas-build.json`，核对 schemaVersion、
+generation 与对应发布任务的 snapshotSha256；若期间有新发布，按最新 generation 验收。
+生产灾难恢复、从更新后备份恢复服务与外部发布状态的验收也仍待完成。
+
 ## 日常更新
 
 代码在 dev 验证并提交，正式发版使用普通 Git merge 到 main 后 push，不要求创建 PR。
 main 推送会触发已配置的 Cloudflare 构建；CMS 仍需要在服务器执行更新。
 
-用仓库所有者（例如 `ops`）执行，不要使用 `sudo make`：
+数据库已满足目标代码的 Schema/分类初始化要求后，用仓库所有者（例如 `ops`）
+执行代码更新，不要使用 `sudo make`：
 
 ```bash
 cd /srv/gopheratlas/repo
@@ -42,9 +77,11 @@ make prod-update
 脚本先安装锁定依赖并构建 Admin/embed CMS，再停服备份完整 data 和旧二进制，
 原子安装新二进制、启动服务并检查 health/readiness。构建失败不会停止现有服务。
 无需重复运行服务器原来的 `update.sh`，也无需手动复制二进制。
-脚本不迁移数据库，不修改配置或 DNS；将来需要 schema 升级时须另行安排。
+脚本不迁移数据库，不修改配置或 DNS。B2 的 Schema 3→4 与 taxonomy apply 必须
+先在停写窗口完成，不能靠 `prod-update` 自动完成；已升级库不要重复 apply。
+后续版本若需要迁移，同样先审查对应升级说明。
 
-本次实际更新到 `a1f4638b30a35c81a83f959c8bd90cda76c7c3da`，脚本返回
+2026-09-22 曾更新到 `a1f4638b30a35c81a83f959c8bd90cda76c7c3da`，脚本返回
 `health and readiness passed`。重启 CMS 会恢复正常 publication worker，可能处理已有任务。
 
 ## 备份
@@ -59,7 +96,9 @@ make prod-backup
 输出的备份目录包含 `SHA256SUMS`、`metadata.txt` 和成功后的 `COMPLETE`。
 不会自动清理旧备份，也不会备份 `cms.env` 或 R2 objects。
 
-本次更新备份和独立备份均成功，但都早于首次内容发布。它们不包含后来发布的建站记录。
+2026-09-22 的更新备份和独立备份均成功，但都早于首次内容发布，不含后来发布的建站记录。
+2026-10-17 的更新后备份为 `/srv/gopheratlas/backups/20261017T145739Z.nizHXb/`；
+它与上述早期备份分开记录，尚不能据此宣称生产恢复演练完成。
 下一次维护前应重新备份；数据、配置的受保护异机副本仍由运营者保管。
 备份命令成功不等于完成恢复演练。不要直接用旧库覆盖当前库：旧 generation 可能与 R2
 已有 immutable key 冲突。恢复原则见 [backup-restore.md](backup-restore.md)。
@@ -122,7 +161,7 @@ curl -sS -o /dev/null --proxy http://127.0.0.1:7890 --noproxy '' \
 6. 在 Worker 地址检查列表、详情、图片、刷新后的访问，以及
    `/.well-known/gopheratlas-build.json`；核对 generation 和任务 SHA-256。
 
-本次首次构建在 generation 0 时以 `content_snapshot_load_failed` 失败。
+2026-09-22 首次构建在 generation 0 时以 `content_snapshot_load_failed` 失败。
 随后用户发布「GopherAtlas 建站记录」，生成 `snapshots/generation-1.json`；
 后台截图确认 CMS/Public 均为 1、状态「已同步」，无任务错误；Worker 首页可访问。
 任务保留「已请求构建」是正常的，最终同步状态由 marker 决定。

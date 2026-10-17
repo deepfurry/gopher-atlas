@@ -27,10 +27,22 @@ resolved GitHub egress through Mihomo, and verified generation 1 synced plus the
 Worker homepage. See the [Production runbook](production-runbook.md) for repeatable
 commands and the distinction between confirmed and outstanding acceptance.
 
+Current operator-confirmed state (2026-10-17): main and CMS are
+`ad73db37c70946c8f8b5087103b462f53822a6c3`; SQLite was upgraded from schema 3 to 4,
+`taxonomy_state.ready=1`, and publication generation advanced from 14 to 15.
+Counts are 13 content items, 15 Revisions, 14 tags, 4 Note groups and 11 historical
+routes. Integrity is `ok`, foreign-key errors are zero, and local production-data
+Snapshot v2 export validation passed. `make prod-update` succeeded, systemd is
+active and healthz/readyz are healthy. The post-update backup is
+`20261017T145739Z.nizHXb`. The real-backup B3 offline migration rehearsal passed;
+Production disaster recovery has not been demonstrated. Public generation 15
+Marker acceptance remains **unconfirmed**; CMS health does not establish it.
+
 ## Binary and unit
 
-For an already installed Linux/systemd CMS, run as the repository owner (for
-example `ops`), without prefixing make with sudo:
+For an already installed Linux/systemd CMS whose database meets the target
+version's requirements, run as the repository owner (for example `ops`), without
+prefixing make with sudo:
 
 ```sh
 cd /srv/gopheratlas/repo
@@ -119,18 +131,32 @@ curl --fail --silent http://127.0.0.1:46217/healthz
 curl --fail --silent http://127.0.0.1:46217/readyz
 ```
 
-Migrations remain explicit. From repo with DATABASE_PATH explicitly set, run
-`make db-status` / `make db-up`; these never load .env. Startup/readiness never
-migrate. Update order: consistent backup → explicit migrations if needed → matching
-embedded binary → systemd restart → local readiness → private Admin verification.
-No migration is needed for P0-5. Do not run a second CMS writer during upgrades.
+Migrations remain explicit; startup/readiness never migrate. The 2026-10-17
+upgrade exposed an account boundary: `gopheratlas` accesses the Production DB;
+`ops` cannot directly run its migrations. Build as the operator, then run reviewed
+Goose and taxonomy binaries under the service account with explicit absolute DB
+paths. The account needs executable tools, readable migration SQL, traversal of
+every parent directory, DB/directory write access for SQLite sidecars, and a private
+writable report directory. Do not make the DB world-readable or transfer it to
+`ops` to bypass this boundary. Do not load production secrets for these tools.
+
+`make db-status` / `make db-up` require explicit DATABASE_PATH and never load .env;
+using them under the service account also requires its access to the checkout and
+build tools. For the reviewed-binary workflow and permission checks, see
+[the taxonomy upgrade runbook](taxonomy-v2-upgrade.md#linux-服务账户与迁移文件权限).
+Schema 3→4 order: stop/verify the sole writer → consistent backup → plan → 00004 →
+fingerprint recheck and taxonomy apply → integrity/history/export checks → matching
+embedded binary → service readiness → private Admin and Public Marker acceptance.
+`prod-update` does not perform the migration/apply and starts the CMS; do not run
+it before those prerequisites. P0-5 itself needed no migration; B2 adds 00004.
 
 Logging uses one Zap logger, stdout plus Lumberjack rotation (100 MB, ten backups,
 30 days, compressed by default). Access fields exclude callback query, body,
 headers/cookies and provider errors. Tailscale configuration must not introduce
 OAuth query logging. Monitor is `/ops/monitor`, active Admin only. Shutdown joins
-the worker before SQLite/logger closure. Readiness checks schema 3 without external
-network probes. Manage users through Admin; last-active-Admin protection applies.
+the worker before SQLite/logger closure. Readiness checks schema 4 and completed
+taxonomy initialization without external network probes. Manage users through
+Admin; last-active-Admin protection applies.
 
 ## Publication operations
 
@@ -159,5 +185,6 @@ restore a reviewed consistent backup instead of deleting history.
 
 See [Production Cloudflare Builds](cloudflare.md) and [backup boundary](backup-restore.md).
 ADR 0015 reduces P0-6 to fresh-start domain cutover; no Production legacy import
-is planned. Restore verification remains unperformed and must not be inferred
-from successful backups. See the Production runbook before further operations.
+is planned. The B3 offline migration rehearsal passed, but Production disaster
+recovery remains unverified and cannot be inferred from it or successful backups.
+See the Production runbook before further operations.

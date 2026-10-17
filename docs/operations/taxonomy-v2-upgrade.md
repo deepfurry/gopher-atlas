@@ -1,8 +1,23 @@
 # B2 / B3 分类升级操作说明
 
-本次交付只开发 B2；以下生产步骤是供人工复核的 B3 方案，**未执行**。
-前置条件是 B1 Public `9236209` 已部署并验证原 v1 输入。本次没有拿到受保护的
-生产数据库副本；合成临时库测试不能替代该副本演练。
+## 已确认进度（2026-10-17）
+
+B2 开发交付时仅有合成库验证，生产升级尚未执行；前置 B1 Public `9236209`
+已先行部署并验证原 v1 输入。此后真实生产一致性备份的 B3 离线迁移演练通过：plan
+无冲突、00004 前后 fingerprint 一致，历史正文/Revision/审核/标签关联/路由保留，
+重复 apply 被拒绝，v2 导出、B1 消费者校验及 Astro 静态构建成功。原始备份未修改。
+
+用户随后确认实际生产升级完成，main/CMS 为
+`ad73db37c70946c8f8b5087103b462f53822a6c3`：Schema 3→4，`taxonomy_state.ready=1`，
+publication generation 14→15；内容 13、Revision 15、标签 14、分组 4、历史路由 11。
+数据库 integrity_check 为 `ok`、外键错误 0；生产数据本地 Snapshot v2 导出验证通过；
+`make prod-update` 成功，systemd active，healthz/readyz 正常。
+更新后备份为 `20261017T145739Z.nizHXb`。
+
+**公开站 generation 15 Marker 验收仍待确认，生产灾难恢复演练也未完成。**
+离线迁移演练、CMS 部署、本地导出、公开同步与灾难恢复必须分别记录，不能互相代替。
+完整时间线见[生产操作手册](production-runbook.md)。以下保留可审查的操作流程，
+不是要求对已完成初始化的生产库重新执行 apply；后续生产操作仍须单独授权。
 
 ## 工具与只读预检查
 
@@ -19,6 +34,10 @@ Windows 工具名加 `.exe`，用 PowerShell 的绝对路径。报告路径必�
 Draft version / published Revision ID、generation、fingerprint 和冲突，不含正文。
 报告仍应放在受保护目录，不提交到 GitHub。
 
+B3 中原始解压目录设置只读 ACL 后，WAL 模式 DB 因缺少可创建的辅助文件而无法
+由普通 `mode=ro` 打开；在字节校验一致的独立工作副本执行 plan 成功。保留原件及
+校验值，不为解决该限制放宽原始备份权限；只读查询不等于 SQLite 完全不需要目录权限。
+
 plan 支持 schema 3 和 4。检查所有 Draft 的非空 groupSlug，以及活跃内容选中的
 已发布 Note Revision；未分组草稿计入 skippedDrafts。无效/不完整元数据及同 Slug 的
 名称、说明、顺序差异列入 issues，退出非零；**禁止挑第一条继续、改写历史或造分组**。
@@ -34,26 +53,65 @@ plan 支持 schema 3 和 4。检查所有 Draft 的非空 groupSlug，以及活�
    routes、日期、正文摘要；记录完整性和外键检查结果。
 3. 对工作副本显式迁移，再以审核后的 fingerprint 和已有 active Admin ID apply：
 
+   ```sh
+   DATABASE_PATH=/protected/work/gopheratlas.db make db-status
+   DATABASE_PATH=/protected/work/gopheratlas.db make db-up
+   .cache/bin/gopheratlas-taxonomy -mode apply -database /protected/work/gopheratlas.db -writer-stopped -actor-id <已有AdminID> -fingerprint <plan中的64位指纹> -output /protected/reports/taxonomy-applied.json
+   .cache/bin/gopheratlas-taxonomy -mode export -database /protected/work/gopheratlas.db -output /protected/reports/snapshot-v2.json
+   ```
+
+   上面的 `<...>` 必须替换后才能执行。PowerShell 可临时设置进程 `DATABASE_PATH`
+   后调用 make，完成后恢复原环境；不能依赖根 `.env` 选择迁移目标。
+
+4. 用现有 Node 消费者验证导出的完整文件，并离线构建 Public：
+
+   ```sh
+   node --input-type=module -e 'import {readFileSync} from "node:fs"; import {validateSnapshot} from "./scripts/snapshot.mjs"; validateSnapshot(readFileSync(process.argv[1])); console.log("v2 validated");' /protected/reports/snapshot-v2.json
+   CONTENT_SNAPSHOT_FILE=/protected/reports/snapshot-v2.json pnpm --filter @gopheratlas/web build
+   ```
+
+   该快照是**本地演练的显式构建输入**，不得上传成为生产替代输入或写入生产构建配置。
+   验证中英文标签/分组与 SEO、文章原路径、redirects、评论 term、RSS/sitemap/Pagefind。
+
+5. 再次比较旧业务历史行；apply 只新增分组/Audit、更新 taxonomy_state、推进一次
+   generation 并新增 job。旧标签不改，不猜英文；不生成文章 Revision。第二次 apply
+   明确返回 already initialized，不再写入。无分类数据的新空库可直接由 00004 初始化。
+6. 在独立副本测试故障恢复：保留原工作副本和产物，不以 `goose down` 删除新分类或 Audit；
+   从原备份另建副本重复演练，记录失败阶段及结果。该离线过程不替代恢复生产服务、登录及
+   外部发布状态的灾难恢复验收，见[备份与恢复边界](backup-restore.md)。
+
+## Linux 服务账户与迁移文件权限
+
+2026-10-17 实际升级遇到的权限问题：`ops` 是仓库操作用户，生产数据库由
+`gopheratlas` 账户访问，不能直接以 `ops` 运行数据库迁移。切换执行账户后还须确认
+迁移 SQL 可读；只有数据库权限正确，并不足以让 Goose 成功读取迁移文件。
+
+- 由操作用户在审核提交上准备 Linux Goose/taxonomy 二进制；Goose 版本及构建参数
+  沿用 `scripts/tools.json`、`scripts/lib.mjs`，SQL 使用同提交的完整 `db/migrations`。
+  服务账户无需继承 `ops` 的 HOME、Go 缓存、私有环境变量或生产凭证。
+- 将审核后的工具/SQL 放在服务账户可访问的受控目录，核对每级父目录的遍历权限、
+  二进制执行权限、SQL 读取权限。可按既有权限策略使用管理员拥有、服务组只读/执行的
+  目录及文件；不要使服务账户可改写迁移 SQL，也不要递归开放整个仓库或备份目录。
+- DB 及其目录由服务账户按 SQLite 要求读写，包含 WAL/SHM 的创建；报告目录仅授权
+  必要账户写入。原始备份继续受保护。不要使用 `chmod 777` 或将生产 DB 改属 `ops`。
+- 检查实际 systemd `User`/`Group`，以正确服务账户通过 `sudo -u gopheratlas --`
+  调用工具；`make prod-update`/构建仍由仓库所有者运行，不要混为同一个执行身份。
+  若直接以服务账户运行 `make db-*`，还必须满足仓库、Node/Go、缓存与 SQL 的访问条件。
+
+以下仅为受控目录准备后的命令模板，绝对工具/SQL/报告路径须替换为已核对的路径，
+不是本次生产操作的逐条终端记录。不要加载 `cms.env` 或让 Goose 自动读取 `.env`：
+
 ```sh
-DATABASE_PATH=/protected/work/gopheratlas.db make db-status
-DATABASE_PATH=/protected/work/gopheratlas.db make db-up
-.cache/bin/gopheratlas-taxonomy -mode apply -database /protected/work/gopheratlas.db -writer-stopped -actor-id <已有AdminID> -fingerprint <plan中的64位指纹> -output /protected/reports/taxonomy-applied.json
-.cache/bin/gopheratlas-taxonomy -mode export -database /protected/work/gopheratlas.db -output /protected/reports/snapshot-v2.json
+sudo -u gopheratlas -- /absolute/path/to/goose -env none \
+  -dir /absolute/path/to/migrations sqlite3 /srv/gopheratlas/data/gopheratlas.db status
+sudo -u gopheratlas -- /absolute/path/to/gopheratlas-taxonomy \
+  -mode plan -database /srv/gopheratlas/data/gopheratlas.db \
+  -output /absolute/private/reports/taxonomy-plan.json
 ```
 
-上面的 `<...>` 必须替换后才能执行。PowerShell 可临时设置进程 `DATABASE_PATH`
-后调用 make，完成后恢复原环境；不能依赖根 `.env` 选择迁移目标。4. 用现有 Node 消费者验证导出的完整文件，并离线构建 Public：
-
-```sh
-node --input-type=module -e 'import {readFileSync} from "node:fs"; import {validateSnapshot} from "./scripts/snapshot.mjs"; validateSnapshot(readFileSync(process.argv[1])); console.log("v2 validated");' /protected/reports/snapshot-v2.json
-CONTENT_SNAPSHOT_FILE=/protected/reports/snapshot-v2.json pnpm --filter @gopheratlas/web build
-```
-
-该快照是**本地演练的显式构建输入**，不得上传成为生产替代输入或写入生产构建配置。
-验证中英文标签/分组与 SEO、文章原路径、redirects、评论 term、RSS/sitemap/Pagefind。5. 再次比较旧业务历史行；apply 只新增分组/Audit、更新 taxonomy_state、推进一次
-generation 并新增 job。旧标签不改，不猜英文；不生成文章 Revision。第二次 apply
-明确返回 already initialized，不再写入。无分类数据的新空库可直接由 00004 初始化。6. 测试故障恢复：保留原工作副本和产物，不以 `goose down` 删除新分类或 Audit。
-通过原备份重新制作新副本重复演练。记录失败阶段及结果。
+仅在已授权、已停写、已备份且 plan 无冲突的迁移窗口，才以同一身份运行 Goose `up`
+及 taxonomy `apply`；`-actor-id` 是库中已有 active Admin 的业务 ID，不是 Linux UID。
+`-writer-stopped` 必须对应实际停写事实，不能把离线副本的确认沿用到在线生产库。
 
 ## 生产窗口（须另行批准）
 

@@ -8,8 +8,11 @@
 Revision History、Tags/Authors/Users/Audit 和 Monitor。Publish 仅表示 **已在 CMS 发布**；
 已实现 Assets/R2、原子 generation/outbox、Snapshot v2、Worker/Hook 和公开构建 marker。
 Public 兼容读取 snapshot v1/v2，通过统一模型构建阅读页面、静态 redirects、RSS/sitemap/SEO 与 Pagefind 搜索；CMS 统一导出 v2。
-分类元数据支持中英文逐字段回退。B1 独立部署并验证现有 v1 后，才能安排 B2 上线，见 [ADR 0018](docs/decisions/0018-public-snapshot-dual-read.md)。
-历史 Production 验收已覆盖登录、备份与 v1 发布同步；本轮 B2 尚未执行生产迁移或部署。
+分类元数据支持中英文逐字段回退。B1 先部署并验证 v1，B2 再升级写入端，见 [ADR 0018](docs/decisions/0018-public-snapshot-dual-read.md)。
+2026-10-17，真实生产备份的 B3 离线迁移演练通过；用户确认 main/CMS 已升级至
+`ad73db37c70946c8f8b5087103b462f53822a6c3`，SQLite Schema 4、`taxonomy_state.ready=1`、
+CMS generation 15，生产数据本地 v2 导出及服务健康检查通过。更新后备份为 `20261017T145739Z.nizHXb`。
+公开站 generation 15 的 Marker 验收仍待确认；B3 离线演练不等于完成生产灾难恢复演练。
 实操命令及验收边界见 [生产操作手册](docs/operations/production-runbook.md)。
 首次 generation → snapshot → Hook → marker 已跑通；正式域名已接入新 Worker。
 详见 [阶段范围](docs/implementation-status.md)。
@@ -148,7 +151,7 @@ make build-cms
 使用内嵌 Admin 本地验证时，将 `CMS_BASE_URL` 和 OAuth 回调改为实际 CMS 浏览器
 origin（例如 `http://127.0.0.1:46217`）。构建产物不包含 `.env` 或 OAuth Secret。
 
-`/healthz` 只表示进程存活；`/readyz` 检查 SQLite 和 P0-4 migration/列集合，缺失或
+`/healthz` 只表示进程存活；`/readyz` 检查 SQLite Schema 4、分类初始化及所需列集合，缺失或
 不兼容返回 503。GitHub、R2、Hook 和公开 marker 是否在线均不影响 readiness。`/ops/monitor` 只有 active
 Admin 能打开；一个 app-wide Monitor 包裹业务请求，Recover 在其后。
 
@@ -259,7 +262,7 @@ Development 总是启用本地 FileStore 与 snapshot worker，忽略旧 R2/Hook
 Production 仍必须配全八个 P0-4 变量，缺失时不能 fallback 到本地。参见
 [部署与恢复](docs/operations/deployment.md) 和 [Production 构建说明](docs/operations/cloudflare.md)。
 
-已有 Linux/systemd 生产安装更新时，以仓库所属用户执行：
+已有 Linux/systemd 生产安装在数据库满足目标版本要求后，以仓库所属用户（如 `ops`）更新：
 
 ```sh
 cd /srv/gopheratlas/repo
@@ -270,6 +273,10 @@ make prod-update
 该命令安装依赖、构建内嵌 Admin 的 CMS，随后自动 sudo 停机备份、安装、启动并检查健康状态。
 单独备份使用 `make prod-backup`；备份保存在 `/srv/gopheratlas/backups/`，不会自动删除。
 两个命令均不自动迁移、不读取或修改生产 Secret；不再需要维护服务器上的旧 `update.sh`。
+数据库由 `gopheratlas` 服务账户访问，`ops` 不能直接执行生产迁移；Goose/taxonomy 工具须以
+正确服务账户、显式数据库路径及受控权限运行，迁移 SQL 和父目录也须可读/可遍历。
+已有 Schema 3 库应先完成停写、备份、00004 与 taxonomy apply，再执行 `prod-update`，
+不能用代码更新替代数据升级；详见[分类升级说明](docs/operations/taxonomy-v2-upgrade.md)。
 详见[运维说明](docs/operations/deployment.md)与[备份说明](docs/operations/backup-restore.md)。
 
 本地 `make dev-web` / `make dev` 自动读取根 `.env`，不需要手工导出或映射环境变量。
@@ -304,7 +311,7 @@ Production / Cloudflare 的 `pnpm --filter @gopheratlas/web build` 行为不变�
 本地验证完整产物可运行 `make check`，它显式选择 fixture 并完成 build；随后运行
 `pnpm --filter @gopheratlas/web preview`。不要为运行检查配置真实凭证。
 
-构建校验 latest、SHA-256、Schema v1、Markdown 和引用图，输出忽略的 `.generated`
+构建校验 latest、SHA-256、Schema v1/v2、Markdown 和引用图，输出忽略的 `.generated`
 快照及 `/.well-known/gopheratlas-build.json`。`make check` 固定显式 fixture 并进行
 synthetic secret-output scan。生产不配置 fixture fallback；内容桶始终私有，CMS RW
 与 Web RO 凭据分离。实现与验证未使用真实 R2/Hook 或修改 Cloudflare/DNS。

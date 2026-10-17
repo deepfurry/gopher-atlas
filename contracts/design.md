@@ -91,14 +91,7 @@ published data, route, safety and editorial semantics stay unchanged.
   Below 768 px navigation becomes a modal drawer; the workspace stays full width.
 - Phosphor is the Admin icon family. Base UI wrappers in `components/ui` provide
   consistent controls, keyboard/focus semantics, bounded overlays and scrollbars.
-  The Markdown-first editor has grouped properties below the writing area and a
-  separate history view (A2 supersedes ADR 0010's original 320 px inspector).
-- All four editable content types use full-width title/summary/Markdown followed
-  by properties. CSS viewport focus mode keeps the same UIW instance and source
-  selection/undo/capture; no native fullscreen, remount, persistence or new save
-  mechanism. Asset dialogs stay above it and consume Escape first. Background
-  controls are inert; exit restores keyboard access. The existing queue supplies
-  the visible save/error/conflict status. Immutable reviews remain unchanged.
+  The Markdown-first editor has a grouped inspector and separate history view.
 - Admin input-like controls (Input/Textarea/Select/SearchSelect/DatePicker) use
   one continuous focus edge, not a border plus a detached outline. Preserve error,
   disabled and read-only states and visible keyboard focus on other controls.

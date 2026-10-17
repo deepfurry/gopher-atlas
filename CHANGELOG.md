@@ -1,12 +1,5 @@
 # Changelog
 
-## Admin writing workspace A2 (2026-10-17)
-
-- Stack title, summary and full-width Markdown above properties for every content
-  type. Add viewport focus mode with source/preview/split, image insertion and
-  the existing autosave status; preserve editor/capture/undo, dialog Escape
-  priority, keyboard access, permissions and the independent Revision view.
-
 ## CMS interaction fixes A (2026-10-17)
 
 - Give input-like Admin controls one continuous focus edge while retaining

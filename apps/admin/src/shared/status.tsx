@@ -79,6 +79,10 @@ export const auditActions: Record<string, string> = {
   'content.revision_restored': '恢复历史版本',
   'tag.created': '创建标签',
   'tag.updated': '更新标签',
+  'note_group.created': '创建随笔分组',
+  'note_group.updated': '更新随笔分组',
+  'note_group.imported': '迁入随笔分组',
+  'publication.taxonomy_upgraded': '升级分类与快照',
   'asset.uploaded': '上传素材',
   'asset.deleted': '删除素材',
   'asset.restored': '恢复素材',
@@ -89,6 +93,7 @@ export const entityTypes: Record<string, string> = {
   author: '作者',
   content: '内容',
   tag: '标签',
+  note_group: '随笔分组',
   asset: '素材',
   publication: '发布',
 };

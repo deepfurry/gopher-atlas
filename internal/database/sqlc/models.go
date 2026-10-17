@@ -127,6 +127,18 @@ type DraftTopicEntry struct {
 	TargetContentID int64
 }
 
+type NoteGroup struct {
+	ID            int64
+	Slug          string
+	Name          string
+	Description   string
+	NameEn        string
+	DescriptionEn string
+	SortOrder     int64
+	CreatedAt     int64
+	UpdatedAt     int64
+}
+
 type OauthState struct {
 	StateHash  []byte
 	CreatedAt  int64
@@ -185,6 +197,19 @@ type Tag struct {
 	CreatedBy      int64
 	CreatedAt      int64
 	UpdatedAt      int64
+}
+
+type TagTranslation struct {
+	TagID       int64
+	Locale      string
+	Name        string
+	Description string
+}
+
+type TaxonomyState struct {
+	ID           int64
+	Ready        int64
+	SourceSha256 string
 }
 
 type User struct {

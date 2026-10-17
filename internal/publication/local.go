@@ -23,7 +23,7 @@ func (s *Service) localStatus(ctx context.Context, result *Status) {
 	var latest Latest
 	d := json.NewDecoder(bytes.NewReader(data))
 	d.DisallowUnknownFields()
-	if d.Decode(&latest) != nil || d.Decode(new(any)) != io.EOF || latest.SchemaVersion != 1 || latest.Generation < 1 || latest.SnapshotKey != snapshotKey(latest.Generation) || !digestPattern.MatchString(latest.SHA256) {
+	if d.Decode(&latest) != nil || d.Decode(new(any)) != io.EOF || (latest.SchemaVersion != 1 && latest.SchemaVersion != 2) || latest.Generation < 1 || latest.SnapshotKey != snapshotKey(latest.Generation) || !digestPattern.MatchString(latest.SHA256) {
 		return
 	}
 	if _, err := time.Parse(time.RFC3339Nano, latest.ExportedAt); err != nil {

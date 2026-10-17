@@ -122,6 +122,9 @@ func (s *Service) Save(ctx context.Context, actor auth.Principal, id int64, inpu
 		if !policy.CanSetByline(u, input.BylineUserID) || !policy.CanSetFeatured(u, d.Featured == 1, input.Featured) {
 			return fault.Permission
 		}
+		if err := hydrateNote(ctx, q, c.Type, &input.Fields, false); err != nil {
+			return err
+		}
 		if err := validateFields(c.Type, &input.Fields, false, s.assetPolicy); err != nil {
 			return err
 		}
@@ -234,13 +237,16 @@ func (s *Service) snapshot(ctx context.Context, q *dbsqlc.Queries, u dbsqlc.User
 	if d.Version != version {
 		return dbsqlc.ContentRevision{}, fault.ContentVersion
 	}
+	if err := hydrateNote(ctx, q, c.Type, &d.Fields, true); err != nil {
+		return dbsqlc.ContentRevision{}, err
+	}
 	if err := validateFields(c.Type, &d.Fields, true, s.assetPolicy); err != nil {
 		return dbsqlc.ContentRevision{}, err
 	}
 	if err := validateRelations(ctx, q, c, d.Fields, d.Relations); err != nil {
 		return dbsqlc.ContentRevision{}, err
 	}
-	r, err := q.SnapshotDraft(ctx, dbsqlc.SnapshotDraftParams{ContentID: c.ID, ActorID: u.ID, Now: now})
+	r, err := q.SnapshotDraft(ctx, dbsqlc.SnapshotDraftParams{ContentID: c.ID, ActorID: u.ID, Now: now, PayloadJson: string(d.Payload)})
 	if err != nil {
 		return r, dbError(err)
 	}

@@ -147,16 +147,14 @@ func (i *Importer) Preflight(ctx context.Context, actor auth.Principal, plan Pla
 				return errors.New("legacy_note_group_conflict")
 			}
 			noteGroups[note.GroupSlug] = note
-			published, err := q.PublishedNoteGroupMetadata(ctx, dbsqlc.PublishedNoteGroupMetadataParams{GroupSlug: note.GroupSlug})
-			if err != nil {
+			group, err := q.GetNoteGroupBySlug(ctx, note.GroupSlug)
+			if err != nil && !errors.Is(err, sql.ErrNoRows) {
 				return fault.Unavailable
 			}
-			for _, raw := range published {
-				var other content.NotePayload
-				if json.Unmarshal([]byte(raw), &other) != nil || !matches(other) {
-					return errors.New("legacy_note_group_conflict")
-				}
+			if err == nil && (group.Name != note.Group || group.Description != note.GroupDescription || group.SortOrder != note.GroupOrder) {
+				return errors.New("legacy_note_group_conflict")
 			}
+
 		}
 		if (item.FirstPublishedAt == nil) != (item.LastPublishedAt == nil) || (item.FirstPublishedAt != nil && (*item.FirstPublishedAt < 0 || *item.LastPublishedAt < *item.FirstPublishedAt || *item.LastPublishedAt > nowMillis())) {
 			return errors.New("legacy_dates_invalid")
@@ -266,6 +264,30 @@ func (i *Importer) Apply(ctx context.Context, actor auth.Principal, plan Plan) (
 		if _, err := content.PublishedPath(item.Type, item.Fields); err != nil {
 			return result, fmt.Errorf("%s: %w", item.Key, err)
 		}
+	}
+	// Establish explicitly planned groups through the same Admin service.
+	groups := map[string]bool{}
+	for _, item := range items {
+		if item.Type != "note" {
+			continue
+		}
+		var note content.NotePayload
+		if json.Unmarshal(item.Payload, &note) != nil {
+			return result, errors.New("legacy_note_group_invalid")
+		}
+		if groups[note.GroupSlug] {
+			continue
+		}
+		existing, err := dbsqlc.New(i.DB).GetNoteGroupBySlug(ctx, note.GroupSlug)
+		if errors.Is(err, sql.ErrNoRows) {
+			_, err = i.Content.PutNoteGroup(ctx, actor, 0, content.NoteGroupInput{Slug: note.GroupSlug, Name: note.Group, Description: note.GroupDescription, Order: note.GroupOrder})
+		} else if err == nil && (existing.Name != note.Group || existing.Description != note.GroupDescription || existing.SortOrder != note.GroupOrder) {
+			return result, errors.New("legacy_note_group_conflict")
+		}
+		if err != nil {
+			return result, err
+		}
+		groups[note.GroupSlug] = true
 	}
 	tags := map[string]int64{}
 	for _, input := range plan.Tags {

@@ -28,11 +28,11 @@ func TestPublicationMigrationPreservesV2History(t *testing.T) {
 		t.Fatal("v2 ready for v3 binary")
 	}
 	for round := 0; round < 2; round++ {
-		if _, err := p.Up(ctx); err != nil {
+		if _, err := p.UpTo(ctx, 3); err != nil {
 			t.Fatal(err)
 		}
-		if database.Ready(ctx, db) != nil {
-			t.Fatal("v3 not ready")
+		if database.Ready(ctx, db) == nil {
+			t.Fatal("schema 3 accepted by schema 4 runtime")
 		}
 		var n int
 		if err := db.QueryRow("SELECT count(*) FROM audit_events WHERE id=7 AND action='content.created'").Scan(&n); err != nil || n != 1 {
@@ -59,7 +59,7 @@ func TestPublicationMigrationPreservesV2History(t *testing.T) {
 			t.Fatal("down lost audit")
 		}
 	}
-	if _, err := p.Up(ctx); err != nil {
+	if _, err := p.UpTo(ctx, 3); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec("INSERT INTO audit_events(actor_user_id,action,entity_type,entity_id,request_id,created_at) VALUES(1,'publication.retry_requested','publication',1,'',1)"); err != nil {
@@ -68,7 +68,8 @@ func TestPublicationMigrationPreservesV2History(t *testing.T) {
 	if _, err := p.Down(ctx); err == nil {
 		t.Fatal("downgrade discarded new audit history")
 	}
-	if database.Ready(ctx, db) != nil {
+	var version int
+	if err := db.QueryRow("SELECT max(version_id) FROM goose_db_version WHERE is_applied=1").Scan(&version); err != nil || version != 3 {
 		t.Fatal("failed downgrade did not roll back")
 	}
 	if _, err := db.Exec("DELETE FROM site_state"); err != nil {

@@ -21,12 +21,15 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it('keeps paged tags unique, searches loaded rows and enforces 100 without blocking deselection', async () => {
+// 120 Base UI checkboxes plus debounced server pages exceed 5s under parallel CI.
+it('keeps paged tags unique, searches server pages and enforces 100 without blocking deselection', async () => {
   const tags = Array.from({ length: 120 }, (_, i) => ({
     id: i + 1,
     name: `标签 ${i + 1}`,
     slug: `tag-${i + 1}`,
     description: '',
+    nameEn: '',
+    descriptionEn: '',
     createdBy: 1,
     createdAt: 1,
     updatedAt: 1,
@@ -37,6 +40,12 @@ it('keeps paged tags unique, searches loaded rows and enforces 100 without block
     vi.fn(async (request: Request) => {
       const after = Number(new URL(request.url).searchParams.get('after') || 0);
       requests.push(after);
+      const q = new URL(request.url).searchParams.get('q') || '';
+      if (q)
+        return Response.json({
+          items: tags.filter((tag) => `${tag.name} ${tag.slug}`.includes(q)),
+          nextCursor: null,
+        });
       return Response.json({
         items: tags.slice(after, after + 60),
         nextCursor: after === 0 ? 60 : null,
@@ -77,17 +86,19 @@ it('keeps paged tags unique, searches loaded rows and enforces 100 without block
   fireEvent.change(screen.getByRole('searchbox'), {
     target: { value: 'tag-118' },
   });
-  expect(screen.getAllByRole('checkbox')).toHaveLength(1);
+  await waitFor(() => expect(screen.getAllByRole('checkbox')).toHaveLength(1));
   expect(screen.getByRole('checkbox').getAttribute('aria-checked')).toBe(
     'true',
   );
   fireEvent.change(screen.getByRole('searchbox'), { target: { value: '' } });
-  expect(screen.getAllByRole('checkbox')).toHaveLength(120);
-  expect(requests).toEqual([0, 60]);
+  await waitFor(() =>
+    expect(screen.getAllByRole('checkbox')).toHaveLength(120),
+  );
+  expect(requests.slice(0, 3)).toEqual([0, 60, 0]);
   expect(
     screen.queryByText('搜索范围为已加载标签，可继续加载更多。'),
   ).toBeNull();
-});
+}, 15000);
 
 it('supports keyboard selection and accessible labels with Base UI', async () => {
   function Demo() {

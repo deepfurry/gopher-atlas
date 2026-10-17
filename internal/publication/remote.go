@@ -79,7 +79,7 @@ func parseMarker(data []byte) (*Marker, error) {
 	var m Marker
 	d := json.NewDecoder(bytes.NewReader(data))
 	d.DisallowUnknownFields()
-	if d.Decode(&m) != nil || d.Decode(new(any)) != io.EOF || m.SchemaVersion != 1 || m.Generation < 0 || m.Generation > 9007199254740991 || !digestPattern.MatchString(m.SnapshotSHA256) || !commitPattern.MatchString(m.CommitSHA) || !buildIDPattern.MatchString(m.BuildID) {
+	if d.Decode(&m) != nil || d.Decode(new(any)) != io.EOF || (m.SchemaVersion != 1 && m.SchemaVersion != 2) || m.Generation < 0 || m.Generation > 9007199254740991 || !digestPattern.MatchString(m.SnapshotSHA256) || !commitPattern.MatchString(m.CommitSHA) || !buildIDPattern.MatchString(m.BuildID) {
 		return nil, fault.SnapshotInvalid
 	}
 	if _, err := time.Parse(time.RFC3339Nano, m.BuiltAt); err != nil {

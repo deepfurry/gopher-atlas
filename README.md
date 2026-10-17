@@ -6,10 +6,10 @@
 当前为 **P0-5.5：Product Realignment & Legacy-Ready Rebuild** 验收版本。
 私有 CMS 提供内容表格、Markdown 编辑/安全预览、串行 autosave、审核工作区、
 Revision History、Tags/Authors/Users/Audit 和 Monitor。Publish 仅表示 **已在 CMS 发布**；
-已实现 Assets/R2、原子 generation/outbox、Snapshot v1、Worker/Hook 和公开构建 marker。
-Public 兼容读取 snapshot v1/v2，通过统一模型构建阅读页面、静态 redirects、RSS/sitemap/SEO 与 Pagefind 搜索；CMS 仍导出 v1。
+已实现 Assets/R2、原子 generation/outbox、Snapshot v2、Worker/Hook 和公开构建 marker。
+Public 兼容读取 snapshot v1/v2，通过统一模型构建阅读页面、静态 redirects、RSS/sitemap/SEO 与 Pagefind 搜索；CMS 统一导出 v2。
 分类元数据支持中英文逐字段回退。B1 独立部署并验证现有 v1 后，才能安排 B2 上线，见 [ADR 0018](docs/decisions/0018-public-snapshot-dual-read.md)。
-Production CMS 已更新并验证登录、备份、generation 1 发布同步与 Worker 首页访问。
+历史 Production 验收已覆盖登录、备份与 v1 发布同步；本轮 B2 尚未执行生产迁移或部署。
 实操命令及验收边界见 [生产操作手册](docs/operations/production-runbook.md)。
 首次 generation → snapshot → Hook → marker 已跑通；正式域名已接入新 Worker。
 详见 [阶段范围](docs/implementation-status.md)。
@@ -69,8 +69,10 @@ make db-up
 
 Bash 使用 `mkdir -p data` 和 `export DATABASE_PATH=./data/gopheratlas.db` 后运行相同
 make 命令。迁移脚本不隐式加载 `.env`；CMS 启动和 `/readyz` 也不会执行迁移。
-已有数据库需显式运行 `make db-up` 至 `00003_publication.sql`。00001/00002 保持不变，
-readiness 要求 schema version 3、cover 列、assets/jobs 和 site_state singleton。
+已有数据库需显式迁移至 `00004_taxonomy_localization.sql`，00001–00003 保持不变；
+readiness 要求 schema version 4、完整分类初始化、cover 列、assets/jobs 和 site_state singleton。
+已有库升级必须先停 writer，显式迁移 00004 后执行 taxonomy plan/apply；见
+[B2/B3 分类升级说明](docs/operations/taxonomy-v2-upgrade.md)。不要直接用 prod-update 代替数据迁移。
 
 配置好根 `.env` 后，可在一个终端启动全部开发服务（Windows PowerShell、Linux/macOS 相同）：
 

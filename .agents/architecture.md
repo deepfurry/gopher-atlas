@@ -76,7 +76,7 @@ not falsely claim to contain the production UI. The final `make check` build
 always uses freshly built assets and runs embed-specific route/cache tests.
 
 OpenAPI and migration/SQL inputs are authoritative for executable interfaces.
-Snapshot v1 is a closed public projection. Export uses one deferred SQLite read
+Snapshot v1/v2 are independent closed public projections. CMS writes v2. Export uses one deferred SQLite read
 transaction, then closes it and rechecks freshness before network I/O. A shared
 in-process fence closes the stale latest PUT race: services acquire it before
 BEGIN; worker acquires it around latest/Hook without a DB transaction.
@@ -84,7 +84,10 @@ Asset upload validates/uploads before a short reauthorized row/Audit transaction
 The Web loader keeps RO credentials in Node; Astro env loading is disabled.
 
 B1 (ADR 0018) adds strict closed v1/v2 consumer validation and a single normalized
-Public taxonomy model; the Go exporter remains v1. v2 groups are authoritative,
+Public taxonomy model. B2 (ADR 0019) adds schema 4, authoritative groups,
+English tag translations and the v2-only Go exporter. Explicit offline plan/apply
+imports consistent legacy metadata without rewriting Revisions and allocates a
+new generation; readiness blocks partially upgraded existing databases. v2 groups are authoritative,
 while validated v1 groups are adapted from Note payloads. Only taxonomy metadata
 is localized, with independent English field fallback. Marker hashes/versions
 describe original bytes. B1 deployment and live v1 verification precede B2.

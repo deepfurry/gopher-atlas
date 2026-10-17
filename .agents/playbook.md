@@ -13,8 +13,8 @@
    when behavior changes; use an ADR for decisions expensive to reverse.
    Editorial changes need real SQLite race scenarios, relation rollback,
    immutable snapshot/published isolation and transactional Audit checks.
-   Never edit migrations 00001/00002; P0-4 adds only 00003 and readiness remains
-   read-only at schema 3. Publication tests need job-failure rollback, freshness,
+   Never edit migrations 00001–00003; B2 adds 00004 and explicit taxonomy
+   plan/apply. Readiness requires schema 4 and completed taxonomy initialization. Publication tests need job-failure rollback, freshness,
    snapshot privacy and worker recovery with fake external dependencies. UI changes need autosave/409/flush/immutable-review
    tests and a preview test proving external images never produce img elements.
    Verify a fresh embedded build in a browser, including first lazy navigation,

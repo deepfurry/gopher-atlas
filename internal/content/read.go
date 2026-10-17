@@ -33,7 +33,15 @@ func (s *Service) loadDraft(ctx context.Context, q *dbsqlc.Queries, id int64) (D
 	if err != nil {
 		return Draft{}, err
 	}
-	return Draft{CoverAsset: cover, DraftInput: DraftInput{Version: d.Version, Fields: draftFields(d), Relations: Relations{tags, topic}},
+	c, err := q.GetContent(ctx, id)
+	if err != nil {
+		return Draft{}, dbError(err)
+	}
+	fields := draftFields(d)
+	if err := hydrateNote(ctx, q, c.Type, &fields, false); err != nil {
+		return Draft{}, err
+	}
+	return Draft{CoverAsset: cover, DraftInput: DraftInput{Version: d.Version, Fields: fields, Relations: Relations{tags, topic}},
 		PayloadSchemaVersion: d.PayloadSchemaVersion, UpdatedBy: d.UpdatedBy, UpdatedAt: d.UpdatedAt}, nil
 }
 func (s *Service) loadRevision(ctx context.Context, q *dbsqlc.Queries, c dbsqlc.ContentItem, r dbsqlc.ContentRevision) (Revision, error) {

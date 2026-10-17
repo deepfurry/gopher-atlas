@@ -289,5 +289,8 @@ Curated emphasizes title/summary/rationale and an original-source/curation inspe
 Topic emphasizes guide plus a wider ordered-list inspector; recommendation and
 ordinary entries form one list with a boundary. Dragging and keyboard move controls
 serialize into the same full Draft snapshot. Notes preserve the large Markdown
-workspace and infer shared groups. All existing save/conflict/workflow controls,
+workspace and select authoritative existing groups. Admin manages bilingual
+metadata on the independent 随笔分组 page; English fields are optional. Tags and
+groups use permanent slugs and bounded server search. Published Notes warn about
+comment terms before changing groups (ADR 0019). All existing save/conflict/workflow controls,
 permissions, source-only editor and local Public Draft Preview remain unchanged.

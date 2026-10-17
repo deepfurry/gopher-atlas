@@ -78,12 +78,13 @@ export function TagSelect({
   onChange: (ids: number[]) => void;
   selected?: Schema<'Tag'>[];
 }) {
-  const [q, setQ] = useState('');
-  const tags = usePages(['tags'], async (after, signal) =>
+  const [search, setSearch] = useState('');
+  const q = useDebounced(search.trim());
+  const tags = usePages(['tags', q], async (after, signal) =>
     unwrap(
       await client.GET('/api/admin/v1/tags', {
         signal,
-        params: { query: { after } },
+        params: { query: { after, q } },
       }),
     ),
   );
@@ -95,8 +96,13 @@ export function TagSelect({
   // Match the API's ID order: refreshed selected summaries must not move
   // the focused checkbox to the top (and drag the scroll viewport with it).
   const ids = [...new Set(value)];
-  const visible = merged.filter((tag) =>
-    `${tag.name} ${tag.slug}`.toLowerCase().includes(q.toLowerCase()),
+  const returned = new Set(tags.items.map((tag) => tag.id));
+  const visible = merged.filter(
+    (tag) =>
+      returned.has(tag.id) ||
+      `${tag.name} ${tag.slug} ${tag.nameEn}`
+        .toLowerCase()
+        .includes(q.toLowerCase()),
   );
   return (
     <fieldset className="selector">
@@ -104,10 +110,10 @@ export function TagSelect({
         标签 <span className="caption">已选择 {ids.length} / 100</span>
       </legend>
       <SearchInput
-        aria-label="搜索已加载标签"
-        placeholder="搜索已加载标签…"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
+        aria-label="搜索标签"
+        placeholder="搜索标签…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
       />
       <div className="selection-list">
         {visible.map((tag) => (
@@ -130,7 +136,9 @@ export function TagSelect({
       <ErrorNotice error={tags.error} />
       <LoadMore {...tags} />
       {tags.hasNextPage && (
-        <p className="caption">搜索范围为已加载标签，可继续加载更多。</p>
+        <p className="caption">
+          可继续加载更多搜索结果；已选标签不会因搜索而取消。
+        </p>
       )}
     </fieldset>
   );

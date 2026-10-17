@@ -57,7 +57,11 @@ func relationLabels(ctx context.Context, q *dbsqlc.Queries, u dbsqlc.User, relat
 		return result, dbError(err)
 	}
 	for _, t := range tags {
-		result.Tags = append(result.Tags, tagDTO(t))
+		tag, err := tagDTO(ctx, q, t)
+		if err != nil {
+			return result, err
+		}
+		result.Tags = append(result.Tags, tag)
 	}
 	ids := make([]int64, 0, len(relations.TopicEntries))
 	for _, e := range relations.TopicEntries {

@@ -2,8 +2,8 @@
 
 ## B1 Public reader compatibility (ADR 0018)
 
-The CMS still exports v1; SQLite remains schema 3; content payload schema remains 1.
-B1 adds no migration, Admin/API changes or v2 writer. The original closed
+B2 (ADR 0019) now writes v2 with SQLite schema 4; content payload schema remains 1.
+B1 introduced the consumer independently, before the writer upgrade. The original closed
 `content-snapshot.schema.json` is immutable for this delivery; the independent
 `content-snapshot.v2.schema.json` is the exact v2 wire contract. Both versions
 retain every shared public field and safety/reference rule. Unknown versions and
@@ -18,14 +18,43 @@ No authored content, canonical route, permanent slug or comment term is translat
 The source schemaVersion/hash survive normalization in the public build marker.
 B1 must be deployed and verified against current v1 before any B2 Production rollout.
 
-## P0-5.5 product alignment (ADR 0012)
+## B2 authoritative taxonomy (ADR 0019)
 
-No migration: schema 3 and migrations 00001–00003 stay unchanged. Normal workflows
+Migration 00004 adds note_groups and English-only tag_translations; existing tag
+IDs/slugs/names and all historical content remain unchanged. Tags and groups have
+permanent slugs. No hard-delete API exists. Admin writes; reauthorized active roles
+read bounded ID-keyset pages (100) with q <=100 characters over slug/Chinese/English
+name. Translation rows need a nonempty English name; English tag descriptions
+without a name are rejected. Empty/omitted English tag inputs remove the translation.
+Group English fields may be independently empty; Public falls back per field.
+
+Note Draft payload remains v1. Save/restore/new Revision gates resolve groupSlug
+and overwrite display mirrors from note_groups; empty groupSlug is allowed only
+for incomplete Drafts. Current read projections resolve metadata without mutating
+stored rows. Historical Revision reads remain exact. A historical group must exist
+before restoring its Revision. Reviewed publish selects the exact candidate.
+Metadata updates to groups/tags used by selected active published Revisions take
+the fence before BEGIN and atomically append Audit plus one generation/job.
+Draft-only/unused taxonomy changes never publish.
+
+The explicit offline plan/apply tool scans current Drafts and selected active
+published Notes, rejects inconsistent mirrors, checks a source fingerprint and
+imports groups without changing content/history/routes. taxonomy_state blocks
+readiness/export until apply commits for existing databases; fresh empty databases
+initialize ready in the migration. Apply advances one generation for v2 bytes,
+never reusing an immutable v1 snapshot key or creating new article Revisions.
+Down refuses new taxonomy/import/Audit data. See the
+[upgrade runbook](../docs/operations/taxonomy-v2-upgrade.md).
+
+## P0-5.5 product alignment (ADR 0012; taxonomy superseded by ADR 0019)
+
+The original P0-5.5 increment made no migration; B2 preserves 00001–00003 and
+adds 00004. Normal workflows
 use curated_article, topic and note; post remains a compatible stored/API type.
 Note payload v1 adds groupDescription (<=1000 characters) and groupOrder (0..1M).
 Topic payload adds recommendedCount (0..100 and <=entry count); all targets must
-be curated_article at save/submit/publish/export. Note published group name,
-description and groupOrder must match for the same groupSlug.
+be curated_article at save/submit/publish/export. Historical v1 exports require matching embedded group mirrors; v2 ignores those
+mirrors and reads current note_groups metadata.
 
 Curated difficulty is beginner/intermediate/advanced; rating is
 S+/S/A+/A/B+/B/C+/C. Incomplete Draft fields may be empty, complete publication may
@@ -116,7 +145,7 @@ ordinary JSON 1 MiB. Go Markdown safety validation is authoritative. Tags and To
 entries each cap at 100. SQL batch queries validate referenced identities.
 
 Tags have deterministic Unicode-lowercase/whitespace-collapsed normalized names,
-unique names and explicit unique slugs. Renaming never derives another slug.
+unique names and explicit immutable slugs. Renaming cannot change the slug.
 Admin writes; active roles select. Topic cannot use Tags. Topic positions are
 derived from array order starting at 1; self/duplicate targets are rejected.
 Topic references Content identity, not a fixed Revision. Draft/review permits
@@ -156,7 +185,7 @@ projection. Draft never supplies an exported field.
 R2 snapshots are not database backups. Production backup/restore must preserve
 private data and WAL consistency; see operations documentation.
 
-ADR 0013: Development persists the same schema 3 data and jobs in local SQLite,
+ADR 0013: Development persists the same schema 4 data and jobs in local SQLite,
 with assets/full snapshots in sibling `storage/assets` and `storage/content`.
 Treat DB and storage as one backup set. Startup never resets/seeds data, rewrites
 immutable revisions, migrates schema or retrieves old remote objects. Local

@@ -1273,7 +1273,7 @@ paths:
       tags:
         - Tags
       summary: List selectable tags
-      description: All active roles. No hard delete in P0-2.
+      description: All active roles can select existing taxonomy; no hard delete.
       responses:
         '200':
           description: Successful operation
@@ -1300,6 +1300,12 @@ paths:
         default:
           $ref: '#/components/responses/Error'
       parameters:
+        - name: q
+          in: query
+          description: Bounded search of slug, Chinese name and English name; keyset pages remain in ID order.
+          schema:
+            type: string
+            maxLength: 100
         - name: after
           in: query
           description:
@@ -1356,7 +1362,7 @@ paths:
       tags:
         - Tags
       summary: Update tag
-      description: Admin only. Explicit slug is persisted; changing name never computes a new slug. Atomic audit.
+      description: Admin only. Slug is immutable after creation. Atomic audit; published usage queues a generation.
       responses:
         '200':
           description: Successful operation
@@ -1400,6 +1406,145 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TagInput'
+  /api/admin/v1/note-groups:
+    get:
+      operationId: listNoteGroups
+      tags:
+        - NoteGroups
+      summary: List selectable note groups
+      description: All active roles can select existing taxonomy; no hard delete.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoteGroupList'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: q
+          in: query
+          description: Bounded search of slug, Chinese name and English name; keyset pages remain in ID order.
+          schema:
+            type: string
+            maxLength: 100
+        - name: after
+          in: query
+          description:
+            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use revisionNo;
+            other lists use the returned row ID.
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            default: 0
+    post:
+      operationId: createNoteGroup
+      tags:
+        - NoteGroups
+      summary: Create note group
+      description: Admin only; explicit slug must be unique. Atomic audit.
+      responses:
+        '201':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoteGroup'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - Session: []
+          CSRF: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteGroupInput'
+  /api/admin/v1/note-groups/{id}:
+    put:
+      operationId: updateNoteGroup
+      tags:
+        - NoteGroups
+      summary: Update note group
+      description: Admin only. Slug is immutable after creation. Atomic audit.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoteGroup'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Note group identity.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      security:
+        - Session: []
+          CSRF: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteGroupInput'
   /api/admin/v1/audit:
     get:
       operationId: listAudit
@@ -2109,6 +2254,9 @@ components:
                 - invalid_markdown
                 - invalid_payload
                 - tag_conflict
+                - group_conflict
+                - group_missing
+                - taxonomy_slug_immutable
                 - topic_target_unpublished
                 - asset_invalid
                 - asset_too_large
@@ -2164,6 +2312,7 @@ components:
       required: []
       properties: {}
     NotePayload:
+      description: Storage payload v1; groupSlug selects an existing group. Go replaces group/groupDescription/groupOrder mirrors at write gates. Empty groupSlug is allowed only in incomplete Drafts.
       type: object
       additionalProperties: false
       required: []
@@ -3008,6 +3157,12 @@ components:
         - slug
         - description
       properties:
+        nameEn:
+          type: string
+          maxLength: 100
+        descriptionEn:
+          type: string
+          maxLength: 1000
         name:
           type: string
           maxLength: 100
@@ -3021,7 +3176,7 @@ components:
           maxLength: 1000
       description:
         Admin only. Names are trimmed, whitespace collapsed and lowercased for deterministic uniqueness.
-        Slug is explicit and is never recomputed from name.
+        Slug is immutable after creation. English fields are optional on input; empty nameEn requires empty descriptionEn.
     Tag:
       type: object
       additionalProperties: false
@@ -3030,10 +3185,18 @@ components:
         - name
         - slug
         - description
+        - nameEn
+        - descriptionEn
         - createdBy
         - createdAt
         - updatedAt
       properties:
+        nameEn:
+          type: string
+          maxLength: 100
+        descriptionEn:
+          type: string
+          maxLength: 1000
         id:
           type: integer
           format: int64
@@ -3053,6 +3216,86 @@ components:
           type: integer
           format: int64
           minimum: 1
+        createdAt:
+          type: integer
+          format: int64
+          minimum: 0
+        updatedAt:
+          type: integer
+          format: int64
+          minimum: 0
+    NoteGroupInput:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - slug
+        - description
+        - order
+        - nameEn
+        - descriptionEn
+      properties:
+        order:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        nameEn:
+          type: string
+          maxLength: 100
+        descriptionEn:
+          type: string
+          maxLength: 1000
+        name:
+          type: string
+          maxLength: 100
+          minLength: 1
+        slug:
+          type: string
+          maxLength: 100
+          pattern: ^[a-z0-9]+(?:-[a-z0-9]+)*$
+        description:
+          type: string
+          maxLength: 1000
+      description: Admin only; immutable unique slug. Optional-in-value English fields fall back independently in Public.
+    NoteGroup:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - slug
+        - description
+        - order
+        - nameEn
+        - descriptionEn
+        - createdAt
+        - updatedAt
+      properties:
+        order:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        nameEn:
+          type: string
+          maxLength: 100
+        descriptionEn:
+          type: string
+          maxLength: 1000
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        name:
+          type: string
+          maxLength: 100
+          minLength: 1
+        slug:
+          type: string
+          maxLength: 100
+          pattern: ^[a-z0-9]+(?:-[a-z0-9]+)*$
+        description:
+          type: string
+          maxLength: 1000
         createdAt:
           type: integer
           format: int64
@@ -3105,6 +3348,10 @@ components:
             - content.revision_restored
             - tag.created
             - tag.updated
+            - note_group.created
+            - note_group.updated
+            - note_group.imported
+            - publication.taxonomy_upgraded
             - asset.uploaded
             - asset.deleted
             - asset.restored
@@ -3116,6 +3363,7 @@ components:
             - author
             - content
             - tag
+            - note_group
             - asset
             - publication
         entityId:
@@ -3248,6 +3496,26 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
+          maxItems: 100
+        nextCursor:
+          type:
+            - integer
+            - 'null'
+          format: int64
+          description:
+            Use as after for the next page. Null ends pagination. A full final page may yield one empty next
+            page.
+    NoteGroupList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NoteGroup'
           maxItems: 100
         nextCursor:
           type:
@@ -3743,7 +4011,7 @@ components:
       properties:
         schemaVersion:
           type: integer
-          const: 1
+          enum: [1, 2]
         generation:
           type: integer
           format: int64

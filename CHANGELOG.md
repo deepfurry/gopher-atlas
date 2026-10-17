@@ -1,5 +1,16 @@
 # Changelog
 
+## B2 taxonomy authority and Snapshot v2 writer (2026-10-17)
+
+- Add schema 4 with independent Note groups, English tag translations and protected
+  Audit migration; preserve migrations 1–3 and immutable content/history/routes.
+- Add explicit read-only plan, fingerprint-checked offline apply and local export;
+  reject conflicts, prevent partial startup and allocate a fresh v2 generation.
+- Add Chinese Admin group management, optional English metadata, permanent slugs,
+  server-paged taxonomy search and select-only Note grouping with comment warning.
+- Export only v2 while retaining B1 v1/v2 reading and A/A2 editor behavior. Production
+  backup/copy rehearsal, migration and deployment remain separate operator gates.
+
 ## B1 Public Snapshot v1/v2 compatibility (2026-10-17)
 
 - Preserve the v1 schema/fixture and CMS exporter; add a closed v2 consumer with

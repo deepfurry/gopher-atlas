@@ -26,6 +26,9 @@ func (h *Handler) registerEditorial(api fiber.Router) {
 	api.Get("/tags", h.listTags)
 	api.Post("/tags", h.putTag)
 	api.Put("/tags/:id", h.putTag)
+	api.Get("/note-groups", h.listNoteGroups)
+	api.Post("/note-groups", h.putNoteGroup)
+	api.Put("/note-groups/:id", h.putNoteGroup)
 	api.Get("/audit", h.listAudit)
 }
 
@@ -327,7 +330,7 @@ func (h *Handler) listTags(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	result, err := h.Content.Tags(c.Context(), principal(c), after)
+	result, err := h.Content.Tags(c.Context(), principal(c), after, c.Query("q"))
 	if err != nil {
 		return err
 	}
@@ -363,6 +366,40 @@ func (h *Handler) listAudit(c fiber.Ctx) error {
 	result, err := h.Content.Audit(c.Context(), principal(c), after)
 	if err != nil {
 		return err
+	}
+	return c.JSON(result)
+}
+
+func (h *Handler) listNoteGroups(c fiber.Ctx) error {
+	after, err := cursor(c)
+	if err != nil {
+		return err
+	}
+	result, err := h.Content.NoteGroups(c.Context(), principal(c), after, c.Query("q"))
+	if err != nil {
+		return err
+	}
+	return c.JSON(result)
+}
+func (h *Handler) putNoteGroup(c fiber.Ctx) error {
+	var id int64
+	var err error
+	if c.Method() == "PUT" {
+		id, err = userID(c)
+		if err != nil {
+			return err
+		}
+	}
+	var input content.NoteGroupInput
+	if err := decodeRequired(c, &input, "name", "slug", "description", "nameEn", "descriptionEn", "order"); err != nil {
+		return err
+	}
+	result, err := h.Content.PutNoteGroup(c.Context(), principal(c), id, input)
+	if err != nil {
+		return err
+	}
+	if id == 0 {
+		c.Status(201)
 	}
 	return c.JSON(result)
 }

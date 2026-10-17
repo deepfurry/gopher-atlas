@@ -60,7 +60,7 @@ func TestTopicProductTargetsAndRecommendationSnapshot(t *testing.T) {
 	}
 }
 
-func TestPublishedNoteGroupConsistencyAndLegacyDatesAtomicity(t *testing.T) {
+func TestAuthoritativeNoteGroupAndLegacyDatesAtomicity(t *testing.T) {
 	r := newRig(t)
 	a := r.prepared(t, r.admin, "note", "one")
 	_, err := r.s.PublishDirect(ctx, r.admin, a.ID, a.Draft.Version)
@@ -70,16 +70,11 @@ func TestPublishedNoteGroupConsistencyAndLegacyDatesAtomicity(t *testing.T) {
 	in.Payload = json.RawMessage(`{"group":"Runtime","groupSlug":"runtime","groupDescription":"conflicting","groupOrder":1,"order":2}`)
 	draft, err := r.s.Save(ctx, r.admin, b.ID, in)
 	must(t, err)
-	before := r.count(t, "audit_events")
-	_, err = r.s.PublishDirect(ctx, r.admin, b.ID, draft.Version)
-	wantError(t, err, fault.Payload)
-	if r.count(t, "audit_events") != before || r.count(t, "publication_jobs") != 1 {
-		t.Fatal("group conflict leaked mutation")
+	var mirror NotePayload
+	must(t, json.Unmarshal(draft.Payload, &mirror))
+	if mirror.GroupDescription != "" || mirror.GroupOrder != 0 {
+		t.Fatal("client mirrors overrode authoritative group")
 	}
-	in.Version = draft.Version
-	in.Payload = json.RawMessage(`{"group":"Runtime","groupSlug":"runtime","groupDescription":"","groupOrder":0,"order":2}`)
-	draft, err = r.s.Save(ctx, r.admin, b.ID, in)
-	must(t, err)
 	_, err = r.db.Exec("CREATE TRIGGER fail_legacy_job BEFORE INSERT ON publication_jobs BEGIN SELECT RAISE(ABORT,'forced'); END")
 	must(t, err)
 	_, err = r.s.PublishLegacy(ctx, r.admin, b.ID, draft.Version, LegacyDates{First: 1000, Last: 2000})

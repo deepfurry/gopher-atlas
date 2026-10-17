@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"sort"
 	"time"
 
@@ -26,11 +27,32 @@ type Author struct {
 	WebsiteURL  string `json:"websiteUrl"`
 }
 type Tag struct {
-	ID          int64  `json:"id"`
-	Name        string `json:"name"`
-	Slug        string `json:"slug"`
-	Description string `json:"description"`
+	ID            int64  `json:"id"`
+	Name          string `json:"name"`
+	Slug          string `json:"slug"`
+	Description   string `json:"description"`
+	NameEn        string `json:"nameEn"`
+	DescriptionEn string `json:"descriptionEn"`
 }
+type Group struct {
+	ID            int64  `json:"id"`
+	Slug          string `json:"slug"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	NameEn        string `json:"nameEn"`
+	DescriptionEn string `json:"descriptionEn"`
+	Order         int64  `json:"order"`
+}
+
+func (g Group) valid() bool {
+	return (content.NoteGroupInput{Slug: g.Slug, Name: g.Name, Description: g.Description, NameEn: g.NameEn, DescriptionEn: g.DescriptionEn, Order: g.Order}).Valid()
+}
+
+type NotePayload struct {
+	GroupSlug string `json:"groupSlug"`
+	Order     int64  `json:"order"`
+}
+
 type TopicEntry struct {
 	Position        int64 `json:"position"`
 	TargetContentID int64 `json:"targetContentId"`
@@ -67,6 +89,7 @@ type Snapshot struct {
 	ExportedAt    string           `json:"exportedAt"`
 	Authors       []Author         `json:"authors"`
 	Assets        []assets.Summary `json:"assets"`
+	Groups        []Group          `json:"groups"`
 	Tags          []Tag            `json:"tags"`
 	Content       []PublicContent  `json:"content"`
 	Routes        []Route          `json:"routes"`
@@ -116,7 +139,11 @@ func (e *Exporter) Export(ctx context.Context, generation int64) (Exported, erro
 	if e.afterReadStarted != nil {
 		e.afterReadStarted()
 	}
-	result := Snapshot{SchemaVersion: 1, Generation: generation, ExportedAt: time.UnixMilli(state.UpdatedAt).UTC().Format(time.RFC3339Nano), Authors: []Author{}, Assets: []assets.Summary{}, Tags: []Tag{}, Content: []PublicContent{}, Routes: []Route{}}
+	taxonomy, err := q.GetTaxonomyState(ctx)
+	if err != nil || taxonomy.Ready != 1 {
+		return Exported{}, fault.SnapshotInvalid
+	}
+	result := Snapshot{SchemaVersion: 2, Generation: generation, ExportedAt: time.UnixMilli(state.UpdatedAt).UTC().Format(time.RFC3339Nano), Authors: []Author{}, Assets: []assets.Summary{}, Tags: []Tag{}, Groups: []Group{}, Content: []PublicContent{}, Routes: []Route{}}
 	expected, err := q.CountPublishedContent(ctx)
 	if err != nil {
 		return Exported{}, fault.Unavailable
@@ -133,6 +160,7 @@ func (e *Exporter) Export(ctx context.Context, generation int64) (Exported, erro
 	authors := map[int64]bool{}
 	covers := map[int64]bool{}
 	tags := map[int64]bool{}
+	groups := map[string]bool{}
 	after := int64(0)
 	for {
 		rows, err := q.ExportPublishedContent(ctx, dbsqlc.ExportPublishedContentParams{AfterID: after, PageSize: 100})
@@ -150,6 +178,28 @@ func (e *Exporter) Export(ctx context.Context, generation int64) (Exported, erro
 			path, err := content.PublishedPath(r.Type, content.Fields{Title: r.Title, Slug: r.Slug, Summary: r.Summary, BodyMarkdown: r.BodyMarkdown, BylineUserID: r.BylineUserID, Language: r.Language, Featured: r.Featured == 1, SEOTitle: r.SeoTitle, SEODescription: r.SeoDescription, Payload: payload}, e.AssetPolicy)
 			if err != nil || path != r.CanonicalPath {
 				return Exported{}, fault.SnapshotInvalid
+			}
+			if r.Type == "note" {
+				var note content.NotePayload
+				if json.Unmarshal(payload, &note) != nil {
+					return Exported{}, fault.SnapshotInvalid
+				}
+				if !groups[note.GroupSlug] {
+					g, err := q.GetNoteGroupBySlug(ctx, note.GroupSlug)
+					if err != nil {
+						return Exported{}, fault.SnapshotInvalid
+					}
+					group := Group{ID: g.ID, Slug: g.Slug, Name: g.Name, Description: g.Description, NameEn: g.NameEn, DescriptionEn: g.DescriptionEn, Order: g.SortOrder}
+					if !group.valid() || !fits(group) {
+						return Exported{}, fault.SnapshotInvalid
+					}
+					result.Groups = append(result.Groups, group)
+					groups[g.Slug] = true
+				}
+				payload, err = json.Marshal(NotePayload{note.GroupSlug, note.Order})
+				if err != nil {
+					return Exported{}, fault.SnapshotInvalid
+				}
 			}
 			item := PublicContent{ID: r.ContentID, Type: r.Type, RevisionNo: r.RevisionNo, CanonicalPath: r.CanonicalPath, Title: r.Title, Slug: r.Slug, Summary: r.Summary, BodyMarkdown: r.BodyMarkdown, AuthorID: r.BylineUserID, Language: r.Language, Featured: r.Featured == 1, SEOTitle: r.SeoTitle, SEODescription: r.SeoDescription, FirstPublishedAt: r.FirstPublishedAt.Int64, LastPublishedAt: r.LastPublishedAt.Int64, Payload: payload, TopicEntries: []TopicEntry{}}
 			item.TagIDs, err = q.RevisionTagIDs(ctx, r.ID)
@@ -197,7 +247,14 @@ func (e *Exporter) Export(ctx context.Context, generation int64) (Exported, erro
 					if err != nil {
 						return Exported{}, fault.SnapshotInvalid
 					}
-					tag := Tag{t.ID, t.Name, t.Slug, t.Description}
+					tag := Tag{ID: t.ID, Name: t.Name, Slug: t.Slug, Description: t.Description}
+					tr, err := q.GetTagTranslation(ctx, t.ID)
+					if err != nil && !errors.Is(err, sql.ErrNoRows) {
+						return Exported{}, fault.SnapshotInvalid
+					}
+					if err == nil {
+						tag.NameEn, tag.DescriptionEn = tr.Name, tr.Description
+					}
 					if !fits(tag) {
 						return Exported{}, fault.SnapshotInvalid
 					}
@@ -238,6 +295,7 @@ func (e *Exporter) Export(ctx context.Context, generation int64) (Exported, erro
 	}
 	sort.Slice(result.Authors, func(i, j int) bool { return result.Authors[i].ID < result.Authors[j].ID })
 	sort.Slice(result.Assets, func(i, j int) bool { return result.Assets[i].ID < result.Assets[j].ID })
+	sort.Slice(result.Groups, func(i, j int) bool { return result.Groups[i].ID < result.Groups[j].ID })
 	sort.Slice(result.Tags, func(i, j int) bool { return result.Tags[i].ID < result.Tags[j].ID })
 	if err := validateGraph(result, e.AssetPolicy); err != nil {
 		return Exported{}, err
@@ -267,13 +325,23 @@ func validateGraph(s Snapshot, policies ...markdown.Policy) error {
 	if len(policies) > 0 {
 		policy = policies[0]
 	}
-	if len(s.Content) > 10000 || len(s.Authors) > 10000 || len(s.Assets) > 10000 || len(s.Tags) > 100000 || len(s.Routes) > 100000 {
+	if s.SchemaVersion != 2 || len(s.Groups) > 10000 || len(s.Content) > 10000 || len(s.Authors) > 10000 || len(s.Assets) > 10000 || len(s.Tags) > 100000 || len(s.Routes) > 100000 {
 		return fault.SnapshotInvalid
 	}
 	contents := map[int64]PublicContent{}
-	groups := map[string]content.NotePayload{}
+	groups := map[string]bool{}
+	groupIDs := map[int64]bool{}
+	for _, g := range s.Groups {
+		if g.ID <= 0 || groupIDs[g.ID] || groups[g.Slug] || !g.valid() {
+			return fault.SnapshotInvalid
+		}
+		groups[g.Slug] = true
+		groupIDs[g.ID] = true
+	}
+	usedGroups := map[string]bool{}
 	authors := map[int64]bool{}
 	tags := map[int64]bool{}
+	tagSlugs := map[string]bool{}
 	covers := map[int64]bool{}
 	for _, a := range s.Authors {
 		if a.ID <= 0 || authors[a.ID] {
@@ -288,21 +356,23 @@ func validateGraph(s Snapshot, policies ...markdown.Policy) error {
 		covers[a.ID] = true
 	}
 	for _, t := range s.Tags {
-		if t.ID <= 0 || tags[t.ID] {
+		if t.ID <= 0 || tags[t.ID] || tagSlugs[t.Slug] || !(content.NoteGroupInput{Slug: t.Slug, Name: t.Name, Description: t.Description, NameEn: t.NameEn, DescriptionEn: t.DescriptionEn}).Valid() {
 			return fault.SnapshotInvalid
 		}
 		tags[t.ID] = true
+		tagSlugs[t.Slug] = true
 	}
 	for _, c := range s.Content {
 		if c.Type == "note" {
-			var note content.NotePayload
-			if json.Unmarshal(c.Payload, &note) != nil {
+			var note NotePayload
+			var raw map[string]json.RawMessage
+			if json.Unmarshal(c.Payload, &note) != nil || json.Unmarshal(c.Payload, &raw) != nil || len(raw) != 2 || !groups[note.GroupSlug] || note.Order < 0 || note.Order > 1000000 {
 				return fault.SnapshotInvalid
 			}
-			if prior, ok := groups[note.GroupSlug]; ok && (prior.Group != note.Group || prior.GroupDescription != note.GroupDescription || prior.GroupOrder != note.GroupOrder) {
+			if _, ok := raw["order"]; !ok || string(raw["order"]) == "null" {
 				return fault.SnapshotInvalid
 			}
-			groups[note.GroupSlug] = note
+			usedGroups[note.GroupSlug] = true
 		}
 		if c.ID <= 0 || contents[c.ID].ID != 0 || !authors[c.AuthorID] || c.CanonicalPath == "" || (c.CoverAssetID != nil && !covers[*c.CoverAssetID]) {
 			return fault.SnapshotInvalid
@@ -313,6 +383,9 @@ func validateGraph(s Snapshot, policies ...markdown.Policy) error {
 			}
 		}
 		contents[c.ID] = c
+	}
+	if len(usedGroups) != len(groups) {
+		return fault.SnapshotInvalid
 	}
 	for _, c := range s.Content {
 		seen := map[int64]bool{}

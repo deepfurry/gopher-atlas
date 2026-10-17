@@ -52,6 +52,8 @@ func newRig(t *testing.T) *rig {
 	r.editor = identity.Principal(t, db, 2, "editor")
 	r.reviewer = identity.Principal(t, db, 3, "reviewer")
 	r.worker = New(db, config.Publication{Endpoint: "https://r2.invalid", ContentBucket: "content", HookURL: "https://hook.invalid", PublicSiteURL: "https://site.invalid"}, store, a.PublicationFence(), zap.NewNop())
+	_, groupErr := r.q.CreateNoteGroup(ctx, dbsqlc.CreateNoteGroupParams{Slug: "public", Name: "Public group"})
+	must(t, groupErr)
 	r.worker.hook = func(context.Context) error { return nil }
 	r.worker.marker = func(context.Context) (*Marker, error) { return nil, fault.SnapshotInvalid }
 	return r
@@ -264,6 +266,8 @@ func TestCoverSnapshotPrivacyAndPublishedIsolation(t *testing.T) {
 	must(t, err)
 	d = r.publish(t, d)
 	private := rand.Text()
+	_, err = r.content.PutNoteGroup(ctx, r.admin, 0, content.NoteGroupInput{Slug: "private", Name: private})
+	must(t, err)
 	in = d.Draft.DraftInput
 	in.Title = private
 	in.BodyMarkdown = "## " + private

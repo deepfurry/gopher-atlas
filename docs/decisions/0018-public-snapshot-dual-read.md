@@ -1,7 +1,7 @@
 # ADR 0018 — B1 Public Snapshot v1/v2 compatibility
 
 - Date: 2026-10-17
-- Status: Accepted; deployment and live v1 acceptance remain operator gates
+- Status: Accepted; B1 deployed with v1 and confirmed by the operator on 2026-10-17
 - Scope: Public consumer only; supersedes the v1-only reader and payload-derived
   Public taxonomy assumptions in ADRs 0009/0012, not the current CMS writer
 

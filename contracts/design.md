@@ -109,6 +109,11 @@ published data, route, safety and editorial semantics stay unchanged.
   Replace that selection through UIW's text API after the dialogs close; stale
   body/mode/session captures cannot write. No source selection appends explicitly.
   Tag choices retain API ID order across save refreshes, with a 100-tag limit.
+  Tag/group searches use bounded server pages, never full-table browser downloads.
+- Tags and independent Note groups have optional English metadata; Admin UI stays
+  Chinese. Slugs are create-only/read-only on edit. Notes select existing groups
+  and order only; published Notes warn before a group change about retained URL
+  redirects and changed Giscus terms without comment migration (ADR 0019).
 - React + Vite, **shadcn/ui with Base UI primitives**, Tailwind CSS v4. Do not mix
   Radix or React Aria primitives without an ADR explaining a concrete need.
 - Medium/high information density; flat surfaces, small 6–8 px radii, restrained

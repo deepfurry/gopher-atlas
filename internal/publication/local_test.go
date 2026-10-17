@@ -95,6 +95,8 @@ func TestLocalPipelinePersistsRealDomainAndAssetsWithoutExternalCalls(t *testing
 	first, err := store.Get(ctx, "content", "snapshots/generation-1.json", storage.MaxSnapshotBytes)
 	must(t, err)
 	create("topic", "local-topic", `{"recommendedCount":1}`, "## 本地编排", []content.TopicEntry{{TargetContentID: article.ID}}, nil)
+	_, err = c.PutNoteGroup(ctx, actor, 0, content.NoteGroupInput{Slug: "local", Name: "本地", Description: "真实持久化"})
+	must(t, err)
 	note := create("note", "local-note", `{"group":"本地","groupSlug":"local","groupDescription":"真实持久化","groupOrder":0,"order":1}`, "## 长篇随笔\n\n"+strings.Repeat("本地持久化阅读内容。\n\n", 300)+"![本地图]("+asset.URL+")", nil, &asset.ID)
 	// Soft deletion keeps published covers and immutable image bytes available.
 	_, err = as.SetDeleted(ctx, actor, asset.ID, true)

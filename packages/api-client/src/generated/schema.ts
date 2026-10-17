@@ -557,7 +557,7 @@ export interface paths {
         };
         /**
          * List selectable tags
-         * @description All active roles. No hard delete in P0-2.
+         * @description All active roles can select existing taxonomy; no hard delete.
          */
         get: operations["listTags"];
         put?: never;
@@ -582,9 +582,53 @@ export interface paths {
         get?: never;
         /**
          * Update tag
-         * @description Admin only. Explicit slug is persisted; changing name never computes a new slug. Atomic audit.
+         * @description Admin only. Slug is immutable after creation. Atomic audit; published usage queues a generation.
          */
         put: operations["updateTag"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/note-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List selectable note groups
+         * @description All active roles can select existing taxonomy; no hard delete.
+         */
+        get: operations["listNoteGroups"];
+        put?: never;
+        /**
+         * Create note group
+         * @description Admin only; explicit slug must be unique. Atomic audit.
+         */
+        post: operations["createNoteGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/note-groups/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update note group
+         * @description Admin only. Slug is immutable after creation. Atomic audit.
+         */
+        put: operations["updateNoteGroup"];
         post?: never;
         delete?: never;
         options?: never;
@@ -934,7 +978,7 @@ export interface components {
         ErrorResponse: {
             error: {
                 /** @enum {string} */
-                code: "authentication_required" | "account_pending" | "account_disabled" | "permission_denied" | "csrf_invalid" | "oauth_state_invalid" | "oauth_exchange_failed" | "validation_failed" | "not_found" | "last_admin_required" | "dependency_unavailable" | "internal_error" | "method_not_allowed" | "payload_too_large" | "content_version_conflict" | "invalid_editorial_state" | "route_conflict" | "review_revision_conflict" | "self_review_forbidden" | "content_archived" | "content_not_published" | "invalid_markdown" | "invalid_payload" | "tag_conflict" | "topic_target_unpublished" | "asset_invalid" | "asset_too_large" | "asset_format_unsupported" | "asset_dimension_invalid" | "asset_deleted" | "storage_unavailable" | "storage_integrity_error" | "publication_not_configured" | "publication_job_conflict" | "publication_retry_forbidden" | "snapshot_invalid" | "snapshot_stale" | "build_trigger_failed";
+                code: "authentication_required" | "account_pending" | "account_disabled" | "permission_denied" | "csrf_invalid" | "oauth_state_invalid" | "oauth_exchange_failed" | "validation_failed" | "not_found" | "last_admin_required" | "dependency_unavailable" | "internal_error" | "method_not_allowed" | "payload_too_large" | "content_version_conflict" | "invalid_editorial_state" | "route_conflict" | "review_revision_conflict" | "self_review_forbidden" | "content_archived" | "content_not_published" | "invalid_markdown" | "invalid_payload" | "tag_conflict" | "group_conflict" | "group_missing" | "taxonomy_slug_immutable" | "topic_target_unpublished" | "asset_invalid" | "asset_too_large" | "asset_format_unsupported" | "asset_dimension_invalid" | "asset_deleted" | "storage_unavailable" | "storage_integrity_error" | "publication_not_configured" | "publication_job_conflict" | "publication_retry_forbidden" | "snapshot_invalid" | "snapshot_stale" | "build_trigger_failed";
                 message: string;
                 requestId: string;
                 fields?: {
@@ -952,6 +996,7 @@ export interface components {
             targetContentId: number;
         };
         PostPayload: Record<string, never>;
+        /** @description Storage payload v1; groupSlug selects an existing group. Go replaces group/groupDescription/groupOrder mirrors at write gates. Empty groupSlug is allowed only in incomplete Drafts. */
         NotePayload: {
             group?: string;
             groupSlug?: string;
@@ -1240,13 +1285,17 @@ export interface components {
             owner: components["schemas"]["AuthorSummary"];
             byline: components["schemas"]["AuthorSummary"];
         };
-        /** @description Admin only. Names are trimmed, whitespace collapsed and lowercased for deterministic uniqueness. Slug is explicit and is never recomputed from name. */
+        /** @description Admin only. Names are trimmed, whitespace collapsed and lowercased for deterministic uniqueness. Slug is immutable after creation. English fields are optional on input; empty nameEn requires empty descriptionEn. */
         TagInput: {
+            nameEn?: string;
+            descriptionEn?: string;
             name: string;
             slug: string;
             description: string;
         };
         Tag: {
+            nameEn: string;
+            descriptionEn: string;
             /** Format: int64 */
             id: number;
             name: string;
@@ -1259,6 +1308,29 @@ export interface components {
             /** Format: int64 */
             updatedAt: number;
         };
+        /** @description Admin only; immutable unique slug. Optional-in-value English fields fall back independently in Public. */
+        NoteGroupInput: {
+            order: number;
+            nameEn: string;
+            descriptionEn: string;
+            name: string;
+            slug: string;
+            description: string;
+        };
+        NoteGroup: {
+            order: number;
+            nameEn: string;
+            descriptionEn: string;
+            /** Format: int64 */
+            id: number;
+            name: string;
+            slug: string;
+            description: string;
+            /** Format: int64 */
+            createdAt: number;
+            /** Format: int64 */
+            updatedAt: number;
+        };
         /** @description Append-only and transactionally coupled to mutations. Contains no body, review comment, typed payload, credential or browser token. Draft save/autosave is not audited. */
         AuditEvent: {
             /** Format: int64 */
@@ -1266,9 +1338,9 @@ export interface components {
             /** Format: int64 */
             actorUserId: number;
             /** @enum {string} */
-            action: "auth.login" | "user.approved" | "user.role_changed" | "user.disabled" | "user.enabled" | "author.profile_updated" | "content.created" | "content.submitted" | "content.review_withdrawn" | "content.changes_requested" | "content.published" | "content.published_direct" | "content.unpublished" | "content.archived" | "content.archive_restored" | "content.revision_restored" | "tag.created" | "tag.updated" | "asset.uploaded" | "asset.deleted" | "asset.restored" | "publication.retry_requested";
+            action: "auth.login" | "user.approved" | "user.role_changed" | "user.disabled" | "user.enabled" | "author.profile_updated" | "content.created" | "content.submitted" | "content.review_withdrawn" | "content.changes_requested" | "content.published" | "content.published_direct" | "content.unpublished" | "content.archived" | "content.archive_restored" | "content.revision_restored" | "tag.created" | "tag.updated" | "note_group.created" | "note_group.updated" | "note_group.imported" | "publication.taxonomy_upgraded" | "asset.uploaded" | "asset.deleted" | "asset.restored" | "publication.retry_requested";
             /** @enum {string} */
-            entityType: "user" | "author" | "content" | "tag" | "asset" | "publication";
+            entityType: "user" | "author" | "content" | "tag" | "note_group" | "asset" | "publication";
             /** Format: int64 */
             entityId: number;
             /** Format: int64 */
@@ -1319,6 +1391,14 @@ export interface components {
         };
         TagList: {
             items: components["schemas"]["Tag"][];
+            /**
+             * Format: int64
+             * @description Use as after for the next page. Null ends pagination. A full final page may yield one empty next page.
+             */
+            nextCursor: number | null;
+        };
+        NoteGroupList: {
+            items: components["schemas"]["NoteGroup"][];
             /**
              * Format: int64
              * @description Use as after for the next page. Null ends pagination. A full final page may yield one empty next page.
@@ -1491,8 +1571,8 @@ export interface components {
             nextCursor: number | null;
         };
         BuildMarker: {
-            /** @constant */
-            schemaVersion: 1;
+            /** @enum {integer} */
+            schemaVersion: 1 | 2;
             /** Format: int64 */
             generation: number;
             snapshotSha256: string;
@@ -2456,6 +2536,8 @@ export interface operations {
     listTags: {
         parameters: {
             query?: {
+                /** @description Bounded search of slug, Chinese name and English name; keyset pages remain in ID order. */
+                q?: string;
                 /** @description Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use revisionNo; other lists use the returned row ID. */
                 after?: number;
             };
@@ -2541,6 +2623,109 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Tag"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            413: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            503: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listNoteGroups: {
+        parameters: {
+            query?: {
+                /** @description Bounded search of slug, Chinese name and English name; keyset pages remain in ID order. */
+                q?: string;
+                /** @description Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use revisionNo; other lists use the returned row ID. */
+                after?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteGroupList"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            413: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            503: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    createNoteGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteGroupInput"];
+            };
+        };
+        responses: {
+            /** @description Successful operation */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteGroup"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            413: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            503: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    updateNoteGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Note group identity. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteGroupInput"];
+            };
+        };
+        responses: {
+            /** @description Successful operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteGroup"];
                 };
             };
             400: components["responses"]["Error"];

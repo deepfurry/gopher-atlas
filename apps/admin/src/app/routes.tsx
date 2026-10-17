@@ -48,6 +48,12 @@ export const routes: RouteObject[] = [
         }),
       },
       {
+        path: 'note-groups',
+        lazy: async () => ({
+          Component: (await import('@/features/note-groups/page')).default,
+        }),
+      },
+      {
         path: 'tags',
         lazy: async () => ({
           Component: (await import('@/features/tags/page')).default,

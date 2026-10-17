@@ -49,6 +49,10 @@ func newRig(t *testing.T) *rig {
 	r.editor = r.user(t, 2, "editor", "active")
 	r.reviewer = r.user(t, 3, "reviewer", "active")
 	r.other = r.user(t, 4, "editor", "active")
+	for _, g := range []NoteGroupInput{{Slug: "runtime", Name: "Runtime"}, {Slug: "advanced", Name: "Advanced"}} {
+		_, err := r.q.CreateNoteGroup(ctx, dbsqlc.CreateNoteGroupParams{Slug: g.Slug, Name: g.Name})
+		must(t, err)
+	}
 	return r
 }
 func (r *rig) user(t *testing.T, id int64, role, status string) auth.Principal {
@@ -97,7 +101,7 @@ func (r *rig) prepared(t *testing.T, p auth.Principal, kind, slug string) Detail
 }
 func (r *rig) tag(t *testing.T, name string) Tag {
 	t.Helper()
-	tag, err := r.s.PutTag(ctx, r.admin, 0, TagInput{name, name, ""})
+	tag, err := r.s.PutTag(ctx, r.admin, 0, TagInput{name, name, "", "", ""})
 	must(t, err)
 	return tag
 }
@@ -438,7 +442,7 @@ func TestAuditAtomicityPrivacyAndNoAutosave(t *testing.T) {
 	_, err = r.s.RestoreRevision(ctx, r.admin, d.ID, 1, d.Draft.Version)
 	must(t, err)
 	tag := r.tag(t, "audit-tag")
-	_, err = r.s.PutTag(ctx, r.admin, tag.ID, TagInput{"New name", tag.Slug, ""})
+	_, err = r.s.PutTag(ctx, r.admin, tag.ID, TagInput{"New name", tag.Slug, "", "", ""})
 	must(t, err)
 	page, err := r.s.Audit(ctx, r.reviewer, 0)
 	must(t, err)

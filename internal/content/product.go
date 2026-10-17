@@ -59,6 +59,16 @@ func enrichProducts(ctx context.Context, q *dbsqlc.Queries, u dbsqlc.User, items
 			p.EntryCount = row.RevisionEntryCount
 		}
 	}
+	for _, item := range items {
+		if item.Type != "note" {
+			continue
+		}
+		fields := Fields{Payload: item.Product.Payload}
+		if err := hydrateNote(ctx, q, "note", &fields, false); err != nil {
+			return err
+		}
+		item.Product.Payload = fields.Payload
+	}
 	tags, err := q.ProductTags(ctx, dbsqlc.ProductTagsParams{Ids: ids, IsAdmin: policy.Admin(u), ActorID: u.ID})
 	if err != nil {
 		return dbError(err)

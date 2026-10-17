@@ -15,7 +15,7 @@ import (
 )
 
 const PoolSize = 4
-const SchemaVersion = 3
+const SchemaVersion = 4
 
 var ErrUnavailable = errors.New("persistence is unavailable or schema is incompatible")
 
@@ -66,11 +66,17 @@ func Ready(ctx context.Context, pool *sql.DB) error {
 	if err := pool.QueryRowContext(ctx, "SELECT COALESCE(MAX(version_id), 0) FROM goose_db_version WHERE is_applied = 1").Scan(&version); err != nil || version != SchemaVersion {
 		return ErrUnavailable
 	}
+	var taxonomyReady int
+	if err := pool.QueryRowContext(ctx, "SELECT ready FROM taxonomy_state WHERE id=1").Scan(&taxonomyReady); err != nil || taxonomyReady != 1 {
+		return ErrUnavailable
+	}
 	var generation int64
 	if err := pool.QueryRowContext(ctx, "SELECT publication_generation FROM site_state WHERE id=1").Scan(&generation); err != nil || generation < 0 {
 		return ErrUnavailable
 	}
 	for _, query := range []string{
+		"SELECT tag_id,locale,name,description FROM tag_translations LIMIT 0",
+		"SELECT id,slug,name,description,name_en,description_en,sort_order,created_at,updated_at FROM note_groups LIMIT 0",
 		"SELECT id,sha256,object_key,mime_type,byte_size,width,height,created_by,created_at,deleted_at FROM assets LIMIT 0",
 		"SELECT id,publication_generation,updated_at FROM site_state WHERE id=1",
 		"SELECT id,generation,state,snapshot_key,snapshot_sha256,attempts,last_error,next_attempt_at,created_at,updated_at,triggered_at FROM publication_jobs LIMIT 0",

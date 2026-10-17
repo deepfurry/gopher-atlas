@@ -2,9 +2,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen, within } from '@testing-library/react';
 import { backend, content, me, mount } from './fixtures';
-import { inferGroups } from '@/features/content/note-group';
 import { reorderTopic } from '@/features/content/topic-order';
-import type { Schema } from '@/shared/api';
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -45,36 +43,27 @@ it('serializes cross-section drag, keyboard promotion and demotion as one list a
   });
   expect(entries.map((e) => e.targetContentId)).toEqual([1, 2, 3]);
 });
-it('infers shared group metadata without inventing a Group model and flags inconsistency', () => {
-  const base = content('note');
-  const row = (id: number, groupOrder = 2): Schema<'ContentSummary'> => ({
-    ...base,
-    id,
-    product: {
-      summary: '',
-      payload: {
-        group: '网络安全',
-        groupSlug: 'security',
-        groupDescription: '学习记录',
-        groupOrder,
-        order: 1,
-      },
-      language: 'zh',
-      featured: false,
-      entryCount: 0,
-      tags: [],
-      topics: [],
-    },
-  });
-  expect(inferGroups([row(1), row(2)], 99)).toEqual([
-    {
-      group: '网络安全',
-      groupSlug: 'security',
-      groupDescription: '学习记录',
-      groupOrder: 2,
-      conflict: false,
-    },
-  ]);
-  expect(inferGroups([row(1), row(2, 3)], 99)[0].conflict).toBe(true);
-  expect(inferGroups([row(1)], 1)).toEqual([]);
+it('selects authoritative groups and warns before changing a published note group', async () => {
+  await import('@/features/content/editor');
+  const note = content('note');
+  note.publishedRevisionId = 42;
+  note.routes = [{ path: '/notes/runtime/existing/', kind: 'canonical' }];
+  const state = backend(note, me('admin'));
+  mount();
+  await screen.findByLabelText('标题');
+  expect(screen.getByText(/旧评论不会自动搬迁/)).toBeTruthy();
+  expect(screen.queryByLabelText('分组路径标识')).toBeNull();
+  expect(screen.queryByLabelText('分组名称')).toBeNull();
+  fireEvent.click(screen.getByRole('combobox', { name: '选择已有分组' }));
+  expect(await screen.findByRole('option', { name: '运行时' })).toBeTruthy();
+  expect(
+    state.requests.some(
+      (r) => new URL(r.url).pathname === '/api/admin/v1/note-groups',
+    ),
+  ).toBe(true);
+  expect(
+    state.requests.some(
+      (r) => new URL(r.url).pathname === '/api/admin/v1/content',
+    ),
+  ).toBe(false);
 });

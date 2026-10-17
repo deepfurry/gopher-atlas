@@ -87,6 +87,8 @@ it('keeps tag order, nodes and scroll position when saved tag summaries refresh'
     name: `标签 ${index + 1}`,
     slug: `tag-${index + 1}`,
     description: '',
+    nameEn: '',
+    descriptionEn: '',
     createdBy: 1,
     createdAt: 1,
     updatedAt: 1,
@@ -191,8 +193,10 @@ it.each(['post', 'note', 'curated_article', 'topic'] as const)(
         }),
       );
     if (type === 'note') {
-      expect(screen.getByLabelText('分组名称')).toBeTruthy();
-      expect(screen.getByLabelText('分组路径标识')).toBeTruthy();
+      expect(
+        screen.getByRole('combobox', { name: '选择已有分组' }),
+      ).toBeTruthy();
+      expect(screen.queryByLabelText('分组路径标识')).toBeNull();
       expect(screen.getByLabelText('预览路径').textContent).toContain(
         '/notes/runtime/useful-post/',
       );

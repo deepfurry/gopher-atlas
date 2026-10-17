@@ -1,9 +1,27 @@
 # Implementation scope
 
-B1 Public Snapshot v1/v2 compatibility (ADR 0018) adds a dual-version reader,
-normalized taxonomy and bilingual metadata display. CMS remains a v1 writer;
-schema 3, Admin A/A2 and immutable content are unchanged. B1 Production deployment
-and live v1 acceptance are separate operator steps and prerequisites for B2 rollout.
+B2 (ADR 0019) implements schema 4, independent Note groups, bilingual taxonomy,
+Admin management/selection and the v2-only CMS exporter. Explicit offline plan/apply
+preserves immutable content, tags and routes, refuses conflicts and advances one
+generation for the new wire format. A/A2 layout, insertion and save queue remain.
+B1 `9236209` was deployed with v1 and accepted by the operator. B2 Production
+migration/deployment is not performed here; a protected Production-copy rehearsal,
+consistent backup and separate B3 authorization remain required. See
+[the upgrade runbook](operations/taxonomy-v2-upgrade.md).
+
+B2 verification (2026-10-17): targeted Go content/publication/database/upgrade/
+legacy/HTTP runtime tests and 34 Admin interaction tests passed. A real CLI
+rehearsal on a synthetic schema-3 DB preserved all compared historical rows and
+routes, passed integrity/foreign-key checks, advanced generation 14→15 without a
+new Revision, and its v2 export passed the B1 consumer. Browser checks used real
+Admin components with synthetic transport: group form/search/slug lock, 360px dark
+layout, Note selection/comment warning and A2 focus/Escape. No live production
+session/data was used. `make check` ran once: Go analysis/tests/build, lint and
+all types passed; JS had 275 passes/9 skips and one 5s timeout in the 120-checkbox
+pagination test. That case now has a scoped 15s budget and its 5-test file passed.
+The unchanged remaining gate steps were resumed: contract/generation/SQL checks,
+both static fixture builds/artifacts/privacy scans and embedded CMS checks passed.
+Production-copy migration rehearsal and live v2/R2/Hook acceptance remain unverified.
 
 Public presentation now follows ADR 0016 (2026-10-13): Modern Geek Editorial,
 Astro 7.3.8, StyleX, IBM Plex and the user-supplied AVIF Hero. Earlier visual

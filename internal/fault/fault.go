@@ -40,5 +40,8 @@ const (
 	Markdown                  Error = "invalid_markdown"
 	Payload                   Error = "invalid_payload"
 	TagConflict               Error = "tag_conflict"
+	GroupConflict             Error = "group_conflict"
+	GroupMissing              Error = "group_missing"
+	TaxonomySlug              Error = "taxonomy_slug_immutable"
 	TopicTarget               Error = "topic_target_unpublished"
 )

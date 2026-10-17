@@ -51,16 +51,16 @@ func TestPayloadAndMarkdownBoundary(t *testing.T) {
 
 func TestTagNormalizationBoundedListsAndObjectVisibility(t *testing.T) {
 	r := newRig(t)
-	tag, err := r.s.PutTag(ctx, r.admin, 0, TagInput{"  Go\t Runtime  ", "go-runtime", ""})
+	tag, err := r.s.PutTag(ctx, r.admin, 0, TagInput{"  Go\t Runtime  ", "go-runtime", "", "", ""})
 	must(t, err)
-	_, err = r.s.PutTag(ctx, r.admin, 0, TagInput{"go runtime", "different", ""})
+	_, err = r.s.PutTag(ctx, r.admin, 0, TagInput{"go runtime", "different", "", "", ""})
 	wantError(t, err, fault.TagConflict)
-	tag, err = r.s.PutTag(ctx, r.admin, tag.ID, TagInput{"Changed name", tag.Slug, ""})
+	tag, err = r.s.PutTag(ctx, r.admin, tag.ID, TagInput{"Changed name", tag.Slug, "", "", ""})
 	must(t, err)
 	if tag.Slug != "go-runtime" {
 		t.Fatal("tag slug recomputed")
 	}
-	_, err = r.s.PutTag(ctx, r.editor, 0, TagInput{"Denied", "denied", ""})
+	_, err = r.s.PutTag(ctx, r.editor, 0, TagInput{"Denied", "denied", "", "", ""})
 	wantError(t, err, fault.Permission)
 	for i := 0; i < 103; i++ {
 		r.create(t, r.editor, "post")

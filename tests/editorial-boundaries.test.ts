@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { expect, it } from 'vitest';
 const source = (path: string) =>
   readFileSync(path, 'utf8').replaceAll('\r\n', '\n');
-it('preserves migrations 1/2 and adds only the P0-4 schema-3 migration', () => {
+it('preserves migrations 1–3 and adds the explicit schema-4 taxonomy upgrade', () => {
   expect(
     readdirSync('db/migrations')
       .filter((name) => name.endsWith('.sql'))
@@ -12,8 +12,11 @@ it('preserves migrations 1/2 and adds only the P0-4 schema-3 migration', () => {
     '00001_identity.sql',
     '00002_editorial.sql',
     '00003_publication.sql',
+    '00004_taxonomy_localization.sql',
   ]);
   for (const [name, hash] of Object.entries({
+    '00003_publication.sql':
+      'c1cd0b5a5cf149bea814a57707ff05e8a188959f8ff25c8d9eb3b0fc196e4d2b',
     '00001_identity.sql':
       '5e50419901720610849d7e341904083d9ccdc9e0051dcb3ee46d785c73042235',
     '00002_editorial.sql':
@@ -25,7 +28,7 @@ it('preserves migrations 1/2 and adds only the P0-4 schema-3 migration', () => {
         .digest('hex'),
     ).toBe(hash);
   expect(source('internal/database/database.go')).toContain(
-    'const SchemaVersion = 3',
+    'const SchemaVersion = 4',
   );
 });
 it('reserves browser persistence for theme/sidebar and retains reduced-motion/focus rules', () => {

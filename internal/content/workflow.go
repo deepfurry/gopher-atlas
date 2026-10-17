@@ -30,24 +30,11 @@ func (s *Service) claimRoute(ctx context.Context, q *dbsqlc.Queries, c dbsqlc.Co
 	// Revalidate immutable pending material against the current product contract.
 	// Historic revisions remain untouched; an incompatible one must be restored/edited.
 	fields := revisionFields(r)
-	if err := validateFields(c.Type, &fields, true, s.assetPolicy); err != nil {
+	if err := hydrateNote(ctx, q, c.Type, &fields, true); err != nil {
 		return err
 	}
-	if c.Type == "note" {
-		var note NotePayload
-		if json.Unmarshal(fields.Payload, &note) != nil {
-			return fault.Payload
-		}
-		others, err := q.PublishedNoteGroupMetadata(ctx, dbsqlc.PublishedNoteGroupMetadataParams{ContentID: c.ID, GroupSlug: note.GroupSlug})
-		if err != nil {
-			return dbError(err)
-		}
-		for _, raw := range others {
-			var other NotePayload
-			if json.Unmarshal([]byte(raw), &other) != nil || note.Group != other.Group || note.GroupDescription != other.GroupDescription || note.GroupOrder != other.GroupOrder {
-				return fault.Payload
-			}
-		}
+	if err := validateFields(c.Type, &fields, true, s.assetPolicy); err != nil {
+		return err
 	}
 	path, err := candidatePath(c.Type, revisionFields(r))
 	if err != nil {
@@ -347,6 +334,9 @@ func (s *Service) RestoreRevision(ctx context.Context, actor auth.Principal, id,
 			return fault.Permission
 		}
 		in := DraftInput{Version: version, Fields: rev.Fields, Relations: rev.Relations}
+		if err := hydrateNote(ctx, q, c.Type, &in.Fields, false); err != nil {
+			return err
+		}
 		if err := save(ctx, q, u, id, in, now); err != nil {
 			return err
 		}

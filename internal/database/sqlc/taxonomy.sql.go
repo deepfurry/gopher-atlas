@@ -39,6 +39,18 @@ func (q *Queries) AddDraftTopicEntry(ctx context.Context, arg AddDraftTopicEntry
 	return err
 }
 
+const completeTaxonomyUpgrade = `-- name: CompleteTaxonomyUpgrade :execrows
+UPDATE taxonomy_state SET ready = 1, source_sha256 = ? WHERE id = 1 AND ready = 0
+`
+
+func (q *Queries) CompleteTaxonomyUpgrade(ctx context.Context, sourceSha256 string) (int64, error) {
+	result, err := q.db.ExecContext(ctx, completeTaxonomyUpgrade, sourceSha256)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const countCuratedContent = `-- name: CountCuratedContent :one
 SELECT count(*) FROM content_items WHERE id IN (/*SLICE:ids*/?) AND type = 'curated_article'
 `
@@ -79,6 +91,48 @@ func (q *Queries) CountExistingTags(ctx context.Context, ids []int64) (int64, er
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const createNoteGroup = `-- name: CreateNoteGroup :one
+INSERT INTO note_groups (slug, name, description, name_en, description_en, sort_order, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, slug, name, description, name_en, description_en, sort_order, created_at, updated_at
+`
+
+type CreateNoteGroupParams struct {
+	Slug          string
+	Name          string
+	Description   string
+	NameEn        string
+	DescriptionEn string
+	SortOrder     int64
+	CreatedAt     int64
+	UpdatedAt     int64
+}
+
+func (q *Queries) CreateNoteGroup(ctx context.Context, arg CreateNoteGroupParams) (NoteGroup, error) {
+	row := q.db.QueryRowContext(ctx, createNoteGroup,
+		arg.Slug,
+		arg.Name,
+		arg.Description,
+		arg.NameEn,
+		arg.DescriptionEn,
+		arg.SortOrder,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	var i NoteGroup
+	err := row.Scan(
+		&i.ID,
+		&i.Slug,
+		&i.Name,
+		&i.Description,
+		&i.NameEn,
+		&i.DescriptionEn,
+		&i.SortOrder,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const createTag = `-- name: CreateTag :one
@@ -134,6 +188,15 @@ DELETE FROM draft_topic_entries WHERE topic_content_id = ?
 
 func (q *Queries) DeleteDraftTopicEntries(ctx context.Context, topicContentID int64) error {
 	_, err := q.db.ExecContext(ctx, deleteDraftTopicEntries, topicContentID)
+	return err
+}
+
+const deleteTagTranslation = `-- name: DeleteTagTranslation :exec
+DELETE FROM tag_translations WHERE tag_id = ? AND locale = 'en'
+`
+
+func (q *Queries) DeleteTagTranslation(ctx context.Context, tagID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteTagTranslation, tagID)
 	return err
 }
 
@@ -213,6 +276,48 @@ func (q *Queries) FindTagConflict(ctx context.Context, arg FindTagConflictParams
 	return count, err
 }
 
+const getNoteGroup = `-- name: GetNoteGroup :one
+SELECT id, slug, name, description, name_en, description_en, sort_order, created_at, updated_at FROM note_groups WHERE id = ?
+`
+
+func (q *Queries) GetNoteGroup(ctx context.Context, id int64) (NoteGroup, error) {
+	row := q.db.QueryRowContext(ctx, getNoteGroup, id)
+	var i NoteGroup
+	err := row.Scan(
+		&i.ID,
+		&i.Slug,
+		&i.Name,
+		&i.Description,
+		&i.NameEn,
+		&i.DescriptionEn,
+		&i.SortOrder,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getNoteGroupBySlug = `-- name: GetNoteGroupBySlug :one
+SELECT id, slug, name, description, name_en, description_en, sort_order, created_at, updated_at FROM note_groups WHERE slug = ?
+`
+
+func (q *Queries) GetNoteGroupBySlug(ctx context.Context, slug string) (NoteGroup, error) {
+	row := q.db.QueryRowContext(ctx, getNoteGroupBySlug, slug)
+	var i NoteGroup
+	err := row.Scan(
+		&i.ID,
+		&i.Slug,
+		&i.Name,
+		&i.Description,
+		&i.NameEn,
+		&i.DescriptionEn,
+		&i.SortOrder,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getTag = `-- name: GetTag :one
 SELECT id, name, normalized_name, slug, description, created_by, created_at, updated_at FROM tags WHERE id = ?
 `
@@ -233,17 +338,140 @@ func (q *Queries) GetTag(ctx context.Context, id int64) (Tag, error) {
 	return i, err
 }
 
+const getTagTranslation = `-- name: GetTagTranslation :one
+SELECT tag_id, locale, name, description FROM tag_translations WHERE tag_id = ? AND locale = 'en'
+`
+
+func (q *Queries) GetTagTranslation(ctx context.Context, tagID int64) (TagTranslation, error) {
+	row := q.db.QueryRowContext(ctx, getTagTranslation, tagID)
+	var i TagTranslation
+	err := row.Scan(
+		&i.TagID,
+		&i.Locale,
+		&i.Name,
+		&i.Description,
+	)
+	return i, err
+}
+
+const getTaxonomyState = `-- name: GetTaxonomyState :one
+SELECT id, ready, source_sha256 FROM taxonomy_state WHERE id = 1
+`
+
+func (q *Queries) GetTaxonomyState(ctx context.Context) (TaxonomyState, error) {
+	row := q.db.QueryRowContext(ctx, getTaxonomyState)
+	var i TaxonomyState
+	err := row.Scan(&i.ID, &i.Ready, &i.SourceSha256)
+	return i, err
+}
+
+const legacyNoteGroupSources = `-- name: LegacyNoteGroupSources :many
+SELECT c.id AS content_id, 'draft' AS source, d.version AS version, d.payload_json
+FROM content_items c JOIN content_drafts d ON d.content_id = c.id WHERE c.type = 'note'
+UNION ALL
+SELECT c.id AS content_id, 'published' AS source, r.id AS version, r.payload_json
+FROM content_items c JOIN content_revisions r ON r.id = c.published_revision_id AND r.content_id = c.id
+WHERE c.type = 'note' AND c.archived_at IS NULL
+ORDER BY content_id, source
+`
+
+type LegacyNoteGroupSourcesRow struct {
+	ContentID   int64
+	Source      string
+	Version     int64
+	PayloadJson string
+}
+
+func (q *Queries) LegacyNoteGroupSources(ctx context.Context) ([]LegacyNoteGroupSourcesRow, error) {
+	rows, err := q.db.QueryContext(ctx, legacyNoteGroupSources)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []LegacyNoteGroupSourcesRow{}
+	for rows.Next() {
+		var i LegacyNoteGroupSourcesRow
+		if err := rows.Scan(
+			&i.ContentID,
+			&i.Source,
+			&i.Version,
+			&i.PayloadJson,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listNoteGroups = `-- name: ListNoteGroups :many
+SELECT id, slug, name, description, name_en, description_en, sort_order, created_at, updated_at FROM note_groups WHERE id > ?1
+AND (?2 = '' OR instr(lower(slug), lower(?2)) > 0
+OR instr(lower(name), lower(?2)) > 0 OR instr(lower(name_en), lower(?2)) > 0)
+ORDER BY id LIMIT ?3
+`
+
+type ListNoteGroupsParams struct {
+	AfterID  int64
+	Search   interface{}
+	PageSize int64
+}
+
+func (q *Queries) ListNoteGroups(ctx context.Context, arg ListNoteGroupsParams) ([]NoteGroup, error) {
+	rows, err := q.db.QueryContext(ctx, listNoteGroups, arg.AfterID, arg.Search, arg.PageSize)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []NoteGroup{}
+	for rows.Next() {
+		var i NoteGroup
+		if err := rows.Scan(
+			&i.ID,
+			&i.Slug,
+			&i.Name,
+			&i.Description,
+			&i.NameEn,
+			&i.DescriptionEn,
+			&i.SortOrder,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTags = `-- name: ListTags :many
-SELECT id, name, normalized_name, slug, description, created_by, created_at, updated_at FROM tags WHERE id > ?1 ORDER BY id LIMIT ?2
+SELECT id, name, normalized_name, slug, description, created_by, created_at, updated_at FROM tags WHERE id > ?1
+AND (?2 = '' OR instr(lower(slug), lower(?2)) > 0
+OR instr(lower(name), lower(?2)) > 0
+OR EXISTS (SELECT 1 FROM tag_translations tr WHERE tr.tag_id = tags.id AND tr.locale = 'en' AND instr(lower(tr.name), lower(?2)) > 0))
+ORDER BY id LIMIT ?3
 `
 
 type ListTagsParams struct {
 	AfterID  int64
+	Search   interface{}
 	PageSize int64
 }
 
 func (q *Queries) ListTags(ctx context.Context, arg ListTagsParams) ([]Tag, error) {
-	rows, err := q.db.QueryContext(ctx, listTags, arg.AfterID, arg.PageSize)
+	rows, err := q.db.QueryContext(ctx, listTags, arg.AfterID, arg.Search, arg.PageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -274,38 +502,32 @@ func (q *Queries) ListTags(ctx context.Context, arg ListTagsParams) ([]Tag, erro
 	return items, nil
 }
 
-const publishedNoteGroupMetadata = `-- name: PublishedNoteGroupMetadata :many
-SELECT r.payload_json FROM content_items c JOIN content_revisions r ON r.id=c.published_revision_id AND r.content_id=c.id
-WHERE c.type='note' AND c.archived_at IS NULL AND c.id != ?1
-AND json_extract(r.payload_json, '$.groupSlug') = ?2
+const publishedRevisionUsesGroup = `-- name: PublishedRevisionUsesGroup :one
+SELECT EXISTS (SELECT 1 FROM content_items c JOIN content_revisions r ON r.id = c.published_revision_id AND r.content_id = c.id
+WHERE c.type = 'note' AND c.archived_at IS NULL AND json_extract(r.payload_json, '$.groupSlug') = ?1)
 `
 
-type PublishedNoteGroupMetadataParams struct {
-	ContentID int64
-	GroupSlug string
+func (q *Queries) PublishedRevisionUsesGroup(ctx context.Context, slug string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, publishedRevisionUsesGroup, slug)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
-func (q *Queries) PublishedNoteGroupMetadata(ctx context.Context, arg PublishedNoteGroupMetadataParams) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, publishedNoteGroupMetadata, arg.ContentID, arg.GroupSlug)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []string{}
-	for rows.Next() {
-		var payload_json string
-		if err := rows.Scan(&payload_json); err != nil {
-			return nil, err
-		}
-		items = append(items, payload_json)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+const putTagTranslation = `-- name: PutTagTranslation :exec
+INSERT INTO tag_translations (tag_id, locale, name, description) VALUES (?, 'en', ?, ?)
+ON CONFLICT (tag_id, locale) DO UPDATE SET name = excluded.name, description = excluded.description
+`
+
+type PutTagTranslationParams struct {
+	TagID       int64
+	Name        string
+	Description string
+}
+
+func (q *Queries) PutTagTranslation(ctx context.Context, arg PutTagTranslationParams) error {
+	_, err := q.db.ExecContext(ctx, putTagTranslation, arg.TagID, arg.Name, arg.Description)
+	return err
 }
 
 const revisionTagIDs = `-- name: RevisionTagIDs :many
@@ -408,14 +630,52 @@ func (q *Queries) UnpublishableTopicTargets(ctx context.Context, topicRevisionID
 	return count, err
 }
 
+const updateNoteGroup = `-- name: UpdateNoteGroup :one
+UPDATE note_groups SET name = ?, description = ?, name_en = ?, description_en = ?, sort_order = ?, updated_at = ? WHERE id = ? RETURNING id, slug, name, description, name_en, description_en, sort_order, created_at, updated_at
+`
+
+type UpdateNoteGroupParams struct {
+	Name          string
+	Description   string
+	NameEn        string
+	DescriptionEn string
+	SortOrder     int64
+	UpdatedAt     int64
+	ID            int64
+}
+
+func (q *Queries) UpdateNoteGroup(ctx context.Context, arg UpdateNoteGroupParams) (NoteGroup, error) {
+	row := q.db.QueryRowContext(ctx, updateNoteGroup,
+		arg.Name,
+		arg.Description,
+		arg.NameEn,
+		arg.DescriptionEn,
+		arg.SortOrder,
+		arg.UpdatedAt,
+		arg.ID,
+	)
+	var i NoteGroup
+	err := row.Scan(
+		&i.ID,
+		&i.Slug,
+		&i.Name,
+		&i.Description,
+		&i.NameEn,
+		&i.DescriptionEn,
+		&i.SortOrder,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateTag = `-- name: UpdateTag :one
-UPDATE tags SET name = ?, normalized_name = ?, slug = ?, description = ?, updated_at = ? WHERE id = ? RETURNING id, name, normalized_name, slug, description, created_by, created_at, updated_at
+UPDATE tags SET name = ?, normalized_name = ?, description = ?, updated_at = ? WHERE id = ? RETURNING id, name, normalized_name, slug, description, created_by, created_at, updated_at
 `
 
 type UpdateTagParams struct {
 	Name           string
 	NormalizedName string
-	Slug           string
 	Description    string
 	UpdatedAt      int64
 	ID             int64
@@ -425,7 +685,6 @@ func (q *Queries) UpdateTag(ctx context.Context, arg UpdateTagParams) (Tag, erro
 	row := q.db.QueryRowContext(ctx, updateTag,
 		arg.Name,
 		arg.NormalizedName,
-		arg.Slug,
 		arg.Description,
 		arg.UpdatedAt,
 		arg.ID,

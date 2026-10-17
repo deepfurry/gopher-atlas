@@ -268,6 +268,23 @@ export function backend(initial = content(), identity = me()) {
           : failure('not_found', 404);
       if (path === '/api/admin/v1/reviews')
         return Response.json({ items: [], nextCursor: null });
+      if (path === '/api/admin/v1/note-groups')
+        return Response.json({
+          items: [
+            {
+              id: 1,
+              slug: 'runtime',
+              name: '运行时',
+              description: '',
+              nameEn: 'Runtime',
+              descriptionEn: '',
+              order: 0,
+              createdAt: 1,
+              updatedAt: 1,
+            },
+          ],
+          nextCursor: null,
+        });
       if (path === '/api/admin/v1/tags')
         return Response.json({
           items: [
@@ -276,6 +293,8 @@ export function backend(initial = content(), identity = me()) {
               name: 'Go',
               slug: 'go',
               description: '',
+              nameEn: '',
+              descriptionEn: '',
               createdBy: 1,
               createdAt: 1,
               updatedAt: 1,

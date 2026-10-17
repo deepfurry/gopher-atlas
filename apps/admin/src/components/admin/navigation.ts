@@ -52,6 +52,12 @@ export const navigation: { label: string; items: NavItem[] }[] = [
         icon: Images,
         permission: 'uploadAssets',
       },
+      {
+        to: '/note-groups',
+        label: '随笔分组',
+        icon: Notebook,
+        permission: 'manageTaxonomy',
+      },
       { to: '/tags', label: '标签', icon: Tag, permission: 'manageTaxonomy' },
     ],
   },

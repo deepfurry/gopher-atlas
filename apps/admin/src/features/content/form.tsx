@@ -200,7 +200,9 @@ export function TypeFields({
   type,
   id,
   initial,
+  publishedPath,
 }: {
+  publishedPath?: string;
   type: Schema<'ContentType'>;
   id: number;
   initial: Schema<'TopicTargetSummary'>[];
@@ -216,7 +218,7 @@ export function TypeFields({
     case 'note':
       return (
         <>
-          <NoteGroupFields id={id} />
+          <NoteGroupFields publishedPath={publishedPath} />
           <Order label="组内排序" />
         </>
       );
@@ -481,6 +483,12 @@ export function Metadata({ content }: { content: Content }) {
             type={content.type}
             id={content.id}
             initial={content.draft?.topicTargets ?? []}
+            publishedPath={
+              content.publishedRevisionId
+                ? (content.routes.find((route) => route.kind === 'canonical')
+                    ?.path ?? '')
+                : undefined
+            }
           />
         </TabPanel>
         <TabPanel value="seo" className="inspector-panel" keepMounted>

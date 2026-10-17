@@ -499,18 +499,24 @@ func (q *Queries) SetPendingRevision(ctx context.Context, arg SetPendingRevision
 const snapshotDraft = `-- name: SnapshotDraft :one
 INSERT INTO content_revisions(content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, cover_asset_id, created_by, created_at)
 SELECT d.content_id, (SELECT COALESCE(MAX(r.revision_no), 0) + 1 FROM content_revisions r WHERE r.content_id = d.content_id),
-d.title, d.slug, d.summary, d.body_markdown, d.byline_user_id, d.language, d.featured, d.seo_title, d.seo_description, d.payload_schema_version, d.payload_json, d.cover_asset_id, ?1, ?2
-FROM content_drafts d WHERE d.content_id = ?3 RETURNING id, content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at, cover_asset_id
+d.title, d.slug, d.summary, d.body_markdown, d.byline_user_id, d.language, d.featured, d.seo_title, d.seo_description, d.payload_schema_version, ?1, d.cover_asset_id, ?2, ?3
+FROM content_drafts d WHERE d.content_id = ?4 RETURNING id, content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at, cover_asset_id
 `
 
 type SnapshotDraftParams struct {
-	ActorID   int64
-	Now       int64
-	ContentID int64
+	PayloadJson string
+	ActorID     int64
+	Now         int64
+	ContentID   int64
 }
 
 func (q *Queries) SnapshotDraft(ctx context.Context, arg SnapshotDraftParams) (ContentRevision, error) {
-	row := q.db.QueryRowContext(ctx, snapshotDraft, arg.ActorID, arg.Now, arg.ContentID)
+	row := q.db.QueryRowContext(ctx, snapshotDraft,
+		arg.PayloadJson,
+		arg.ActorID,
+		arg.Now,
+		arg.ContentID,
+	)
 	var i ContentRevision
 	err := row.Scan(
 		&i.ID,

@@ -102,6 +102,9 @@ var failures = map[fault.Error]struct {
 	fault.NotPublished:              {409, "The content has no selected published revision."},
 	fault.Markdown:                  {422, "The Markdown is unsafe or exceeds its limit."},
 	fault.Payload:                   {422, "The typed payload is invalid."},
+	fault.GroupConflict:             {409, "The note group slug is already in use."},
+	fault.GroupMissing:              {422, "Select an existing note group."},
+	fault.TaxonomySlug:              {409, "Taxonomy slugs cannot be changed."},
 	fault.TagConflict:               {409, "The tag name or slug is already in use."},
 	fault.TopicTarget:               {422, "Every topic target must be published and not archived."},
 }

@@ -81,6 +81,9 @@ function fakeAssets(role: Schema<'User'>['role'] = 'editor') {
 it.each(['源码', '分栏'])(
   'keeps focused %s image insertion and gives both asset dialogs Escape priority',
   async (mode) => {
+    // Exercise editor interaction rather than timing cold lazy-module imports.
+    await import('@/app/shell');
+    await import('@/features/content/editor');
     fakeAssets();
     mount();
     await screen.findByLabelText('Markdown 源码');
@@ -173,9 +176,52 @@ it('preserves selected local cover on version conflict and never retries silentl
   await screen.findByRole('heading', {
     name: '另一会话已修改此草稿。',
   });
-  expect(screen.getByText('素材 1 · 点击图片更换')).toBeTruthy();
+  const cover = screen.getByRole('region', { name: '封面素材' });
+  expect(within(cover).getByRole('img', { name: '素材 1' })).toBeTruthy();
+  expect(within(cover).getByRole('button', { name: '更换封面' })).toBeTruthy();
   expect(state.content.draft?.coverAssetId).toBeNull();
   expect(state.requests.filter((r) => r.method === 'PUT')).toHaveLength(1);
+});
+it('changes and removes a compact cover through the existing picker and save queue', async () => {
+  const { state } = fakeAssets();
+  const second = { ...asset, id: 2 };
+  const original = globalThis.fetch;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL) => {
+      const request = input as Request;
+      if (
+        new URL(request.url).pathname === '/api/admin/v1/assets' &&
+        request.method === 'GET'
+      )
+        return Response.json({ items: [asset, second], nextCursor: null });
+      return original(input);
+    }),
+  );
+  mount();
+  await screen.findByLabelText('标题');
+  const source = screen.getByLabelText('Markdown 源码');
+  fireEvent.click(screen.getByRole('button', { name: '选择封面' }));
+  fireEvent.click(await screen.findByRole('button', { name: '选择素材 1' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  fireEvent.click(screen.getByRole('button', { name: '更换封面' }));
+  fireEvent.click(await screen.findByRole('button', { name: '选择素材 2' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  expect(
+    within(screen.getByRole('region', { name: '封面素材' })).getByRole('img', {
+      name: '素材 2',
+    }),
+  ).toBeTruthy();
+  fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+  await waitFor(() => expect(state.content.draft!.coverAssetId).toBe(2));
+  fireEvent.click(screen.getByRole('button', { name: '移除封面' }));
+  expect(screen.getByRole('button', { name: '选择封面' })).toBeTruthy();
+  expect(
+    within(screen.getByRole('region', { name: '封面素材' })).queryByRole('img'),
+  ).toBeNull();
+  fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+  await waitFor(() => expect(state.content.draft!.coverAssetId).toBeNull());
+  expect(screen.getByLabelText('Markdown 源码')).toBe(source);
 });
 it('cancels either image dialog without changing or saving Markdown', async () => {
   const { state } = fakeAssets();

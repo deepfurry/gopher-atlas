@@ -308,6 +308,33 @@
 .inspector-panel .caption {
   font-size: 11px;
 }
+.content-inspector {
+  container: content-inspector / inline-size;
+}
+.content-inspector .inspector-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+}
+.content-inspector :is(.inspector-panel, .inspector-grid) > * {
+  min-width: 0;
+}
+.content-inspector .inspector-full {
+  grid-column: 1 / -1;
+}
+.content-inspector .inspector-path {
+  display: grid;
+  gap: 6px;
+}
+.content-inspector .review-feedback {
+  margin: 0;
+}
+@container content-inspector (min-width: 560px) {
+  .content-inspector .inspector-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 .route-preview {
   display: block;
   overflow-wrap: anywhere;
@@ -552,13 +579,6 @@
   .revision-layout {
     grid-template-columns: minmax(0, 1fr);
   }
-  .inspector-panel {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .inspector-panel > .selector,
-  .inspector-panel > .related-links {
-    grid-column: 1/-1;
-  }
   .editor-context h1 {
     max-width: 380px;
   }
@@ -598,9 +618,6 @@
   }
   .workflow-actions {
     padding-top: 0;
-  }
-  .inspector-panel {
-    grid-template-columns: 1fr;
   }
   .revision-layout > .markdown-preview {
     padding: 18px;

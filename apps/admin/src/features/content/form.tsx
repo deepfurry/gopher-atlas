@@ -89,12 +89,14 @@ function Field({
   field,
   max,
   multiline = false,
+  placeholder,
 }: {
   label: string;
   field:
     'title' | 'slug' | 'summary' | 'language' | 'seoTitle' | 'seoDescription';
   max: number;
   multiline?: boolean;
+  placeholder?: string;
 }) {
   const {
     register,
@@ -104,9 +106,14 @@ function Field({
     <label>
       {label}
       {multiline ? (
-        <Textarea rows={3} maxLength={max} {...register(field)} />
+        <Textarea
+          rows={3}
+          maxLength={max}
+          placeholder={placeholder}
+          {...register(field)}
+        />
       ) : (
-        <Input maxLength={max} {...register(field)} />
+        <Input maxLength={max} placeholder={placeholder} {...register(field)} />
       )}
       {errors[field] && (
         <span className="error-message">{errors[field]?.message}</span>
@@ -118,6 +125,7 @@ function PayloadField({
   label,
   field,
   type = 'text',
+  className,
 }: {
   label: string;
   field: Exclude<
@@ -125,13 +133,14 @@ function PayloadField({
     'relatedLinks' | 'mustRead' | 'order' | 'groupOrder' | 'recommendedCount'
   >;
   type?: string;
+  className?: string;
 }) {
   const {
     register,
     formState: { errors },
   } = useFormContext<FormValues>();
   return (
-    <label>
+    <label className={className}>
       {label}
       <Input type={type} {...register(`payload.${field}`)} />
       {errors.payload?.[field] && (
@@ -149,9 +158,9 @@ function Order({ label = '排序' }: { label?: string }) {
         type="number"
         min={0}
         max={1000000}
+        title="数值越小，位置越靠前。"
         {...register('payload.order', { valueAsNumber: true })}
       />
-      <span className="caption">数值越小，位置越靠前。</span>
     </label>
   );
 }
@@ -159,7 +168,7 @@ function RelatedLinks() {
   const { control, register } = useFormContext<FormValues>();
   const array = useFieldArray({ control, name: 'payload.relatedLinks' });
   return (
-    <fieldset className="related-links">
+    <fieldset className="related-links inspector-full">
       <legend>相关链接</legend>
       {array.fields.map((field, index) => (
         <div className="related-link" key={field.id}>
@@ -212,25 +221,32 @@ export function TypeFields({
     useWatch({ control, name: 'payload.recommendedCount' }) ?? 0;
   switch (type) {
     case 'post':
-      return (
-        <p className="caption">使用 Markdown 编写正文，并完善基础属性。</p>
-      );
+      return null;
     case 'note':
       return (
-        <>
-          <NoteGroupFields publishedPath={publishedPath} />
+        <NoteGroupFields publishedPath={publishedPath}>
           <Order label="组内排序" />
-        </>
+        </NoteGroupFields>
       );
     case 'curated_article':
       return (
-        <>
-          <p className="caption">
+        <div className="inspector-grid">
+          <p className="caption inspector-full">
             收录外部优质文章。Markdown 用于收录理由 /
             编辑点评，不抓取或转载原文。
           </p>
-          <PayloadField label="原文地址" field="sourceUrl" type="url" />
-          <PayloadField label="原始出处 URL" field="originalUrl" type="url" />
+          <PayloadField
+            label="原文地址"
+            field="sourceUrl"
+            type="url"
+            className="inspector-full"
+          />
+          <PayloadField
+            label="原始出处 URL"
+            field="originalUrl"
+            type="url"
+            className="inspector-full"
+          />
           <PayloadField label="外部作者" field="sourceAuthor" />
           <PayloadField label="来源平台" field="sourceName" />
           <label>
@@ -248,54 +264,54 @@ export function TypeFields({
             />
           </label>
           <PayloadField label="原文语言" field="sourceLanguage" />
-          <div className="form-pair">
+          <Controller
+            control={control}
+            name="payload.difficulty"
+            render={({ field }) => (
+              <Select
+                label="难度"
+                value={field.value ?? ''}
+                onValueChange={field.onChange}
+                options={[
+                  { value: '', label: '选择难度' },
+                  ...Object.entries(difficulties).map(([value, label]) => ({
+                    value,
+                    label,
+                  })),
+                ]}
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="payload.rating"
+            render={({ field }) => (
+              <Select
+                label="评级"
+                value={field.value ?? ''}
+                onValueChange={field.onChange}
+                options={[
+                  { value: '', label: '选择评级' },
+                  ...ratings.map((value) => ({ value, label: value })),
+                ]}
+              />
+            )}
+          />
+          <div className="inspector-full">
             <Controller
               control={control}
-              name="payload.difficulty"
+              name="payload.mustRead"
               render={({ field }) => (
-                <Select
-                  label="难度"
-                  value={field.value ?? ''}
-                  onValueChange={field.onChange}
-                  options={[
-                    { value: '', label: '选择难度' },
-                    ...Object.entries(difficulties).map(([value, label]) => ({
-                      value,
-                      label,
-                    })),
-                  ]}
-                />
-              )}
-            />
-            <Controller
-              control={control}
-              name="payload.rating"
-              render={({ field }) => (
-                <Select
-                  label="评级"
-                  value={field.value ?? ''}
-                  onValueChange={field.onChange}
-                  options={[
-                    { value: '', label: '选择评级' },
-                    ...ratings.map((value) => ({ value, label: value })),
-                  ]}
+                <Checkbox
+                  label="标记为必读"
+                  checked={field.value ?? false}
+                  onCheckedChange={field.onChange}
                 />
               )}
             />
           </div>
-          <Controller
-            control={control}
-            name="payload.mustRead"
-            render={({ field }) => (
-              <Checkbox
-                label="标记为必读"
-                checked={field.value ?? false}
-                onCheckedChange={field.onChange}
-              />
-            )}
-          />
           <RelatedLinks />
-        </>
+        </div>
       );
     case 'topic':
       return (
@@ -366,7 +382,7 @@ export function Metadata({ content }: { content: Content }) {
   const values = useWatch({ control });
   const [tab, setTab] = useState(content.type === 'post' ? 'basic' : 'type');
   return (
-    <aside className="metadata-rail" aria-label="内容属性">
+    <aside className="metadata-rail content-inspector" aria-label="内容属性">
       <div className="inspector-heading">
         <SlidersHorizontal />
         <h2>内容属性</h2>
@@ -376,33 +392,42 @@ export function Metadata({ content }: { content: Content }) {
         value={tab}
         onValueChange={setTab}
         items={[
-          {
-            value: 'type',
-            label:
-              content.type === 'curated_article'
-                ? '原文与策展'
-                : content.type === 'topic'
-                  ? '文章编排'
-                  : '分组',
-            icon: <Article />,
-          },
+          ...(content.type === 'post'
+            ? []
+            : [
+                {
+                  value: 'type',
+                  label:
+                    content.type === 'curated_article'
+                      ? '原文与策展'
+                      : content.type === 'topic'
+                        ? '文章编排'
+                        : '分组',
+                  icon: <Article />,
+                },
+              ]),
           { value: 'basic', label: '发布属性', icon: <SlidersHorizontal /> },
           { value: 'seo', label: '搜索展示', icon: <MagnifyingGlass /> },
         ]}
       >
-        <TabPanel value="basic" className="inspector-panel" keepMounted>
-          <CoverField initial={content.draft?.coverAsset ?? null} />
-          <Field label="路径标识" field="slug" max={100} />
-          <p className="caption">
-            使用小写字母或数字，以短横线分隔；不会自动生成。
-          </p>
-          <output className="route-preview" aria-label="预览路径">
-            {routePreview(
-              content.type,
-              values.slug ?? '',
-              values.payload ?? {},
-            )}
-          </output>
+        <TabPanel
+          value="basic"
+          className="inspector-panel inspector-grid"
+          keepMounted
+        >
+          <div className="inspector-full">
+            <CoverField initial={content.draft?.coverAsset ?? null} />
+          </div>
+          <div className="inspector-full inspector-path">
+            <Field label="路径标识" field="slug" max={100} />
+            <output className="route-preview" aria-label="预览路径">
+              {routePreview(
+                content.type,
+                values.slug ?? '',
+                values.payload ?? {},
+              )}
+            </output>
+          </div>
           <Field label="语言" field="language" max={32} />
           {content.actions.assignByline ? (
             <label>
@@ -437,7 +462,7 @@ export function Metadata({ content }: { content: Content }) {
           {!content.actions.assignByline &&
             content.actions.editDraft &&
             values.bylineUserId !== me.user.id && (
-              <div className="review-feedback">
+              <div className="review-feedback inspector-full">
                 <p>当前署名与登录账户不同，继续编辑前请选择自己的署名。</p>
                 <Button
                   variant="outline"
@@ -449,54 +474,70 @@ export function Metadata({ content }: { content: Content }) {
                 </Button>
               </div>
             )}
-          {content.actions.setFeatured ? (
-            <Controller
-              name="featured"
-              control={control}
-              render={({ field }) => (
-                <Switch
-                  label="首页推荐"
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
+          {(content.actions.setFeatured || content.draft?.featured) && (
+            <div className="inspector-full">
+              {content.actions.setFeatured ? (
+                <Controller
+                  name="featured"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch
+                      label="首页推荐"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
                 />
-              )}
-            />
-          ) : content.draft?.featured ? (
-            <p className="caption">重点推荐 · 由管理员管理</p>
-          ) : null}
+              ) : content.draft?.featured ? (
+                <p className="caption">重点推荐 · 由管理员管理</p>
+              ) : null}
+            </div>
+          )}
           {content.type !== 'topic' && (
-            <Controller
-              name="tagIds"
-              control={control}
-              render={({ field }) => (
-                <TagSelect
-                  value={field.value}
-                  onChange={field.onChange}
-                  selected={content.draft?.tags}
-                />
-              )}
-            />
+            <div className="inspector-full">
+              <Controller
+                name="tagIds"
+                control={control}
+                render={({ field }) => (
+                  <TagSelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    selected={content.draft?.tags}
+                  />
+                )}
+              />
+            </div>
           )}
         </TabPanel>
-        <TabPanel value="type" className="inspector-panel" keepMounted>
-          <TypeFields
-            type={content.type}
-            id={content.id}
-            initial={content.draft?.topicTargets ?? []}
-            publishedPath={
-              content.publishedRevisionId
-                ? (content.routes.find((route) => route.kind === 'canonical')
-                    ?.path ?? '')
-                : undefined
-            }
-          />
-        </TabPanel>
+        {content.type !== 'post' && (
+          <TabPanel value="type" className="inspector-panel" keepMounted>
+            <TypeFields
+              type={content.type}
+              id={content.id}
+              initial={content.draft?.topicTargets ?? []}
+              publishedPath={
+                content.publishedRevisionId
+                  ? (content.routes.find((route) => route.kind === 'canonical')
+                      ?.path ?? '')
+                  : undefined
+              }
+            />
+          </TabPanel>
+        )}
         <TabPanel value="seo" className="inspector-panel" keepMounted>
-          <p className="caption">
-            控制搜索结果展示。留空时使用内容标题与摘要。
-          </p>
-          <Field label="搜索标题" field="seoTitle" max={120} />
-          <Field label="搜索描述" field="seoDescription" max={320} multiline />
+          <Field
+            label="搜索标题"
+            field="seoTitle"
+            max={120}
+            placeholder="留空则使用文章标题"
+          />
+          <Field
+            label="搜索描述"
+            field="seoDescription"
+            max={320}
+            placeholder="留空则使用文章摘要"
+            multiline
+          />
         </TabPanel>
       </Tabs>
     </aside>

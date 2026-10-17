@@ -245,30 +245,46 @@
   margin-top: 16px;
   text-align: center;
 }
-.cover-field .section-heading {
-  margin-bottom: 8px;
-}
-.cover-picker-trigger {
-  width: 100%;
-  height: 125px;
-  border: 1px dashed var(--border);
-  border-radius: 5px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
+.metadata-rail .cover-field {
+  display: grid;
   gap: 8px;
-  padding: 8px;
+}
+.metadata-rail .cover-picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.metadata-rail .cover-preview {
+  display: grid;
+  place-items: center;
+  width: 150px;
+  max-width: 100%;
+  height: 90px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 5px;
   background: var(--surface-muted);
   color: var(--muted-foreground);
-  font-size: 11px;
 }
-.cover-picker-trigger > svg {
+.metadata-rail .cover-preview > svg {
   width: 24px;
   height: 24px;
 }
-.cover-field > .caption {
-  margin-top: 7px;
+.metadata-rail .cover-preview .asset-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.metadata-rail .cover-preview .asset-image-fallback {
+  height: 100%;
+  font-size: 11px;
+}
+.metadata-rail .cover-actions {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
 }
 .image-insert-form {
   display: grid;

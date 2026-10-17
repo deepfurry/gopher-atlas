@@ -6,7 +6,7 @@ import { ImageSquare, X } from '@phosphor-icons/react';
 import type { Schema } from '@/shared/api';
 import type { FormValues } from '@/features/content/form';
 import type { MarkdownInsertion } from '@/features/content/markdown-editor';
-import { Button, IconButton } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { AssetBrowser, AssetImage } from './browser';
@@ -44,35 +44,36 @@ export function CoverField({
     [open, setOpen] = useState(false);
   return (
     <section aria-label="封面素材" className="cover-field">
-      <div className="section-heading">
-        <h3>封面</h3>
-        {id !== null && (
-          <IconButton
-            label="移除封面"
-            onClick={() =>
-              setValue('coverAssetId', null, { shouldDirty: true })
-            }
-          >
-            <X />
-          </IconButton>
-        )}
+      <h3>封面</h3>
+      <div className="cover-picker-row">
+        <div className="cover-preview">
+          {id !== null && selected?.id === id ? (
+            <AssetImage asset={selected} />
+          ) : (
+            <ImageSquare aria-hidden="true" />
+          )}
+        </div>
+        <div className="cover-actions">
+          <p className="caption">{id !== null ? `素材 ${id}` : '未选择封面'}</p>
+          <div className="toolbar">
+            <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+              {id !== null ? '更换封面' : '选择封面'}
+            </Button>
+            {id !== null && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  setValue('coverAssetId', null, { shouldDirty: true })
+                }
+              >
+                <X />
+                移除封面
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
-      <button
-        type="button"
-        className="cover-picker-trigger"
-        onClick={() => setOpen(true)}
-        aria-label="选择封面"
-      >
-        {id !== null && selected?.id === id ? (
-          <AssetImage asset={selected} />
-        ) : (
-          <>
-            <ImageSquare />
-            <span>选择封面图片</span>
-          </>
-        )}
-      </button>
-      {id !== null && <p className="caption">素材 {id} · 点击图片更换</p>}
       <AssetPicker
         open={open}
         close={() => setOpen(false)}

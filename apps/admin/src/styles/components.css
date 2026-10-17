@@ -79,8 +79,17 @@
   color: var(--muted-foreground);
   opacity: 0.85;
 }
-.ui-input:focus {
-  border-color: var(--ring);
+/* One continuous edge for input-like controls; other keyboard outlines remain. */
+:is(.ui-input, .ui-select, .date-trigger):focus:not(:disabled):not(
+    [data-disabled]
+  ) {
+  outline: none;
+  border-color: var(--input-focus, var(--ring));
+  box-shadow: inset 0 0 0 1px var(--input-focus, var(--ring));
+}
+:is(.ui-input, .ui-select, .date-trigger)[aria-invalid='true'] {
+  --input-focus: var(--error);
+  border-color: var(--error);
 }
 .ui-input[readonly] {
   background: var(--surface-muted);

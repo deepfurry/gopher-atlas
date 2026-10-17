@@ -91,17 +91,17 @@ export function TagSelect({
     ...new Map(
       [...selected, ...tags.items].map((tag) => [tag.id, tag]),
     ).values(),
-  ];
+  ].sort((a, b) => a.id - b.id);
+  // Match the API's ID order: refreshed selected summaries must not move
+  // the focused checkbox to the top (and drag the scroll viewport with it).
+  const ids = [...new Set(value)];
   const visible = merged.filter((tag) =>
     `${tag.name} ${tag.slug}`.toLowerCase().includes(q.toLowerCase()),
   );
   return (
     <fieldset className="selector">
       <legend>
-        标签{' '}
-        <span className="caption">
-          {value.length ? `已选 ${value.length}` : ''}
-        </span>
+        标签 <span className="caption">已选择 {ids.length} / 100</span>
       </legend>
       <SearchInput
         aria-label="搜索已加载标签"
@@ -114,15 +114,15 @@ export function TagSelect({
           <Checkbox
             key={tag.id}
             label={tag.name}
-            checked={value.includes(tag.id)}
-            disabled={!value.includes(tag.id) && value.length >= 100}
-            onCheckedChange={(checked) =>
+            checked={ids.includes(tag.id)}
+            disabled={!ids.includes(tag.id) && ids.length >= 100}
+            onCheckedChange={(checked) => {
+              if (checked && (ids.includes(tag.id) || ids.length >= 100))
+                return;
               onChange(
-                checked
-                  ? [...value, tag.id]
-                  : value.filter((id) => id !== tag.id),
-              )
-            }
+                checked ? [...ids, tag.id] : ids.filter((id) => id !== tag.id),
+              );
+            }}
           />
         ))}
         {!visible.length && <p className="caption">没有匹配的标签</p>}

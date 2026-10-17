@@ -102,6 +102,8 @@ export function Shell() {
               <a
                 className="nav-link"
                 href={item.to}
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label={small ? item.label : undefined}
               >
                 {content}

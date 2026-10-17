@@ -8,11 +8,71 @@ import {
   within,
 } from '@testing-library/react';
 import { backend, content, me, mount, revision, noActions } from './fixtures';
+import { contentKey, type Content } from '@/features/content/api';
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
 const title = () => screen.findByLabelText('标题', {}, { timeout: 4000 });
+it('keeps tag order, nodes and scroll position when saved tag summaries refresh', async () => {
+  // This test concerns save reconciliation, not cold lazy-chunk loading.
+  await import('@/app/shell');
+  await import('@/features/content/editor');
+  const state = backend();
+  const tags = Array.from({ length: 70 }, (_, index) => ({
+    id: index + 1,
+    name: `标签 ${index + 1}`,
+    slug: `tag-${index + 1}`,
+    description: '',
+    createdBy: 1,
+    createdAt: 1,
+    updatedAt: 1,
+  }));
+  const original = globalThis.fetch;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL) => {
+      const request = input as Request;
+      if (new URL(request.url).pathname === '/api/admin/v1/tags')
+        return Response.json({ items: tags, nextCursor: null });
+      if (request.method === 'PUT') {
+        const response = await original(input);
+        state.content.draft!.tags = tags.filter((tag) =>
+          state.content.draft!.tagIds.includes(tag.id),
+        );
+        return response;
+      }
+      return original(input);
+    }),
+  );
+  const { cache } = mount();
+  const checkbox = await screen.findByRole('checkbox', { name: '标签 60' });
+  const list = checkbox.closest('.selection-list')!;
+  const order = () =>
+    within(list as HTMLElement)
+      .getAllByRole('checkbox')
+      .map((node) => node.closest('label')!.textContent);
+  const before = order();
+  list.scrollTop = 420;
+  fireEvent.click(checkbox);
+  fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+  await screen.findByText(/所有修改已保存.*草稿 v6/);
+  await waitFor(() => expect(state.content.draft!.tags).toHaveLength(1));
+  await waitFor(() =>
+    expect(
+      cache
+        .getQueryData<Content>(contentKey(1))
+        ?.draft?.tags.map((tag) => tag.id),
+    ).toEqual([60]),
+  );
+  expect(order()).toEqual(before);
+  expect(screen.getByRole('checkbox', { name: '标签 60' })).toBe(checkbox);
+  expect(list.scrollTop).toBe(420);
+  fireEvent.click(screen.getByRole('tab', { name: '搜索展示' }));
+  fireEvent.click(screen.getByRole('tab', { name: '发布属性' }));
+  expect(screen.getByRole('checkbox', { name: '标签 60' })).toBe(checkbox);
+  expect(list.scrollTop).toBe(420);
+}, 30000);
 it.each(['editor', 'reviewer', 'admin'] as const)(
   'creates allowed types for %s and navigates immediately to the editor',
   async (role) => {

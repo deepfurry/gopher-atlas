@@ -181,6 +181,11 @@ Geist/system CJK, 14 px body, 32 px controls and 6–8 px radii provide working
 density. Phosphor is the only Admin icon family. Shadows are limited to overlays.
 Thin scrollbars cover the shell, overlays, lists and Markdown source.
 
+Admin input-like focus uses a border plus contiguous 1 px inset in `--ring`;
+only `.ui-input`, `.ui-select` and `.date-trigger` omit their detached outline.
+Invalid controls retain `--error`; read-only surfaces and disabled states remain.
+Ordinary buttons, links, checkboxes, tabs and menu items keep keyboard outlines.
+
 `components/ui` wraps Base UI Button, Select, Combobox, Checkbox, Switch, Menu,
 Dialog/Sheet, AlertDialog, Tabs, Tooltip and Popover. A Chinese calendar DatePicker
 serves the Curated source date, including arrow/Home/End/PageUp/PageDown navigation.
@@ -207,13 +212,24 @@ UIW remains source-only with a Chinese Phosphor H2/H3/formatting toolbar. 源码
 预览 / 分栏 share the in-memory Draft. react-markdown/GFM renders controlled
 images and safe URLs without raw HTML. External images become warnings before
 any request. Asset insertion requires alt text and uses the same save queue.
+Capture the source selection before the picker opens, then use UIW 4.1.2's
+`textApi.setSelectionRange/replaceSelection` after the alt dialog fully closes.
+This preserves native insertText undo/redo where supported (UIW supplies its
+setRangeText fallback). Changed body/mode, reload or unmount invalidates the
+capture; cancel does not write. Without a visited source selection, explicitly
+append to the current document. No secondary autosave or Draft persistence.
+TagSelect merges known tags by ID and sorts in API ID order. Browser reproduction
+showed the old selected-first merge moved the focused row to the top on save and
+reset scrollTop from 893 to 0. Stable order/keys remove that jump without scroll
+assignment; loaded-page search, pagination and the 100-tag cap remain.
 Review/history views show exact immutable Revisions and separate CMS publication
 from observed public synchronization.
 
 Sonner announces significant successes, never every autosave. Theme choices are
 跟随系统 / 浅色 / 深色, with a quick toggle in the top bar. Reduced-motion CSS
 disables transitions/animations; focus and status text remain visible in both
-themes. Monitor remains an Admin-only ordinary link, never an iframe.
+themes. Monitor remains an Admin-only ordinary link opening a new tab with
+`noopener noreferrer`, never an iframe; internal links keep router navigation.
 
 The optional AJV resolver peer warning is unchanged: Admin uses only the Zod
 adapter, without adding a second validator.

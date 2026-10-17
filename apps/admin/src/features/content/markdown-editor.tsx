@@ -1,5 +1,8 @@
-import { useState, type ReactNode } from 'react';
-import MDEditor, { commands } from '@uiw/react-md-editor/nohighlight';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import MDEditor, {
+  commands,
+  type RefMDEditor,
+} from '@uiw/react-md-editor/nohighlight';
 import {
   TextHTwo,
   TextHThree,
@@ -44,6 +47,10 @@ const toolbar = [
   buttonProps: { 'aria-label': label as string, title: label as string },
 }));
 const extra: typeof toolbar = [];
+export type MarkdownInsertion = {
+  atEnd: boolean;
+  insert: (markdown: string) => boolean;
+};
 export function MarkdownEditor({
   value,
   onChange,
@@ -53,13 +60,69 @@ export function MarkdownEditor({
   value: string;
   onChange: (value: string) => void;
   readOnly?: boolean;
-  tools?: ReactNode;
+  tools?: (capture: () => MarkdownInsertion) => ReactNode;
 }) {
   const [mode, setMode] = useState('source'),
     stable = useDebounced(value),
     { resolved } = useTheme();
+  const editor = useRef<RefMDEditor>(null);
+  const visited = useRef<HTMLTextAreaElement | null>(null);
+  const revision = useRef(0);
+  useLayoutEffect(() => {
+    revision.current++;
+    return () => {
+      revision.current++;
+    };
+  }, [value, mode, readOnly]);
+  const capture = (): MarkdownInsertion => {
+    const textarea = editor.current?.textarea;
+    const api = editor.current?.commandOrchestrator?.textApi;
+    const atEnd = !textarea || visited.current !== textarea;
+    const start = atEnd ? value.length : textarea.selectionStart;
+    const end = atEnd ? value.length : textarea.selectionEnd;
+    const capturedRevision = revision.current;
+    let consumed = false;
+    return {
+      atEnd,
+      insert(markdown) {
+        if (consumed || readOnly || capturedRevision !== revision.current)
+          return false;
+        consumed = true;
+        if (
+          textarea &&
+          (!textarea.isConnected ||
+            textarea !== editor.current?.textarea ||
+            textarea.value !== value ||
+            textarea.matches(':disabled'))
+        )
+          return false;
+        const before = value.slice(0, start),
+          after = value.slice(end);
+        // Put the image on its own paragraph without changing either surrounding slice.
+        const leading = before
+          ? '\n'.repeat(
+              Math.max(0, 2 - (before.match(/\n*$/)?.[0].length ?? 0)),
+            )
+          : '';
+        const trailing = '\n'.repeat(
+          Math.max(0, (after ? 2 : 1) - (after.match(/^\n*/)?.[0].length ?? 0)),
+        );
+        const text = `${leading}${markdown}${trailing}`;
+        if (textarea && api) {
+          // UIW 4.1.2 uses native insertText (undoable) with setRangeText fallback.
+          // Run after the dialog closes so its focus trap cannot steal this focus.
+          api.setSelectionRange({ start, end });
+          api.replaceSelection(text);
+        } else {
+          onChange(`${before}${text}${after}`);
+        }
+        return true;
+      },
+    };
+  };
   const source = (
     <MDEditor
+      ref={editor}
       value={value}
       onChange={(text) => {
         if (!readOnly) onChange(text ?? '');
@@ -77,6 +140,9 @@ export function MarkdownEditor({
         readOnly,
         spellCheck: false,
         placeholder: '从这里开始写作…',
+        onFocus: (event) => {
+          visited.current = event.currentTarget;
+        },
       }}
     />
   );
@@ -92,7 +158,7 @@ export function MarkdownEditor({
       data-color-mode={resolved}
     >
       <div className="markdown-tools">
-        {tools}
+        {tools?.(capture)}
         <span className="caption">
           {new TextEncoder().encode(value).length.toLocaleString('zh-CN')} 字节
         </span>

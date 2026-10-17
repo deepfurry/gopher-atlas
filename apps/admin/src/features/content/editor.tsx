@@ -507,7 +507,11 @@ function DraftWorkspace({
                           })
                         }
                         readOnly={locked}
-                        tools={!locked && <InsertImage />}
+                        tools={
+                          locked
+                            ? undefined
+                            : (capture) => <InsertImage capture={capture} />
+                        }
                       />
                     </div>
                     <Metadata content={content} />

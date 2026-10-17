@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { isControlledImage } from '@/shared/asset-policy';
 import { ImageSquare, X } from '@phosphor-icons/react';
 import type { Schema } from '@/shared/api';
 import type { FormValues } from '@/features/content/form';
+import type { MarkdownInsertion } from '@/features/content/markdown-editor';
 import { Button, IconButton } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -93,20 +95,35 @@ export function imageMarkdown(alt: string, url: string) {
     throw new Error('invalid_image');
   return `![${alt.trim().replace(/[\\[\]]/g, '\\$&')}](${url})`;
 }
-export function InsertImage() {
-  const { getValues, setValue } = useFormContext<FormValues>();
+export function InsertImage({ capture }: { capture: () => MarkdownInsertion }) {
+  const insertion = useRef<MarkdownInsertion | null>(null);
+  const pending = useRef<string | null>(null);
+  const cancel = () => {
+    insertion.current = null;
+    pending.current = null;
+    setAsset(null);
+    setOpen(false);
+  };
   const [open, setOpen] = useState(false),
     [asset, setAsset] = useState<Schema<'Asset'> | null>(null),
     [alt, setAlt] = useState('');
   return (
     <div className="insert-image">
-      <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => {
+          insertion.current = capture();
+          pending.current = null;
+          setOpen(true);
+        }}
+      >
         <ImageSquare />
         插入图片
       </Button>
       <AssetPicker
         open={open}
-        close={() => setOpen(false)}
+        close={cancel}
         select={(value) => {
           setAsset(value);
           setAlt('');
@@ -115,23 +132,31 @@ export function InsertImage() {
       />
       <Dialog
         open={!!asset}
-        onOpenChange={(next) => !next && setAsset(null)}
+        onOpenChange={(next) => !next && cancel()}
+        onOpenChangeComplete={(next) => {
+          if (next || pending.current === null) return;
+          const markdown = pending.current;
+          pending.current = null;
+          if (!insertion.current?.insert(markdown))
+            toast.error('正文或编辑模式已变化，请重新选择插入位置。');
+          insertion.current = null;
+        }}
         title="插入图片"
-        description="图片将添加到正文末尾。替代文本有助于无障碍阅读。"
+        description={
+          insertion.current?.atEnd
+            ? '尚未定位源码光标，图片将添加到正文末尾。替代文本有助于无障碍阅读。'
+            : '图片将插入打开素材库前的光标位置，替换当时选中的文字。替代文本有助于无障碍阅读。'
+        }
         footer={
           <>
-            <Button variant="outline" onClick={() => setAsset(null)}>
+            <Button variant="outline" onClick={cancel}>
               取消
             </Button>
             <Button
               disabled={!alt.trim()}
               onClick={() => {
                 if (!asset) return;
-                setValue(
-                  'bodyMarkdown',
-                  `${getValues('bodyMarkdown')}\n\n${imageMarkdown(alt, asset.url)}\n`,
-                  { shouldDirty: true },
-                );
+                pending.current = imageMarkdown(alt, asset.url);
                 setAsset(null);
               }}
             >

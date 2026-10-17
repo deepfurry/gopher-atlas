@@ -1,5 +1,15 @@
 # Changelog
 
+## CMS interaction fixes A (2026-10-17)
+
+- Give input-like Admin controls one continuous focus edge while retaining
+  keyboard indicators on other controls and error/read-only/disabled states.
+- Insert asset Markdown at the captured source selection through UIW, retaining
+  native undo where supported and rejecting stale body/mode/session captures.
+- Keep tag rows in API ID order across save refreshes, preserving the viewport,
+  loaded-page search/pagination and the visible 100-tag selection limit.
+- Open the permission-controlled Monitor link in an isolated new tab.
+
 ## Public legal notices and code license (2026-10-13)
 
 - Add bilingual static Legal pages and one localized Footer link, describing

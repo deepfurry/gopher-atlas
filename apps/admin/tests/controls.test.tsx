@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { useState } from 'react';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { TagSelect } from '@/features/content/selectors';
 import {
   cleanup,
   fireEvent,
@@ -14,7 +16,78 @@ import { Checkbox, Switch } from '@/components/ui/checkbox';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Dialog } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+it('keeps paged tags unique, searches loaded rows and enforces 100 without blocking deselection', async () => {
+  const tags = Array.from({ length: 120 }, (_, i) => ({
+    id: i + 1,
+    name: `标签 ${i + 1}`,
+    slug: `tag-${i + 1}`,
+    description: '',
+    createdBy: 1,
+    createdAt: 1,
+    updatedAt: 1,
+  }));
+  const requests: number[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (request: Request) => {
+      const after = Number(new URL(request.url).searchParams.get('after') || 0);
+      requests.push(after);
+      return Response.json({
+        items: tags.slice(after, after + 60),
+        nextCursor: after === 0 ? 60 : null,
+      });
+    }),
+  );
+  function Demo() {
+    const [value, setValue] = useState([
+      ...Array.from({ length: 99 }, (_, i) => i + 1),
+      118,
+    ]);
+    return (
+      <TagSelect value={value} onChange={setValue} selected={[tags[117]!]} />
+    );
+  }
+  render(
+    <QueryClientProvider
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
+    >
+      <Demo />
+    </QueryClientProvider>,
+  );
+  await screen.findByRole('checkbox', { name: '标签 60' });
+  expect(screen.getByText('已选择 100 / 100')).toBeTruthy();
+  expect(screen.getAllByRole('checkbox')).toHaveLength(61);
+  fireEvent.click(screen.getByRole('button', { name: '加载更多' }));
+  const next = await screen.findByRole('checkbox', {
+    name: '标签 100',
+  });
+  expect(screen.getAllByRole('checkbox')).toHaveLength(120);
+  expect(next.getAttribute('aria-disabled')).toBe('true');
+  fireEvent.click(screen.getByRole('checkbox', { name: '标签 1' }));
+  expect(screen.getByText('已选择 99 / 100')).toBeTruthy();
+  fireEvent.click(next);
+  expect(screen.getByText('已选择 100 / 100')).toBeTruthy();
+  fireEvent.change(screen.getByRole('searchbox'), {
+    target: { value: 'tag-118' },
+  });
+  expect(screen.getAllByRole('checkbox')).toHaveLength(1);
+  expect(screen.getByRole('checkbox').getAttribute('aria-checked')).toBe(
+    'true',
+  );
+  fireEvent.change(screen.getByRole('searchbox'), { target: { value: '' } });
+  expect(screen.getAllByRole('checkbox')).toHaveLength(120);
+  expect(requests).toEqual([0, 60]);
+  expect(
+    screen.queryByText('搜索范围为已加载标签，可继续加载更多。'),
+  ).toBeNull();
+});
 
 it('supports keyboard selection and accessible labels with Base UI', async () => {
   function Demo() {

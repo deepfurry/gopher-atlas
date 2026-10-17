@@ -12,6 +12,7 @@ type Props = {
   footer?: ReactNode;
   className?: string;
   busy?: boolean;
+  onOpenChangeComplete?: (open: boolean) => void;
 };
 export function Dialog({
   open,
@@ -22,10 +23,12 @@ export function Dialog({
   footer,
   className,
   busy,
+  onOpenChangeComplete,
 }: Props) {
   return (
     <Primitive.Root
       open={open}
+      onOpenChangeComplete={onOpenChangeComplete}
       onOpenChange={(next) => {
         if (!busy) onOpenChange(next);
       }}

@@ -92,6 +92,13 @@ published data, route, safety and editorial semantics stay unchanged.
 - Phosphor is the Admin icon family. Base UI wrappers in `components/ui` provide
   consistent controls, keyboard/focus semantics, bounded overlays and scrollbars.
   The Markdown-first editor has a grouped inspector and separate history view.
+- Admin input-like controls (Input/Textarea/Select/SearchSelect/DatePicker) use
+  one continuous focus edge, not a border plus a detached outline. Preserve error,
+  disabled and read-only states and visible keyboard focus on other controls.
+- Image insertion captures the source selection before opening the asset picker.
+  Replace that selection through UIW's text API after the dialogs close; stale
+  body/mode/session captures cannot write. No source selection appends explicitly.
+  Tag choices retain API ID order across save refreshes, with a 100-tag limit.
 - React + Vite, **shadcn/ui with Base UI primitives**, Tailwind CSS v4. Do not mix
   Radix or React Aria primitives without an ADR explaining a concrete need.
 - Medium/high information density; flat surfaces, small 6–8 px radii, restrained

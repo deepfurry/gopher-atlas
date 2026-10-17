@@ -43,6 +43,17 @@ it.each(['editor', 'reviewer', 'admin'] as const)(
       expect(within(nav).queryByRole('link', { name: label }) !== null).toBe(
         role === 'admin',
       );
+    if (role === 'admin') {
+      const monitor = within(nav).getByRole('link', { name: '运行监控' });
+      expect(monitor.getAttribute('href')).toBe('/ops/monitor');
+      expect(monitor.getAttribute('target')).toBe('_blank');
+      expect(monitor.getAttribute('rel')).toBe('noopener noreferrer');
+    }
+    expect(
+      within(nav)
+        .getByRole('link', { name: '精选文章' })
+        .hasAttribute('target'),
+    ).toBe(false);
     expect(
       within(nav).queryByText(/Overview|Users|Publication|Assets/),
     ).toBeNull();

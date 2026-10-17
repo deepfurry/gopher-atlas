@@ -95,6 +95,11 @@ it('selects cover and inserts required-alt Markdown through the one full-snapsho
     target: { value: 'Go [diagram]' },
   });
   fireEvent.click(insert);
+  await waitFor(() =>
+    expect(
+      (screen.getByLabelText('Markdown 源码') as HTMLTextAreaElement).value,
+    ).toContain(`![Go \\[diagram\\]](${asset.url})`),
+  );
   fireEvent.keyDown(window, { key: 's', ctrlKey: true });
   await waitFor(() => expect(state.content.draft?.version).toBeGreaterThan(5));
   const saves = state.requests.filter((r) => r.method === 'PUT');
@@ -121,6 +126,29 @@ it('preserves selected local cover on version conflict and never retries silentl
   expect(screen.getByText('素材 1 · 点击图片更换')).toBeTruthy();
   expect(state.content.draft?.coverAssetId).toBeNull();
   expect(state.requests.filter((r) => r.method === 'PUT')).toHaveLength(1);
+});
+it('cancels either image dialog without changing or saving Markdown', async () => {
+  const { state } = fakeAssets();
+  mount();
+  const textarea = (await screen.findByLabelText(
+    'Markdown 源码',
+  )) as HTMLTextAreaElement;
+  const original = textarea.value;
+  fireEvent.focus(textarea);
+  textarea.setSelectionRange(0, 7);
+  fireEvent.click(screen.getByRole('button', { name: '插入图片' }));
+  fireEvent.click(await screen.findByRole('button', { name: '关闭对话框' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  fireEvent.click(screen.getByRole('button', { name: '插入图片' }));
+  fireEvent.click(await screen.findByRole('button', { name: '选择素材 1' }));
+  fireEvent.change(screen.getByLabelText('图片替代文本'), {
+    target: { value: '取消的图片' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: '取消' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  expect(textarea.value).toBe(original);
+  fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+  expect(state.requests.filter((r) => r.method === 'PUT')).toHaveLength(0);
 });
 it('uploads using multipart, lists dimensions and limits destructive controls to projected actions', async () => {
   const { requests } = fakeAssets();

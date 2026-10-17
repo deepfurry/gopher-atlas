@@ -18,11 +18,15 @@ const image = '![图](https://assets.gopheratlas.com/example.png)';
 function setup(initial: string) {
   let pending: MarkdownInsertion;
   let replace: (text: string) => void;
+  let setReadOnly: (value: boolean) => void;
   function Demo() {
     const [value, setValue] = useState(initial);
+    const [readOnly, updateReadOnly] = useState(false);
+    setReadOnly = updateReadOnly;
     replace = setValue;
     return (
       <MarkdownEditor
+        readOnly={readOnly}
         value={value}
         onChange={setValue}
         tools={(capture) => (
@@ -50,6 +54,7 @@ function setup(initial: string) {
       return result;
     },
     replace: (text: string) => act(() => replace(text)),
+    readOnly: () => act(() => setReadOnly(true)),
   };
 }
 const source = () =>
@@ -78,6 +83,80 @@ it.each([
     expect(source().selectionStart).toBe(source().selectionEnd);
     expect(source().value.slice(0, source().selectionStart)).toContain(image);
     expect(editor.insert()).toBe(false);
+  },
+);
+it.each(['source', 'split'])(
+  'keeps the %s textarea, selection, scroll and capture across focus toggles',
+  (mode) => {
+    const editor = setup('alpha beta gamma');
+    if (mode === 'split')
+      fireEvent.click(screen.getByRole('tab', { name: '分栏' }));
+    const textarea = source();
+    fireEvent.focus(textarea);
+    textarea.setSelectionRange(6, 10);
+    textarea.scrollTop = 40;
+    editor.capture();
+    fireEvent.click(screen.getByRole('button', { name: '进入专注模式' }));
+    expect(source()).toBe(textarea);
+    expect([
+      textarea.selectionStart,
+      textarea.selectionEnd,
+      textarea.scrollTop,
+    ]).toEqual([6, 10, 40]);
+    expect(
+      screen
+        .getByRole('button', { name: '退出专注模式' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+    fireEvent.keyDown(textarea, { key: 'Escape' });
+    expect(source()).toBe(textarea);
+    expect([
+      textarea.selectionStart,
+      textarea.selectionEnd,
+      textarea.scrollTop,
+    ]).toEqual([6, 10, 40]);
+    expect(document.activeElement).toBe(textarea);
+    expect(editor.insert()).toBe(true);
+    expect(textarea.value).toBe(`alpha \n\n${image}\n\n gamma`);
+  },
+);
+it('retains Preview mode and rejects a changed body capture while focused', () => {
+  const editor = setup('original');
+  editor.capture();
+  fireEvent.click(screen.getByRole('button', { name: '进入专注模式' }));
+  editor.replace('new body');
+  expect(editor.insert()).toBe(false);
+  fireEvent.click(screen.getByRole('tab', { name: '预览' }));
+  const preview = screen.getByRole('region', { name: 'Markdown 预览' });
+  fireEvent.click(screen.getByRole('button', { name: '退出专注模式' }));
+  expect(screen.getByRole('region', { name: 'Markdown 预览' })).toBe(preview);
+  expect(screen.queryByLabelText('Markdown 源码')).toBeNull();
+});
+it.each(['exit', 'unmount', 'readOnly'])(
+  'contains keyboard focus and restores background isolation on %s',
+  (action) => {
+    const editor = setup('original');
+    const background = document.createElement('button');
+    background.textContent = 'Background';
+    document.body.append(background);
+    const overflow = document.body.style.overflow;
+    fireEvent.click(screen.getByRole('button', { name: '进入专注模式' }));
+    expect(background.hasAttribute('inert')).toBe(true);
+    expect(document.body.style.overflow).toBe('hidden');
+    fireEvent.keyDown(source(), { key: 'Tab' });
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: '选择图片' }),
+    );
+    fireEvent.keyDown(document.activeElement!, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(source());
+    if (action === 'unmount') editor.unmount();
+    else if (action === 'readOnly') editor.readOnly();
+    else fireEvent.click(screen.getByRole('button', { name: '退出专注模式' }));
+    expect(background.hasAttribute('inert')).toBe(false);
+    expect(document.body.style.overflow).toBe(overflow);
+    if (action === 'readOnly')
+      expect(screen.queryByRole('button', { name: '进入专注模式' })).toBeNull();
+    background.remove();
   },
 );
 it.each(['source', 'preview'])(

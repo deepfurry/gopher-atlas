@@ -1,5 +1,14 @@
 # Changelog
 
+## A2 writing workspace and focus mode (2026-10-17)
+
+- Stack full-width writing above content properties for all editable types;
+  preserve independent revision/review layouts and metadata field order.
+- Add viewport focus on the same UIW instance, with the existing queue's status,
+  dialog-first Escape, keyboard containment and cleanup of background isolation.
+- Preserve A-stage selection insertion, stale-capture guards, native Undo and
+  full-snapshot autosave; view changes never save or persist a Draft.
+
 ## CMS interaction fixes A (2026-10-17)
 
 - Give input-like Admin controls one continuous focus edge while retaining

@@ -43,3 +43,13 @@ the running local Admin in both themes and at desktop/narrow widths, including
 keyboard navigation and destructive confirmations. Use disposable local data,
 never production credentials or services. Run the repository check and embed
 build gates before committing.
+
+## A2 addendum — 2026-10-17
+
+The frozen Writing Workspace & Focus Mode decision supersedes the editing
+layout's 320 px right Inspector: all editable content types now stack title,
+summary and Markdown above the existing metadata panel. Revision/review layout
+is unchanged. CSS viewport focus keeps the same UIW instance and image-selection
+capture, uses the existing save queue/status, isolates the covered workspace and
+gives Base UI dialogs Escape priority. B/C must retain this vertical structure;
+metadata field organization remains outside A2. No domain/API changes.

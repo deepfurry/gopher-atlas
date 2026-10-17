@@ -500,6 +500,7 @@ function DraftWorkspace({
                           </a>
                         )}
                       <MarkdownEditor
+                        saveStatus={save.status}
                         value={values.bodyMarkdown ?? ''}
                         onChange={(value) =>
                           form.setValue('bodyMarkdown', value, {

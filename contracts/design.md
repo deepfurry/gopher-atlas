@@ -92,6 +92,16 @@ published data, route, safety and editorial semantics stay unchanged.
 - Phosphor is the Admin icon family. Base UI wrappers in `components/ui` provide
   consistent controls, keyboard/focus semantics, bounded overlays and scrollbars.
   The Markdown-first editor has a grouped inspector and separate history view.
+- A2 writing layout supersedes the old 320 px editing Inspector: every editable
+  content type places title/summary and full-width Markdown above metadata in
+  natural flow. Keep metadata fields/tabs and local list scrolling; revision and
+  review layouts retain their independent rules.
+- Focus mode is a CSS viewport overlay on the same MarkdownEditor DOM, below
+  Base UI dialogs. Preserve textarea identity, selection, scroll and native Undo;
+  do not portal/remount the editor or invalidate image captures on focus toggles.
+  Isolate the covered workspace, contain keyboard navigation, and let dialog Esc
+  close the dialog before a second Esc exits focus. Show the existing queue's
+  real save/error/conflict status; no new save requests or persisted view state.
 - Admin input-like controls (Input/Textarea/Select/SearchSelect/DatePicker) use
   one continuous focus edge, not a border plus a detached outline. Preserve error,
   disabled and read-only states and visible keyboard focus on other controls.

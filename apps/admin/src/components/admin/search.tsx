@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { MagnifyingGlass, ArrowUpRight } from '@phosphor-icons/react';
@@ -11,12 +11,14 @@ import { SearchInput } from '@/components/ui/input';
 import { LoadingState, EmptyState } from '@/components/ui/workspace';
 import { visibleNavigation } from './navigation';
 export function GlobalSearch() {
+  const trigger = useRef<HTMLButtonElement>(null);
   const me = useMe();
   const [open, setOpen] = useState(false),
     [search, setSearch] = useState('');
   const q = useDebounced(search.trim());
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
+      if (trigger.current?.closest('[inert]')) return;
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
         setOpen((value) => !value);
@@ -42,6 +44,7 @@ export function GlobalSearch() {
   return (
     <>
       <Button
+        ref={trigger}
         variant="ghost"
         className="global-search-trigger"
         onClick={() => setOpen(true)}

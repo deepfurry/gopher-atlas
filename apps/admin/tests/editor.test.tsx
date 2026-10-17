@@ -14,6 +14,69 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 const title = () => screen.findByLabelText('标题', {}, { timeout: 4000 });
+it.each(['', 'invalid_payload', 'content_version_conflict'])(
+  'shows real save status in focus mode (%s), with no saves from view changes',
+  async (failure) => {
+    await import('@/features/content/editor');
+    const state = backend();
+    state.saveFailure = failure;
+    mount();
+    await title();
+    const source = screen.getByLabelText('Markdown 源码');
+    fireEvent.click(screen.getByRole('button', { name: '进入专注模式' }));
+    const focused = screen.getByRole('dialog', { name: 'Markdown 专注模式' });
+    expect(within(focused).getByRole('status').textContent).toBe('已保存');
+    fireEvent.keyDown(source, { key: 'k', ctrlKey: true });
+    expect(screen.queryByRole('dialog', { name: '搜索' })).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: '预览' }));
+    fireEvent.click(screen.getByRole('tab', { name: '源码' }));
+    fireEvent.click(screen.getByRole('button', { name: '退出专注模式' }));
+    expect(state.requests.filter((r) => r.method === 'PUT')).toHaveLength(0);
+    fireEvent.click(screen.getByRole('button', { name: '进入专注模式' }));
+    fireEvent.change(screen.getByLabelText('Markdown 源码'), {
+      target: { value: '## Keep this local text' },
+    });
+    expect(within(focused).getByRole('status').textContent).toBe('等待保存');
+    let release!: () => void;
+    const hold = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    state.heldSave = () => hold;
+    fireEvent.keyDown(screen.getByLabelText('Markdown 源码'), {
+      key: 's',
+      ctrlKey: true,
+    });
+    await waitFor(() =>
+      expect(within(focused).getByRole('status').textContent).toBe('正在保存'),
+    );
+    release();
+    await waitFor(() =>
+      expect(within(focused).getByRole('status').textContent).toBe(
+        failure === 'content_version_conflict'
+          ? '版本冲突 · 请退出专注模式处理'
+          : failure
+            ? '保存失败 · 请退出专注模式查看原因'
+            : '已保存',
+      ),
+    );
+    expect(state.requests.filter((r) => r.method === 'PUT')).toHaveLength(1);
+    if (failure === 'content_version_conflict')
+      expect(
+        document.querySelector('.conflict-panel')?.hasAttribute('inert'),
+      ).toBe(true);
+    fireEvent.keyDown(screen.getByLabelText('Markdown 源码'), {
+      key: 'Escape',
+    });
+    expect(
+      (screen.getByLabelText('Markdown 源码') as HTMLTextAreaElement).value,
+    ).toBe('## Keep this local text');
+    if (failure === 'content_version_conflict')
+      expect(
+        screen.getByRole('button', { name: '重新加载服务器版本' }),
+      ).toBeTruthy();
+  },
+  30000,
+);
 it('keeps tag order, nodes and scroll position when saved tag summaries refresh', async () => {
   // This test concerns save reconciliation, not cold lazy-chunk loading.
   await import('@/app/shell');
@@ -108,6 +171,10 @@ it.each(['post', 'note', 'curated_article', 'topic'] as const)(
     mount();
     await title();
     expect(screen.queryByLabelText(/raw json/i)).toBeNull();
+    const sourceColumn = document.querySelector('.editor-source-column')!;
+    expect(
+      sourceColumn.nextElementSibling?.classList.contains('metadata-rail'),
+    ).toBe(true);
     expect(
       screen.queryByRole('switch', { name: '首页推荐', hidden: true }) !== null,
     ).toBe(type === 'topic');
@@ -246,6 +313,7 @@ it('honors server action projection rather than the account role', async () => {
   const state = backend(c, me('admin'));
   mount();
   await screen.findByRole('heading', { name: /版本 1/ });
+  expect(screen.queryByRole('button', { name: '进入专注模式' })).toBeNull();
   for (const label of [/提交审核/, /更多操作/, /撤回审核/, /^归档$/])
     expect(screen.queryByRole('button', { name: label })).toBeNull();
   fireEvent.keyDown(window, { key: 's', ctrlKey: true });

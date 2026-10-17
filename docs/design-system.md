@@ -197,10 +197,29 @@ TanStack Query owns caches and cursor pagination; table data references are stab
 during lazy navigation. No page-index reset competes with the server cursor.
 Search, dashboard counts and local filters explicitly describe their loaded scope.
 
-The editor prioritizes title and Markdown. Its 320 px inspector groups 基础 / 类型 /
-搜索展示; below 1100 px it stacks and at 360 px uses one column. 历史与路径 has a
-separate view. The sticky header exposes save/workflow actions; the more menu
-contains direct publish/unpublish/archive with explicit confirmations.
+The A2 editor stacks title/summary and full-width Markdown above the metadata
+panel for Notes, Curated, Topics and compatibility Posts, at every breakpoint.
+Metadata retains its existing tabs/fields, caps at 960 px and follows document
+flow without the old Inspector height/scroll limit. Local tag lists still scroll.
+Revision/review layout keeps its independent 320 px rail and narrow breakpoint.
+历史与路径 remains separate. The sticky header exposes save/workflow actions;
+the more menu contains direct publish/unpublish/archive with confirmations.
+
+The normal Markdown pane uses `min(75dvh, clamp(560px, 65dvh, 800px))`;
+UIW's inline height is 100%, with one source textarea scrollport and a separate
+safe preview scrollport. Below 768 px normal split panes stack at the same
+responsive height. No extra reading-width cap applies to the writing surface.
+Entering Focus Mode only toggles data-focus-mode on the same root; it fills
+100dvh at z-index 50, below Base UI's 60/61 backdrop/dialog. Tools, tabs and bounded
+Markdown feedback surround the remaining flexible pane. Narrow focus splits
+divide that remaining height vertically. No timer measures the editing height.
+The local focus hook makes background siblings inert, locks background scrolling,
+contains Tab focus and restores temporary effects on exit/unmount. Portalled
+dialogs own their focus/Escape handling; focus toggles preserve UIW identity,
+selection, scroll and Undo, and are excluded from image-capture invalidation.
+Only editable sessions offer the toggle. The compact live status receives the
+existing AutosaveQueue status; errors/conflicts explicitly invite exit to the
+unchanged recovery controls. View operations never save Drafts or persist state.
 
 The unchanged autosave queue serializes full snapshots and versions. Ctrl/Cmd+S,
 submit and direct publish flush that queue. Conflict stops retries, preserves

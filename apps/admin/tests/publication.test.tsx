@@ -78,6 +78,56 @@ function fakeAssets(role: Schema<'User'>['role'] = 'editor') {
   );
   return { state, requests };
 }
+it.each(['源码', '分栏'])(
+  'keeps focused %s image insertion and gives both asset dialogs Escape priority',
+  async (mode) => {
+    fakeAssets();
+    mount();
+    await screen.findByLabelText('Markdown 源码');
+    if (mode === '分栏')
+      fireEvent.click(screen.getByRole('tab', { name: mode }));
+    const textarea = screen.getByLabelText(
+      'Markdown 源码',
+    ) as HTMLTextAreaElement;
+    const before = textarea.value;
+    fireEvent.focus(textarea);
+    textarea.setSelectionRange(8, 16);
+    fireEvent.click(screen.getByRole('button', { name: '进入专注模式' }));
+    const focused = screen.getByRole('dialog', { name: 'Markdown 专注模式' });
+    fireEvent.click(screen.getByRole('button', { name: '插入图片' }));
+    const picker = await screen.findByRole('dialog', { name: '选择素材' });
+    fireEvent.keyDown(
+      within(picker).getByRole('button', { name: '关闭对话框' }),
+      { key: 'Escape' },
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: '选择素材' })).toBeNull(),
+    );
+    expect(focused.hasAttribute('data-focus-mode')).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: '插入图片' }));
+    fireEvent.click(await screen.findByRole('button', { name: '选择素材 1' }));
+    fireEvent.keyDown(screen.getByLabelText('图片替代文本'), { key: 'Escape' });
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: '插入图片' })).toBeNull(),
+    );
+    expect(focused.hasAttribute('data-focus-mode')).toBe(true);
+    expect(textarea.value).toBe(before);
+    fireEvent.click(screen.getByRole('button', { name: '插入图片' }));
+    fireEvent.click(await screen.findByRole('button', { name: '选择素材 1' }));
+    fireEvent.change(screen.getByLabelText('图片替代文本'), {
+      target: { value: '原选区' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '插入所选图片' }));
+    await waitFor(() =>
+      expect(textarea.value).toBe(
+        `${before.slice(0, 8)}\n${imageMarkdown('原选区', asset.url)}\n\n${before.slice(16)}`,
+      ),
+    );
+    expect(screen.getByLabelText('Markdown 源码')).toBe(textarea);
+    fireEvent.keyDown(textarea, { key: 'Escape' });
+    expect(screen.queryByRole('button', { name: '退出专注模式' })).toBeNull();
+  },
+);
 it('selects cover and inserts required-alt Markdown through the one full-snapshot save', async () => {
   const { state } = fakeAssets();
   mount();

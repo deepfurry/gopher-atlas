@@ -19,11 +19,23 @@ import {
   CodeSimple,
   Eye,
   Columns,
+  ArrowsOut,
+  ArrowsIn,
 } from '@phosphor-icons/react';
 import { MarkdownFeedback, MarkdownPreview } from '@/shared/markdown';
 import { useDebounced } from '@/hooks/use-debounced';
 import { useTheme } from '@/app/theme';
 import { Tabs, TabPanel } from '@/components/ui/tabs';
+import { IconButton } from '@/components/ui/button';
+import type { SaveStatus } from './autosave';
+import { useWritingFocus } from './use-writing-focus';
+const saveLabels: Record<SaveStatus, string> = {
+  saved: '已保存',
+  pending: '等待保存',
+  saving: '正在保存',
+  error: '保存失败 · 请退出专注模式查看原因',
+  conflict: '版本冲突 · 请退出专注模式处理',
+};
 const toolbar = [
   [commands.heading2, '二级标题', TextHTwo],
   [commands.heading3, '三级标题', TextHThree],
@@ -56,16 +68,19 @@ export function MarkdownEditor({
   onChange,
   readOnly = false,
   tools,
+  saveStatus,
 }: {
   value: string;
   onChange: (value: string) => void;
   readOnly?: boolean;
   tools?: (capture: () => MarkdownInsertion) => ReactNode;
+  saveStatus?: SaveStatus;
 }) {
   const [mode, setMode] = useState('source'),
     stable = useDebounced(value),
     { resolved } = useTheme();
   const editor = useRef<RefMDEditor>(null);
+  const focus = useWritingFocus(editor, readOnly);
   const visited = useRef<HTMLTextAreaElement | null>(null);
   const revision = useRef(0);
   useLayoutEffect(() => {
@@ -130,8 +145,8 @@ export function MarkdownEditor({
       preview="edit"
       commands={toolbar}
       extraCommands={extra}
-      height={560}
-      minHeight={300}
+      height="100%"
+      minHeight={0}
       visibleDragbar={false}
       highlightEnable={false}
       hideToolbar={readOnly}
@@ -153,17 +168,49 @@ export function MarkdownEditor({
   );
   return (
     <section
+      ref={focus.root}
       className="markdown-editor"
-      aria-label="Markdown 编辑器"
+      role={focus.focused ? 'dialog' : undefined}
+      aria-modal={focus.focused || undefined}
+      aria-label={focus.focused ? 'Markdown 专注模式' : 'Markdown 编辑器'}
+      data-focus-mode={focus.focused || undefined}
+      onKeyDown={focus.onKeyDown}
       data-color-mode={resolved}
     >
       <div className="markdown-tools">
         {tools?.(capture)}
-        <span className="caption">
-          {new TextEncoder().encode(value).length.toLocaleString('zh-CN')} 字节
-        </span>
+        <div className="markdown-tool-status">
+          <span className="caption">
+            {new TextEncoder().encode(value).length.toLocaleString('zh-CN')}{' '}
+            字节
+          </span>
+          {focus.focused && saveStatus && (
+            <span
+              role="status"
+              className={`focus-save-status caption save-${saveStatus}`}
+            >
+              {saveLabels[saveStatus]}
+            </span>
+          )}
+          {!readOnly && (
+            <IconButton
+              ref={focus.button}
+              label={focus.focused ? '退出专注模式' : '进入专注模式'}
+              title={focus.focused ? '退出专注模式（Esc）' : '进入专注模式'}
+              aria-pressed={focus.focused}
+              onPointerDown={(event) => {
+                if (document.activeElement === editor.current?.textarea)
+                  event.preventDefault();
+              }}
+              onClick={focus.toggle}
+            >
+              {focus.focused ? <ArrowsIn /> : <ArrowsOut />}
+            </IconButton>
+          )}
+        </div>
       </div>
       <Tabs
+        className="markdown-modes"
         label="编辑模式"
         value={mode}
         onValueChange={setMode}

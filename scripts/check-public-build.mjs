@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { JSDOM } from 'jsdom';
+import { taxonomyText } from '../apps/web/src/lib/publication/taxonomy.ts';
 import { copyrightYears } from '../apps/web/src/lib/copyright.ts';
 import { validateSnapshot, sha256 } from './snapshot.mjs';
 import {
@@ -11,6 +12,7 @@ import {
 import {
   publicPages,
   redirects,
+  collectionText,
 } from '../apps/web/src/lib/publication/routes.ts';
 import {
   chromePaths,
@@ -20,7 +22,9 @@ import {
 } from '../apps/web/src/lib/i18n.ts';
 
 // Deliberately fixture-only: this gate never loads .env, contacts R2 or starts CMS.
-const input = readFileSync('tests/fixtures/content-snapshot-v1.json');
+const version = process.argv[2] ?? '1';
+assert(['1', '2'].includes(version), 'Expected fixture version 1 or 2');
+const input = readFileSync(`tests/fixtures/content-snapshot-v${version}.json`);
 const snapshot = validateSnapshot(input),
   p = createPublication(snapshot);
 const out = 'apps/web/dist';
@@ -202,6 +206,76 @@ for (const item of snapshot.content.filter(
   assert(!row.querySelector('.markdown'));
 }
 const notFound = new JSDOM(read('404.html')).window.document;
+let tagFilterOrder;
+for (const locale of ['zh', 'en']) {
+  const tags = pageDocument(localized('/tags/', locale));
+  const articles = pageDocument(localized('/articles/', locale));
+  const order = [...articles.querySelectorAll('[data-tag-option] input')].map(
+    (input) => input.value,
+  );
+  if (tagFilterOrder)
+    assert.deepEqual(
+      order,
+      tagFilterOrder,
+      'Tag filter order must not change with locale',
+    );
+  tagFilterOrder = order;
+  for (const tag of p.tags) {
+    const text = taxonomyText(tag, locale);
+    const link = tags.querySelector(
+      `.directory-list a[href="${localized(`/tags/${tag.slug}/`, locale)}"]`,
+    );
+    assert.equal(link?.textContent.trim(), text.name);
+    assert(link.closest('li').textContent.includes(text.description));
+    const filter = articles.querySelector(
+      `[data-tag-option]:has(input[value="${tag.slug}"])`,
+    );
+    if (
+      p.contentByTag.get(tag.id).some((item) => item.type === 'curated_article')
+    ) {
+      assert.equal(filter?.dataset.tagName, text.name);
+      assert(filter.textContent.includes(text.name));
+    }
+  }
+  for (const page of pages.filter(
+    (page) => page.kind === 'collection' && (page.tag || page.group),
+  )) {
+    const doc = pageDocument(localized(page.path, locale));
+    const text = collectionText(page, locale);
+    assert.equal(doc.querySelector('h1').textContent.trim(), text.title);
+    assert.equal(
+      doc.title,
+      `${text.title}${page.page > 1 ? ` / ${page.page} ${words[locale].page}` : ''} · GopherAtlas`,
+    );
+    assert.equal(
+      doc.querySelector('meta[name=description]')?.content,
+      text.description,
+    );
+  }
+  for (const item of p.snapshot.content) {
+    const doc = pageDocument(localized(item.canonicalPath, locale));
+    for (const id of item.tagIds) {
+      const tag = p.tagById.get(id);
+      const link = doc.querySelector(
+        `.content-detail a[href="${localized(`/tags/${tag.slug}/`, locale)}"]`,
+      );
+      assert.equal(link?.textContent.trim(), taxonomyText(tag, locale).name);
+    }
+    if (item.type === 'note') {
+      const group = p.notesByGroup.get(item.payload.groupSlug);
+      for (const link of doc.querySelectorAll(
+        `.content-detail a[href="${localized(`/notes/${group.slug}/`, locale)}"]`,
+      ))
+        assert.equal(link.textContent.trim(), taxonomyText(group, locale).name);
+      const discussion = doc.querySelector('[data-discussion]');
+      if (discussion)
+        assert.equal(
+          discussion.dataset.term,
+          `note:${item.payload.groupSlug}/${item.slug}`,
+        );
+    }
+  }
+}
 assert.equal(notFound.querySelector('h1').textContent.trim(), '404');
 assert(notFound.querySelector('meta[name=robots]').content.includes('noindex'));
 assert(!existsSync(`${out}/__dev/blog-preview`));
@@ -211,8 +285,16 @@ for (const path of ['/notes/', '/en/notes/']) {
     const heading = doc.querySelector(
       `.note-group h2 a[href="${localized(`/notes/${group.slug}/`, localeOf(path))}"]`,
     );
-    assert.equal(heading?.textContent, group.name, `Note group label: ${path}`);
-    assert(heading.closest('article').textContent.includes(group.description));
+    assert.equal(
+      heading?.textContent,
+      taxonomyText(group, localeOf(path)).name,
+      `Note group label: ${path}`,
+    );
+    assert(
+      heading
+        .closest('article')
+        .textContent.includes(taxonomyText(group, localeOf(path)).description),
+    );
   }
 }
 for (const item of snapshot.content) {
@@ -324,7 +406,16 @@ for (const path of aliases) {
     !alias.querySelector('main[data-pagefind-body]'),
     `Alias duplicated in Pagefind: ${path}`,
   );
-  if (path !== '/authors/' && path !== '/tags/')
+  if (
+    path !== '/authors/' &&
+    path !== '/tags/' &&
+    !pages.some(
+      (page) =>
+        page.path === path &&
+        page.kind === 'collection' &&
+        (page.tag || page.group),
+    )
+  )
     assert.equal(
       alias.querySelector('h1').textContent.trim(),
       base.querySelector('h1').textContent.trim(),
@@ -369,7 +460,7 @@ assert.deepEqual(
 );
 assert.equal(marker.generation, snapshot.generation);
 assert.equal(marker.snapshotSha256, sha256(input));
-assert.equal(marker.schemaVersion, 1);
+assert.equal(marker.schemaVersion, snapshot.schemaVersion);
 assert(Number.isFinite(Date.parse(marker.builtAt)));
 assert.match(marker.commitSha, /^[a-f0-9]{40,64}$/);
 assert(existsSync(`${out}/pagefind/pagefind.js`));
@@ -413,5 +504,5 @@ for (const path of walk(out)) {
     );
 }
 console.log(
-  `Public fixture artifacts passed: ${snapshot.content.length} details, ${canonicalPaths.length} canonical pages + ${aliases.length} chrome aliases, redirects/RSS/sitemap/Pagefind/marker and privacy.`,
+  `Public v${version} fixture artifacts passed: ${snapshot.content.length} details, ${canonicalPaths.length} canonical pages + ${aliases.length} chrome aliases, redirects/RSS/sitemap/Pagefind/marker and privacy.`,
 );

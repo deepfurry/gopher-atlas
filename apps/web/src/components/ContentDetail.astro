@@ -1,4 +1,5 @@
 ---
+import { taxonomyText } from '../lib/publication/taxonomy';
 import Layout from '../layouts/Layout.astro';
 import * as stylex from '@stylexjs/stylex';
 import { layout as s } from '../styles/layout.stylex';
@@ -33,7 +34,10 @@ const author = required(p.authorById, item.authorId),
     item.coverAssetId === null
       ? undefined
       : required(p.assetById, item.coverAssetId);
-const tags = item.tagIds.map((id) => required(p.tagById, id)),
+const tags = item.tagIds.map((id) => {
+    const tag = required(p.tagById, id);
+    return { ...tag, ...taxonomyText(tag, locale) };
+  }),
   rendered = await renderMarkdown(item.bodyMarkdown);
 const topics =
   item.type === 'curated_article'
@@ -110,7 +114,7 @@ const contentFamily =
                 <a href={localized('/notes/', locale)}>{t.notes}</a>
                 {group && (
                   <a href={localized('/notes/' + group.slug + '/', locale)}>
-                    {group.name}
+                    {taxonomyText(group, locale).name}
                   </a>
                 )}
               </nav>

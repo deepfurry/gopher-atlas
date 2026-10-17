@@ -1,4 +1,5 @@
 ---
+import { taxonomyText } from '../lib/publication/taxonomy';
 import * as stylex from '@stylexjs/stylex';
 import { products as s } from '../styles/products.stylex';
 import { layout as l } from '../styles/layout.stylex';
@@ -52,7 +53,7 @@ const previous = index >= 0 ? notes[index - 1] : undefined,
           {...stylex.attrs(l.textLink)}
           href={localized('/notes/' + group.slug + '/', locale)}
         >
-          {group.name}
+          {taxonomyText(group, locale).name}
         </a>
       )
     }

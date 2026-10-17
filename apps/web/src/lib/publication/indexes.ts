@@ -1,4 +1,5 @@
-import type { Content, ContentType, Snapshot } from './types.ts';
+import type { Content, ContentType, NoteGroup, Snapshot } from './types.ts';
+import { normalizeSnapshot } from './normalize.ts';
 
 // Code-point ordering is reproducible across Node/ICU versions and host locales.
 export const compareText = (a: string, b: string) =>
@@ -9,10 +10,11 @@ export const featuredRecent = (a: Content, b: Content) =>
   Number(b.featured) - Number(a.featured) || recent(a, b);
 const titled = (a: Content, b: Content) =>
   compareText(a.title, b.title) || a.id - b.id;
-export function ordered(a: Content, b: Content) {
+function ordered(a: Content, b: Content, groups: Map<string, NoteGroup>) {
   if (a.type === 'note' && b.type === 'note')
     return (
-      a.payload.groupOrder - b.payload.groupOrder ||
+      groups.get(a.payload.groupSlug)!.order -
+        groups.get(b.payload.groupSlug)!.order ||
       compareText(a.payload.groupSlug, b.payload.groupSlug) ||
       a.payload.order - b.payload.order ||
       titled(a, b)
@@ -42,7 +44,8 @@ function append<K>(map: Map<K, Content[]>, key: K, content: Content) {
 }
 
 /** Build once from an already schema-validated snapshot. All references are strict. */
-export function createPublication(snapshot: Snapshot) {
+export function createPublication(input: Snapshot) {
+  const snapshot = normalizeSnapshot(input);
   const contentById = index(snapshot.content);
   const authorById = index(snapshot.authors);
   const assetById = index(snapshot.assets);
@@ -57,16 +60,10 @@ export function createPublication(snapshot: Snapshot) {
   );
   const contentByAuthor = new Map<number, Content[]>();
   const contentByTag = new Map<number, Content[]>();
-  const notesByGroup = new Map<
-    string,
-    {
-      slug: string;
-      name: string;
-      description: string;
-      order: number;
-      content: Content[];
-    }
-  >();
+  checkSlugs(snapshot.groups);
+  const notesByGroup = new Map<string, NoteGroup & { content: Content[] }>(
+    snapshot.groups.map((group) => [group.slug, { ...group, content: [] }]),
+  );
   const canonicalRouteByContentId = new Map<number, string>();
   const paths = new Set<string>();
   for (const route of snapshot.routes) {
@@ -96,26 +93,16 @@ export function createPublication(snapshot: Snapshot) {
     }
     if (item.type === 'note') {
       const group = notesByGroup.get(item.payload.groupSlug);
-      if (
-        group &&
-        (group.name !== item.payload.group ||
-          group.description !== item.payload.groupDescription ||
-          group.order !== item.payload.groupOrder)
-      )
-        throw new Error('public_note_group_conflict');
-      if (group) group.content.push(item);
-      else
-        notesByGroup.set(item.payload.groupSlug, {
-          slug: item.payload.groupSlug,
-          name: item.payload.group,
-          description: item.payload.groupDescription,
-          order: item.payload.groupOrder,
-          content: [item],
-        });
+      if (!group) throw new Error('public_reference_missing');
+      group.content.push(item);
     }
   }
-  for (const rows of contentByType.values()) rows.sort(ordered);
-  for (const group of notesByGroup.values()) group.content.sort(ordered);
+  const order = (a: Content, b: Content) => ordered(a, b, notesByGroup);
+  for (const rows of contentByType.values()) rows.sort(order);
+  for (const group of notesByGroup.values()) {
+    if (!group.content.length) throw new Error('public_reference_missing');
+    group.content.sort(order);
+  }
   const topicTargets = new Map<
     number,
     { position: number; content: Content }[]

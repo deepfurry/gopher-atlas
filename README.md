@@ -7,7 +7,8 @@
 私有 CMS 提供内容表格、Markdown 编辑/安全预览、串行 autosave、审核工作区、
 Revision History、Tags/Authors/Users/Audit 和 Monitor。Publish 仅表示 **已在 CMS 发布**；
 已实现 Assets/R2、原子 generation/outbox、Snapshot v1、Worker/Hook 和公开构建 marker。
-Public 从 snapshot v1 构建完整阅读页面、静态 redirects、RSS/sitemap/SEO 与 Pagefind 搜索。
+Public 兼容读取 snapshot v1/v2，通过统一模型构建阅读页面、静态 redirects、RSS/sitemap/SEO 与 Pagefind 搜索；CMS 仍导出 v1。
+分类元数据支持中英文逐字段回退。B1 独立部署并验证现有 v1 后，才能安排 B2 上线，见 [ADR 0018](docs/decisions/0018-public-snapshot-dual-read.md)。
 Production CMS 已更新并验证登录、备份、generation 1 发布同步与 Worker 首页访问。
 实操命令及验收边界见 [生产操作手册](docs/operations/production-runbook.md)。
 首次 generation → snapshot → Hook → marker 已跑通；正式域名已接入新 Worker。
@@ -26,7 +27,7 @@ Production CMS 已更新并验证登录、备份、generation 1 发布同步与 
 
 | 目录                                 | 当前职责                                                                    |
 | ------------------------------------ | --------------------------------------------------------------------------- |
-| `apps/web`                           | snapshot v1 三条产品线、Post 兼容详情、搜索、RSS/SEO/redirects              |
+| `apps/web`                           | snapshot v1/v2 三条产品线、双语分类、Post 兼容详情、搜索、RSS/SEO/redirects |
 | `apps/admin`                         | 按 feature 拆分的 React/Vite 编辑工作台、Base UI、RHF、TanStack Table/Query |
 | `packages/markdown`                  | CommonMark/GFM 安全规则与共享 remark 插件                                   |
 | `packages/api-client`                | OpenAPI 生成类型、同源请求及 CSRF header                                    |

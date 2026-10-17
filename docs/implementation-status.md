@@ -1,5 +1,10 @@
 # Implementation scope
 
+B1 Public Snapshot v1/v2 compatibility (ADR 0018) adds a dual-version reader,
+normalized taxonomy and bilingual metadata display. CMS remains a v1 writer;
+schema 3, Admin A/A2 and immutable content are unchanged. B1 Production deployment
+and live v1 acceptance are separate operator steps and prerequisites for B2 rollout.
+
 Public presentation now follows ADR 0016 (2026-10-13): Modern Geek Editorial,
 Astro 7.3.8, StyleX, IBM Plex and the user-supplied AVIF Hero. Earlier visual
 fidelity evidence below is historical; content/publication phase scope is unchanged.

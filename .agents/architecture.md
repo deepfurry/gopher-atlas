@@ -83,6 +83,12 @@ BEGIN; worker acquires it around latest/Hook without a DB transaction.
 Asset upload validates/uploads before a short reauthorized row/Audit transaction.
 The Web loader keeps RO credentials in Node; Astro env loading is disabled.
 
+B1 (ADR 0018) adds strict closed v1/v2 consumer validation and a single normalized
+Public taxonomy model; the Go exporter remains v1. v2 groups are authoritative,
+while validated v1 groups are adapted from Note payloads. Only taxonomy metadata
+is localized, with independent English field fallback. Marker hashes/versions
+describe original bytes. B1 deployment and live v1 verification precede B2.
+
 Development-only scripts load root .env with process precedence. dev-web reads
 local storage/content/latest.json; fixture input is rejected, external storage
 credentials are ignored. Production preparation still uses independent RO R2

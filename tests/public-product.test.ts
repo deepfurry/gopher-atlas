@@ -16,7 +16,7 @@ import {
 } from '../apps/web/src/lib/discussion';
 import { renderMarkdown } from '../apps/web/src/lib/publication/markdown';
 import { createPublication } from '../apps/web/src/lib/publication/indexes';
-import type { Snapshot } from '../apps/web/src/lib/publication/types';
+import type { SnapshotV1 as Snapshot } from '../apps/web/src/lib/publication/types';
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();

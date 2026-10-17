@@ -7,7 +7,13 @@ import {
   validateMarkdown,
   type AssetPolicy,
 } from '@gopheratlas/markdown';
-import type { Author, Asset, Tag, Content } from '../src/lib/publication/types';
+import type {
+  Author,
+  Asset,
+  TagV1,
+  ContentV1,
+} from '../src/lib/publication/types';
+import { adaptContentV1, adaptTagV1 } from '../src/lib/publication/normalize';
 import type { Publication } from '../src/lib/publication/indexes';
 
 const definitions = structuredClone(schema.$defs);
@@ -45,10 +51,10 @@ const validate = ajv.compile({
   },
 });
 interface Input {
-  item: Content;
+  item: ContentV1;
   author: Author;
   cover: Asset | null;
-  tags: Tag[];
+  tags: TagV1[];
   targets: { id: number; title: string }[];
 }
 export const previewLimit = 3 * 1024 * 1024;
@@ -96,7 +102,7 @@ export function parsePreview(
   )
     throw new Error('preview_invalid');
   return {
-    item,
+    item: adaptContentV1(item),
     publication: {
       ...base,
       authorById: new Map([...base.authorById, [author.id, author]]),
@@ -106,7 +112,7 @@ export function parsePreview(
       ]),
       tagById: new Map([
         ...base.tagById,
-        ...tags.map((tag) => [tag.id, tag] as const),
+        ...tags.map((tag) => [tag.id, adaptTagV1(tag)] as const),
       ]),
     },
     preview: {

@@ -20,7 +20,9 @@ function input() {
     item,
     author: structuredClone(base.authorById.get(item.authorId)),
     tags: item.tagIds.map((id: number) =>
-      structuredClone(base.tagById.get(id)),
+      structuredClone(
+        snapshot.tags.find((tag: { id: number }) => tag.id === id),
+      ),
     ),
     cover:
       item.coverAssetId === null
@@ -29,6 +31,30 @@ function input() {
     targets: [],
   };
 }
+it('keeps the CMS v1 Note preview projection separate from the normalized Public model', () => {
+  const value = input();
+  value.item = structuredClone(
+    snapshot.content.find((row: { type: string }) => row.type === 'note'),
+  );
+  value.author = structuredClone(base.authorById.get(value.item.authorId));
+  value.cover = null;
+  value.tags = value.item.tagIds.map((id: number) =>
+    structuredClone(snapshot.tags.find((tag: { id: number }) => tag.id === id)),
+  );
+  const parsed = parsePreview(value, base);
+  expect(parsed.item).toEqual({
+    ...value.item,
+    payload: {
+      groupSlug: value.item.payload.groupSlug,
+      order: value.item.payload.order,
+    },
+  });
+  expect(parsed.publication.tagById.get(1)).toMatchObject({
+    nameEn: '',
+    descriptionEn: '',
+  });
+  expect(value.item.payload.group).toBe('Go');
+});
 it('uses Public ContentDetail/Layout and safe Markdown with no preview persistence or external calls', () => {
   const before = JSON.stringify(base.snapshot),
     value = input();

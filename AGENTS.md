@@ -76,8 +76,9 @@ architecture and current scope are summarized in `docs/implementation-status.md`
   private R2 read-only input; tests explicitly select fixtures. Development uses
   local full snapshots. Default image policy stays exact Production HTTPS; only
   explicit Development policy allows the configured loopback asset base.
-- UI says Published in CMS with independent marker status. P0-5 builds Public
-  routes/search/SEO from snapshot v1 only. P0-5.5 imports Development legacy content; ADR 0015 cancels Production legacy migration; P0-6 is fresh-start domain cutover only.
+- UI says Published in CMS with independent marker status. B1 Public reads strictly
+  validated snapshot v1/v2 through one normalized model (ADR 0018); CMS still writes
+  v1. B2 requires independent B1 deployment/verification first. P0-5.5 imports Development legacy content; ADR 0015 cancels Production legacy migration; P0-6 is fresh-start domain cutover only.
 
 Completion gate: **`make check`**. Report actual commands and results, inspect the
 complete diff, and preserve local files. Commit/push only within user authorization.
@@ -86,6 +87,7 @@ compiles with `adminembed`; plain Go tooling intentionally has no production SPA
 
 Product alignment: curated_article / topic / note are the normal workflows; post
 is compatibility-only. Read ADR 0012 before product/import changes. Topic targets
-must be Curated; Note group metadata is payload-derived and consistent. Public visuals follow ADR 0016; legacy product semantics remain. Import plan is read-only; apply
+must be Curated; CMS/v1 Note group metadata is payload-derived and consistent;
+Public v2 reads authoritative groups. Public visuals follow ADR 0016; legacy product semantics remain. Import plan is read-only; apply
 uses existing Asset/Content services and explicit author mapping, never raw SQL
 content insertion or relaxed Markdown safety. No migration is needed for P0-5.5.

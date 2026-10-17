@@ -1,4 +1,5 @@
 ---
+import { taxonomyText } from '../lib/publication/taxonomy';
 import * as stylex from '@stylexjs/stylex';
 import { layout as s } from '../styles/layout.stylex';
 import { home as h } from '../styles/home.stylex';
@@ -113,7 +114,12 @@ const { notes, articles, topics } = homeContent(p);
                   locale,
                 )}
               >
-                {note.payload.group}
+                {
+                  taxonomyText(
+                    p.notesByGroup.get(note.payload.groupSlug)!,
+                    locale,
+                  ).name
+                }
               </a>
               <time datetime={new Date(note.lastPublishedAt).toISOString()}>
                 {displayDate(note.lastPublishedAt, locale)}

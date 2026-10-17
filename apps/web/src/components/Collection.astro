@@ -6,7 +6,7 @@ import { words, localized, type Locale } from '../lib/i18n';
 import ContentList from './ContentList.astro';
 import MarkdownBody from './MarkdownBody.astro';
 import type { Publication } from '../lib/publication/indexes';
-import type { CollectionPage } from '../lib/publication/routes';
+import { collectionText, type CollectionPage } from '../lib/publication/routes';
 interface Props {
   page: CollectionPage;
   publication: Publication;
@@ -15,11 +15,12 @@ interface Props {
 const { page, publication, locale = 'zh' } = Astro.props;
 const t = words[locale];
 const { author } = page;
+const text = collectionText(page, locale);
 ---
 
 <Layout
-  title={page.title + (page.page > 1 ? ` / ${page.page} ${t.page}` : '')}
-  description={page.description}
+  title={text.title + (page.page > 1 ? ` / ${page.page} ${t.page}` : '')}
+  description={text.description}
   canonical={page.path}
   locale={locale}
 >
@@ -38,8 +39,8 @@ const { author } = page;
           />
         )
       }
-      <h1 {...stylex.attrs(s.title)}>{page.title}</h1><p class="lede">
-        {page.description}
+      <h1 {...stylex.attrs(s.title)}>{text.title}</h1><p class="lede">
+        {text.description}
       </p>
       {
         author && (

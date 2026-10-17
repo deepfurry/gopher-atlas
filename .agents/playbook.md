@@ -21,7 +21,8 @@
    two-tab conflicts, light/dark and 360 px layouts.
 5. Run `make generate`, `make check` and Linux race. Never use real R2/Hook
    credentials or deployment for implementation checks. The gate uses an explicit
-   v1 fixture and scans synthetic build secrets. This checks formatting, Go analysis/tests/build, TS checks,
+   v1 and v2 fixtures and scans synthetic build secrets (only Web rebuilds for v2).
+   This checks formatting, Go analysis/tests/build, TS checks,
    contracts, generation drift, disposable SQL tooling and static build artifacts.
    The final Go build uses freshly built Admin assets and `adminembed`; Linux CI
    also runs `go test -race -tags=adminembed ./...`.

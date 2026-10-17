@@ -1,6 +1,7 @@
 import { compareText, typeInfo, type Publication } from './indexes.ts';
-import type { Author, Content, Snapshot, Tag } from './types.ts';
-import { chromePaths } from '../i18n.ts';
+import type { Author, Content, NoteGroup, Snapshot, Tag } from './types.ts';
+import { chromePaths, type Locale } from '../i18n.ts';
+import { taxonomyText } from './taxonomy.ts';
 
 export const pageSize = 24;
 export interface CollectionPage {
@@ -15,6 +16,7 @@ export interface CollectionPage {
   next?: string;
   author?: Author;
   tag?: Tag;
+  group?: NoteGroup;
 }
 export type PublicPage =
   CollectionPage | { kind: 'detail'; path: string; content: Content };
@@ -23,7 +25,7 @@ export function collectionPages(
   title: string,
   description: string,
   content: Content[],
-  extra: { author?: Author; tag?: Tag } = {},
+  extra: { author?: Author; tag?: Tag; group?: NoteGroup } = {},
 ): CollectionPage[] {
   const total = Math.max(1, Math.ceil(content.length / pageSize));
   const at = (page: number) => (page === 1 ? path : `${path}page/${page}/`);
@@ -76,6 +78,7 @@ export function publicPages(p: Publication): PublicPage[] {
         group.name,
         `${group.name} 的工程笔记，按阅读顺序整理。`,
         group.content,
+        { group },
       ),
     );
   for (const author of p.authors)
@@ -134,7 +137,9 @@ export function publicPages(p: Publication): PublicPage[] {
 // Workers Static Assets: 2,000 static rules, 1,000 characters per declaration.
 // https://developers.cloudflare.com/workers/static-assets/redirects/
 export const staticRedirectLimit = 2000;
-export function redirects(snapshot: Snapshot): string {
+export function redirects(
+  snapshot: Pick<Snapshot, 'content' | 'routes'>,
+): string {
   const content = new Map(snapshot.content.map((item) => [item.id, item]));
   const paths = new Map(snapshot.routes.map((route) => [route.path, route]));
   if (
@@ -166,4 +171,20 @@ export function redirects(snapshot: Snapshot): string {
       return line + '\n';
     })
     .join('');
+}
+
+export function collectionText(page: CollectionPage, locale: Locale) {
+  const taxonomy = page.tag ?? page.group;
+  if (!taxonomy) return { title: page.title, description: page.description };
+  const text = taxonomyText(taxonomy, locale);
+  return {
+    title: text.name,
+    description:
+      text.description ||
+      (page.group
+        ? locale === 'en'
+          ? `Engineering notes in ${text.name}, arranged in reading order.`
+          : `${text.name} 的工程笔记，按阅读顺序整理。`
+        : ''),
+  };
 }

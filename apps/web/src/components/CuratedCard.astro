@@ -1,4 +1,5 @@
 ---
+import { taxonomyText } from '../lib/publication/taxonomy';
 import * as stylex from '@stylexjs/stylex';
 import { products as s } from '../styles/products.stylex';
 import { words, localized, type Locale } from '../lib/i18n';
@@ -34,7 +35,7 @@ const searchText = [
   item.bodyMarkdown,
   source.sourceAuthor,
   source.sourceName,
-  ...tags.map((tag) => tag.name),
+  ...tags.flatMap((tag) => [tag.name, taxonomyText(tag, locale).name]),
   ...topics.map((topic) => topic.title),
 ].join(' ');
 ---

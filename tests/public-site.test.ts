@@ -14,7 +14,10 @@ import {
   staticRedirectLimit,
 } from '../apps/web/src/lib/publication/routes';
 import { renderMarkdown } from '../apps/web/src/lib/publication/markdown';
-import type { Content, Snapshot } from '../apps/web/src/lib/publication/types';
+import type {
+  Content,
+  SnapshotV1 as Snapshot,
+} from '../apps/web/src/lib/publication/types';
 import { homeContent } from '../apps/web/src/lib/publication/home';
 
 const fixture = (): Snapshot =>

@@ -1,5 +1,23 @@
 # Data contract
 
+## B1 Public reader compatibility (ADR 0018)
+
+The CMS still exports v1; SQLite remains schema 3; content payload schema remains 1.
+B1 adds no migration, Admin/API changes or v2 writer. The original closed
+`content-snapshot.schema.json` is immutable for this delivery; the independent
+`content-snapshot.v2.schema.json` is the exact v2 wire contract. Both versions
+retain every shared public field and safety/reference rule. Unknown versions and
+fields, mismatched latest/snapshot versions/hashes and invalid graphs fail closed.
+
+v2 tags require `nameEn`/`descriptionEn` (empty allowed), and `groups` requires
+unique IDs/slugs, bilingual name/description and non-negative order. Groups and
+published Note groupSlug references resolve in both directions. v2 Notes contain
+only groupSlug/order. The reader derives consistent v1 groups from embedded
+payloads, then uses one model and field-by-field English-to-Chinese fallback.
+No authored content, canonical route, permanent slug or comment term is translated.
+The source schemaVersion/hash survive normalization in the public build marker.
+B1 must be deployed and verified against current v1 before any B2 Production rollout.
+
 ## P0-5.5 product alignment (ADR 0012)
 
 No migration: schema 3 and migrations 00001–00003 stay unchanged. Normal workflows

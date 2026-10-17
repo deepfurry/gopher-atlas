@@ -1,5 +1,14 @@
 # Changelog
 
+## B1 Public Snapshot v1/v2 compatibility (2026-10-17)
+
+- Preserve the v1 schema/fixture and CMS exporter; add a closed v2 consumer with
+  strict version, hash and taxonomy-reference checks.
+- Normalize both inputs once and localize tag/group metadata with per-field
+  Chinese fallback, preserving content identities, authored text and routes.
+- Exercise both synthetic fixture builds with the shared static artifact/privacy
+  gate. B1 deployment/verification is a prerequisite for later B2 Production work.
+
 ## A2 writing workspace and focus mode (2026-10-17)
 
 - Stack full-width writing above content properties for all editable types;

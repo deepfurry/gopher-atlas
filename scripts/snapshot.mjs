@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import snapshotSchema from '../contracts/content-snapshot.schema.json' with { type: 'json' };
+import snapshotV2Schema from '../contracts/content-snapshot.v2.schema.json' with { type: 'json' };
 import {
   isSafeLink,
   validateMarkdown,
@@ -13,7 +14,10 @@ export const maxSnapshotBytes = 128 * 1024 * 1024;
 export const sha256 = (data) => createHash('sha256').update(data).digest('hex');
 const ajv = new Ajv2020({ strict: true });
 addFormats(ajv);
-const validate = ajv.compile(snapshotSchema);
+const validators = new Map([
+  [1, ajv.compile(snapshotSchema)],
+  [2, ajv.compile(snapshotV2Schema)],
+]);
 const invalid = () => {
   throw new Error('snapshot_invalid');
 };
@@ -30,17 +34,23 @@ export function validateSnapshot(data, { assetPolicy } = {}) {
   } catch {
     invalid();
   }
-  if (!validate(snapshot)) invalid();
+  const validate = validators.get(snapshot?.schemaVersion);
+  if (!validate || !validate(snapshot)) invalid();
   const authors = unique(snapshot.authors),
     assets = unique(snapshot.assets),
     tags = unique(snapshot.tags),
     content = unique(snapshot.content);
   unique(snapshot.routes, 'path');
+  unique(snapshot.authors, 'slug');
+  unique(snapshot.tags, 'slug');
+  if (snapshot.schemaVersion === 2) unique(snapshot.groups);
   const usedAuthors = new Set(),
     usedAssets = new Set(),
     usedTags = new Set(),
     canonicals = new Map();
-  const groups = new Map();
+  const groups =
+    snapshot.schemaVersion === 2 ? unique(snapshot.groups, 'slug') : new Map();
+  const usedGroups = new Set();
   for (const route of snapshot.routes) {
     if (!content.has(route.contentId)) invalid();
     if (route.kind === 'canonical') {
@@ -51,10 +61,13 @@ export function validateSnapshot(data, { assetPolicy } = {}) {
   for (const item of snapshot.content) {
     if (item.type === 'note') {
       const { group, groupSlug, groupDescription, groupOrder } = item.payload;
-      const metadata = JSON.stringify([group, groupDescription, groupOrder]);
-      if (groups.has(groupSlug) && groups.get(groupSlug) !== metadata)
-        invalid();
-      groups.set(groupSlug, metadata);
+      if (snapshot.schemaVersion === 1) {
+        const metadata = JSON.stringify([group, groupDescription, groupOrder]);
+        if (groups.has(groupSlug) && groups.get(groupSlug) !== metadata)
+          invalid();
+        groups.set(groupSlug, metadata);
+      } else if (!groups.has(groupSlug)) invalid();
+      usedGroups.add(groupSlug);
     }
     if (
       item.type === 'topic' &&
@@ -127,7 +140,8 @@ export function validateSnapshot(data, { assetPolicy } = {}) {
   if (
     usedAuthors.size !== authors.size ||
     usedAssets.size !== assets.size ||
-    usedTags.size !== tags.size
+    usedTags.size !== tags.size ||
+    usedGroups.size !== groups.size
   )
     invalid();
   return snapshot;
@@ -145,7 +159,7 @@ export function validateLatest(data) {
     !latest ||
     Object.keys(latest).sort().join(',') !==
       'exportedAt,generation,schemaVersion,sha256,snapshotKey' ||
-    latest.schemaVersion !== 1 ||
+    !validators.has(latest.schemaVersion) ||
     !Number.isSafeInteger(latest.generation) ||
     latest.generation < 1 ||
     latest.snapshotKey !== `snapshots/generation-${latest.generation}.json` ||
@@ -206,6 +220,7 @@ export async function loadSnapshot(
     if (hash !== latest.sha256) throw new Error('snapshot_hash_mismatch');
     const snapshot = validateSnapshot(data);
     if (
+      snapshot.schemaVersion !== latest.schemaVersion ||
       snapshot.generation !== latest.generation ||
       snapshot.exportedAt !== latest.exportedAt
     )

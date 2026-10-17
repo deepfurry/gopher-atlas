@@ -34,36 +34,40 @@ for (const key of [
   'GOPHERATLAS_DEV_ASSET_BASE',
 ])
   process.env[key] = canary;
-process.env.CONTENT_SNAPSHOT_FILE = resolve(
-  'tests/fixtures/content-snapshot-v1.json',
-);
-pnpm('build');
-run('node', ['scripts/check-public-build.mjs']);
-for (const root of [
-  'apps/web/dist',
-  'apps/admin/dist',
-  'internal/adminui/dist',
-]) {
-  const walk = (dir) =>
-    readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-      e.isDirectory() ? walk(dir + '/' + e.name) : [dir + '/' + e.name],
-    );
-  for (const path of walk(root)) {
-    if (
-      path.split('/').at(-1).startsWith('.env') ||
-      readFileSync(path).includes(Buffer.from(canary))
-    )
-      throw new Error('Synthetic secret-output scan failed');
-    for (const marker of [
-      '/__dev/blog-preview/',
-      'showSavedBlogPreview',
-      'GOPHERATLAS_DEV_ADMIN_ORIGIN',
-    ])
-      if (readFileSync(path).includes(Buffer.from(marker)))
-        throw new Error('Development preview leaked into Production output');
+// Both wire versions share the same artifact/privacy gate; only Web rebuilds for v2.
+for (const version of [1, 2]) {
+  process.env.CONTENT_SNAPSHOT_FILE = resolve(
+    `tests/fixtures/content-snapshot-v${version}.json`,
+  );
+  if (version === 1) pnpm('build');
+  else pnpm('--filter', '@gopheratlas/web', 'build');
+  run('node', ['scripts/check-public-build.mjs', String(version)]);
+  for (const root of [
+    'apps/web/dist',
+    'apps/admin/dist',
+    'internal/adminui/dist',
+  ]) {
+    const walk = (dir) =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? walk(dir + '/' + e.name) : [dir + '/' + e.name],
+      );
+    for (const path of walk(root)) {
+      if (
+        path.split('/').at(-1).startsWith('.env') ||
+        readFileSync(path).includes(Buffer.from(canary))
+      )
+        throw new Error('Synthetic secret-output scan failed');
+      for (const marker of [
+        '/__dev/blog-preview/',
+        'showSavedBlogPreview',
+        'GOPHERATLAS_DEV_ADMIN_ORIGIN',
+      ])
+        if (readFileSync(path).includes(Buffer.from(marker)))
+          throw new Error('Development preview leaked into Production output');
+    }
   }
+  console.log('Synthetic secret-output scan passed.');
 }
-console.log('Synthetic secret-output scan passed.');
 mkdirSync('.cache/bin', { recursive: true });
 go('test', '-tags=adminembed', './internal/adminui', './internal/app');
 go(

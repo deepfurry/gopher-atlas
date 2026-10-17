@@ -1,5 +1,5 @@
-// Public-only view of content-snapshot.schema.json v1, never an Admin DTO.
-// snapshot.ts validates the closed schema before admitting these values.
+// Public wire contracts and the normalized reader model, never Admin DTOs.
+// snapshot.ts validates the selected closed schema before admitting values.
 export interface Author {
   id: number;
   slug: string;
@@ -16,18 +16,33 @@ export interface Asset {
   height: number;
   byteSize: number;
 }
-export interface Tag {
+export interface TagV1 {
   id: number;
   name: string;
   slug: string;
   description: string;
 }
+export interface LocalizedTaxonomy {
+  name: string;
+  description: string;
+  nameEn: string;
+  descriptionEn: string;
+}
+export interface Tag extends TagV1, LocalizedTaxonomy {}
+export interface NoteGroup extends LocalizedTaxonomy {
+  // v1 has no group identity. Do not invent a CMS ID in its adapter.
+  id: number | null;
+  slug: string;
+  order: number;
+}
 export interface NotePayload {
-  group: string;
   groupSlug: string;
+  order: number;
+}
+export interface NotePayloadV1 extends NotePayload {
+  group: string;
   groupDescription: string;
   groupOrder: number;
-  order: number;
 }
 export interface CuratedPayload {
   sourceUrl: string;
@@ -68,13 +83,31 @@ export type Content = ContentFields &
     | { type: 'curated_article'; payload: CuratedPayload }
   );
 export type ContentType = Content['type'];
-export interface Snapshot {
-  schemaVersion: 1;
+export type ContentV1 =
+  | Exclude<Content, { type: 'note' }>
+  | (ContentFields & { type: 'note'; payload: NotePayloadV1 });
+interface SnapshotFields {
   generation: number;
   exportedAt: string;
   authors: Author[];
   assets: Asset[];
-  tags: Tag[];
-  content: Content[];
   routes: { path: string; kind: 'canonical' | 'redirect'; contentId: number }[];
+}
+export interface SnapshotV1 extends SnapshotFields {
+  schemaVersion: 1;
+  tags: TagV1[];
+  content: ContentV1[];
+}
+export interface SnapshotV2 extends SnapshotFields {
+  schemaVersion: 2;
+  tags: Tag[];
+  groups: (NoteGroup & { id: number })[];
+  content: Content[];
+}
+export type Snapshot = SnapshotV1 | SnapshotV2;
+export interface NormalizedSnapshot extends SnapshotFields {
+  schemaVersion: 1 | 2;
+  tags: Tag[];
+  groups: NoteGroup[];
+  content: Content[];
 }

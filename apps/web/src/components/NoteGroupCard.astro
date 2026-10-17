@@ -1,4 +1,5 @@
 ---
+import { taxonomyText } from '../lib/publication/taxonomy';
 import * as stylex from '@stylexjs/stylex';
 import { layout as s } from '../styles/layout.stylex';
 import { products as r } from '../styles/products.stylex';
@@ -24,9 +25,13 @@ const { group, publication: p, locale, order = 0 } = Astro.props,
       {String(order + 1).padStart(2, '0')} / COLLECTION
     </p>
     <h2 {...stylex.attrs(s.sectionTitle)}>
-      <a href={localized('/notes/' + group.slug + '/', locale)}>{group.name}</a>
+      <a href={localized('/notes/' + group.slug + '/', locale)}
+        >{taxonomyText(group, locale).name}</a
+      >
     </h2>
-    <p {...stylex.attrs(s.description)}>{group.description}</p>
+    <p {...stylex.attrs(s.description)}>
+      {taxonomyText(group, locale).description}
+    </p>
     <p {...stylex.attrs(r.meta)}>{group.content.length} {t.noteCount}</p>
   </header>
   <div>

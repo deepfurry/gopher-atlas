@@ -21,7 +21,7 @@ export function buildMarker(input, commitSha) {
   if (!/^[a-f0-9]{40,64}$/.test(commitSha))
     throw new Error('build_commit_invalid');
   return {
-    schemaVersion: 1,
+    schemaVersion: input.snapshot.schemaVersion,
     generation: input.snapshot.generation,
     snapshotSha256: input.hash,
     builtAt: new Date().toISOString(),

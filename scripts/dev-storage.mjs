@@ -80,6 +80,7 @@ export async function readLocalPrepared(config) {
   if (hash !== latest.sha256) throw new Error('local_snapshot_invalid');
   const snapshot = validateSnapshot(data, { assetPolicy: config.assetPolicy });
   if (
+    snapshot.schemaVersion !== latest.schemaVersion ||
     snapshot.generation !== latest.generation ||
     snapshot.exportedAt !== latest.exportedAt
   )

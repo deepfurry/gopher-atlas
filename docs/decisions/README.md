@@ -23,6 +23,7 @@ silently rewriting history. Routine implementation choices do not need an ADR.
 | [0015](0015-fresh-start-domain-cutover.md)              | Fresh-start publication, no Production legacy import, domain-only cutover     | Accepted                             |
 | [0016](0016-public-editorial-redesign.md)               | Modern Geek Editorial Public design, StyleX and Astro 7                       | Accepted                             |
 | [0017](0017-code-license-and-public-legal-notices.md)   | Project-owned BSD-3-Clause code and scoped bilingual Public legal notices     | Accepted                             |
+| [0018](0018-public-snapshot-dual-read.md)               | Public v1/v2 compatibility, localized taxonomy and staged rollout             | Accepted; deployment pending         |
 
 New records include date, status, context, decision, alternatives, consequences
 and implementation scope. Earlier ADR phase boundaries describe their original

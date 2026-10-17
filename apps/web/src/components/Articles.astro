@@ -1,4 +1,5 @@
 ---
+import { taxonomyText } from '../lib/publication/taxonomy';
 import * as stylex from '@stylexjs/stylex';
 import { products as r } from '../styles/products.stylex';
 import CuratedCard from './CuratedCard.astro';
@@ -27,7 +28,8 @@ const tags = p.tags
     ).length,
   }))
   .filter((tag) => tag.count)
-  .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'en'));
+  .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'en'))
+  .map((tag) => ({ ...tag, ...taxonomyText(tag, locale) }));
 const lastUpdated = articles.length
   ? displayDate(Math.max(...articles.map((c) => c.lastPublishedAt)), locale)
   : '';

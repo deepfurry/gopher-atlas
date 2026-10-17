@@ -1,4 +1,5 @@
 ---
+import { taxonomyText } from '../lib/publication/taxonomy';
 import Layout from '../layouts/Layout.astro';
 import * as stylex from '@stylexjs/stylex';
 import { layout as s } from '../styles/layout.stylex';
@@ -118,22 +119,27 @@ const title =
                   </>
                 </li>
               ))
-            : publication.tags.map((tag) => (
-                <li {...stylex.attrs(r.directoryItem)}>
-                  <>
-                    <h2 {...stylex.attrs(r.directoryTitle)}>
-                      <a href={localized(`/tags/${tag.slug}/`, locale)}>
-                        {tag.name}
-                      </a>
-                    </h2>
-                    <p>{tag.description}</p>
-                    <span class="muted">
-                      {publication.contentByTag.get(tag.id)!.length}{' '}
-                      {t.contentCount}
-                    </span>
-                  </>
-                </li>
-              ))}
+            : publication.tags
+                .map((source) => ({
+                  ...source,
+                  ...taxonomyText(source, locale),
+                }))
+                .map((tag) => (
+                  <li {...stylex.attrs(r.directoryItem)}>
+                    <>
+                      <h2 {...stylex.attrs(r.directoryTitle)}>
+                        <a href={localized(`/tags/${tag.slug}/`, locale)}>
+                          {tag.name}
+                        </a>
+                      </h2>
+                      <p>{tag.description}</p>
+                      <span class="muted">
+                        {publication.contentByTag.get(tag.id)!.length}{' '}
+                        {t.contentCount}
+                      </span>
+                    </>
+                  </li>
+                ))}
         </ul>
         {!(page === 'authors'
           ? publication.authors.length

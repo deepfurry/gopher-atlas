@@ -38,6 +38,7 @@ const allPaths = [
   '/about/',
   '/contribute/',
   '/legal/',
+  '/stats/',
   '/search/',
   '/notes/',
   '/tags/',
@@ -85,6 +86,16 @@ for (const path of allPaths) {
   );
   assert.equal(legalLinks.length, 1, `One localized Legal entry: ${path}`);
   assert.equal(legalLinks[0].textContent, words[localeOf(path)].legal);
+  const statsLinks = doc.querySelectorAll(
+    `footer a[href="${localized('/stats/', localeOf(path))}"]`,
+  );
+  assert.equal(statsLinks.length, 1, `One localized Statistics entry: ${path}`);
+  assert.equal(statsLinks[0].textContent, words[localeOf(path)].stats);
+  assert(
+    !doc.querySelector(
+      '#primary-navigation a[href$="/stats/"]:not([data-language-link])',
+    ),
+  );
   for (const link of doc.querySelectorAll('a[href^="/"]')) {
     const target = link.getAttribute('href').split(/[?#]/)[0];
     assert(
@@ -92,6 +103,71 @@ for (const path of allPaths) {
       `Broken generated link in ${path}: ${target}`,
     );
   }
+}
+for (const path of ['/stats/', '/en/stats/']) {
+  const doc = pageDocument(path),
+    locale = localeOf(path);
+  assert.equal(doc.title, `${words[locale].statsTitle} · GopherAtlas`);
+  assert.equal(doc.querySelector('h1').textContent, words[locale].statsTitle);
+  assert.equal(
+    doc.querySelector('meta[name=description]').content,
+    words[locale].statsIntro,
+  );
+  assert.equal(doc.documentElement.lang, locale === 'zh' ? 'zh-CN' : 'en');
+  for (const [language, target] of [
+    ['zh-CN', '/stats/'],
+    ['en', '/en/stats/'],
+    ['x-default', '/stats/'],
+  ])
+    assert.equal(
+      doc.querySelector(`link[rel=alternate][hreflang="${language}"]`).href,
+      `https://gopheratlas.com${target}`,
+    );
+  for (const type of ['note', 'curated_article', 'topic', 'tags'])
+    assert.equal(
+      Number(doc.querySelector(`[data-stat-count="${type}"]`).textContent),
+      type === 'tags'
+        ? snapshot.tags.length
+        : snapshot.content.filter((item) => item.type === type).length,
+    );
+  assert(
+    doc.querySelector('[data-stats-switch]').hasAttribute('hidden'),
+    'Progressive chart controls',
+  );
+  for (const type of ['all', 'note', 'curated_article', 'topic']) {
+    const panel = doc.querySelector(`[data-stats-panel="${type}"]`);
+    assert.equal(panel.hasAttribute('hidden'), type !== 'all');
+    const days = new Map();
+    for (const item of snapshot.content.filter(
+      (item) => item.type !== 'post' && (type === 'all' || type === item.type),
+    )) {
+      const day = new Date(item.firstPublishedAt).toISOString().slice(0, 10);
+      days.set(day, (days.get(day) ?? 0) + 1);
+    }
+    let total = 0;
+    const expected = [...days]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, added]) => [date, String((total += added))]);
+    assert.deepEqual(
+      [...panel.querySelectorAll('tbody tr')].map((row) =>
+        [...row.querySelectorAll('td')].map((cell) => cell.textContent.trim()),
+      ),
+      expected,
+    );
+    assert(panel.querySelector('svg title') && panel.querySelector('svg desc'));
+    assert(panel.querySelector('details > summary'));
+  }
+  assert(
+    doc.querySelector(
+      '[data-statistics] time[datetime="' + snapshot.exportedAt + '"]',
+    ),
+  );
+  assert(!doc.querySelector('main[data-pagefind-body], astro-island'));
+  assert(
+    !/Page Views|Visits|Readership|Popular Pages|Referrals|访问趋势|热门页面|访问来源/.test(
+      doc.querySelector('main').textContent,
+    ),
+  );
 }
 for (const path of ['/legal/', '/en/legal/']) {
   const doc = pageDocument(path);

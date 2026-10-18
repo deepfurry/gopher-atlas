@@ -8,7 +8,7 @@ const config = parseConfigFileTextToJson(
   'wrangler.jsonc',
   readFileSync('apps/web/wrangler.jsonc', 'utf8'),
 ).config;
-it('binds the real statistics database, keeps Static Assets and both switches off without a Cron', async () => {
+it('binds the real statistics database, keeps Static Assets and enables reads and daily sync at 03:15 UTC', () => {
   expect(config.name).toBe('gopheratlas-web');
   expect(config.main).toBe('stats/worker/index.ts');
   expect(config.assets).toEqual({
@@ -25,13 +25,20 @@ it('binds the real statistics database, keeps Static Assets and both switches of
     },
   ]);
   expect(config.vars).toEqual({
-    STATS_READ_ENABLED: 'false',
-    STATS_SYNC_ENABLED: 'false',
+    STATS_READ_ENABLED: 'true',
+    STATS_SYNC_ENABLED: 'true',
   });
-  expect(config.triggers.crons).toEqual([]);
+  expect(config.triggers.crons).toEqual(['15 3 * * *']);
   expect(config.account_id).toBeUndefined();
+});
+it('allows explicit shutdown without database or upstream access while preserving Static Assets', async () => {
   const env = {
     ...config.vars,
+    STATS_READ_ENABLED: 'false',
+    STATS_SYNC_ENABLED: 'false',
+    get STATS_DB(): never {
+      throw Error('disabled statistics must not access the database');
+    },
     ASSETS: { fetch: async () => new Response('static') },
   };
   const fail = async () => {

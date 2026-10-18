@@ -16,7 +16,7 @@ export const siteQuery = `query RumDailySite($accountTag: string!, $siteTag: str
     accounts(filter: { accountTag: $accountTag }) {
       rumPageloadEventsAdaptiveGroups(
         limit: $limit
-        filter: { siteTag: $siteTag, requestHost: "gopheratlas.com", datetime_geq: $start, datetime_lt: $end }
+        filter: { siteTag: $siteTag, requestHost: "gopheratlas.com", datetime_geq: $start, datetime_lt: $end, bot: 0 }
       ) {
         dimensions { date requestHost }
         count
@@ -33,7 +33,7 @@ export const pagesQuery = `query RumDailyPages($accountTag: string!, $siteTag: s
       rumPageloadEventsAdaptiveGroups(
         limit: $limit
         orderBy: [count_DESC]
-        filter: { siteTag: $siteTag, requestHost: "gopheratlas.com", datetime_geq: $start, datetime_lt: $end }
+        filter: { siteTag: $siteTag, requestHost: "gopheratlas.com", datetime_geq: $start, datetime_lt: $end, bot: 0 }
       ) {
         dimensions { date requestHost requestPath }
         count
@@ -50,7 +50,7 @@ export const referrersQuery = `query RumDailyReferrers($accountTag: string!, $si
       rumPageloadEventsAdaptiveGroups(
         limit: $limit
         orderBy: [sum_visits_DESC]
-        filter: { siteTag: $siteTag, requestHost: "gopheratlas.com", datetime_geq: $start, datetime_lt: $end }
+        filter: { siteTag: $siteTag, requestHost: "gopheratlas.com", datetime_geq: $start, datetime_lt: $end, bot: 0 }
       ) {
         dimensions { date requestHost refererHost }
         count

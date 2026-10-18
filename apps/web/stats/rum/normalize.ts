@@ -1,3 +1,4 @@
+import { rumBotFilter } from '../../src/lib/stats/readership-contract';
 import type {
   RumCounts,
   RumErrorCode,
@@ -189,7 +190,7 @@ export function quality(rows: RumCounts[]): RumQuality {
   return {
     status: 'complete',
     timezone: 'UTC',
-    botFilter: 'unverified',
+    botFilter: rumBotFilter,
     sampled,
     sampleIntervalRange: intervals.length
       ? [
@@ -198,7 +199,6 @@ export function quality(rows: RumCounts[]): RumQuality {
         ]
       : null,
     warnings: [
-      'bot_filter_unverified',
       ...(sampled === true ? ['sampled_estimate' as const] : []),
       ...(unknownSampling ? ['sampling_unknown' as const] : []),
     ],

@@ -36,7 +36,7 @@ function fixture(range: StatsRange = '30d'): Readership {
     end: daily.at(-1)!.date,
     quality: {
       source: 'Cloudflare Web Analytics RUM',
-      botFilter: 'unverified',
+      botFilter: 'cloudflare-rum-bot-0',
       visitsAreUniqueUsers: false,
       estimated: true,
     },
@@ -106,8 +106,36 @@ it('shows independent valid dimensions, preserves keyboard focus and table state
   expect(root.querySelector('svg title')!.textContent).toContain('Visits');
   expect(fetch).toHaveBeenCalledTimes(1);
   expect(root.querySelectorAll('tbody tr')).toHaveLength(30);
-  expect(root.textContent).toContain('bot filtering is unverified');
+  expect(root.textContent).toContain(
+    'All three dimensions use the RUM bot: 0 filter',
+  );
+  expect(root.textContent).toContain('does not guarantee human-only traffic');
+  expect(root.textContent).toContain('not WAF Bot Score');
+  expect(root.textContent).toContain('may still be sampled estimates');
+  expect(root.textContent).toContain('Visits are not unique visitors');
 });
+it('describes the same limited RUM filter scope in Chinese', async () => {
+  const root = dom();
+  root.dataset.locale = 'zh';
+  stop = mountReadership(root, async () => Response.json(fixture()));
+  await waitFor(() =>
+    expect(root.textContent).toContain('三个统计维度均使用 RUM bot: 0 过滤'),
+  );
+  expect(root.textContent).toContain('不保证全部为真人访问');
+  expect(root.textContent).toContain('不等同于 WAF Bot Score');
+  expect(root.textContent).toContain('仍可能包含采样估计');
+  expect(root.textContent).toContain('Visits 不代表独立访客 UV');
+});
+it.each(['unverified', 'human-only', undefined])(
+  'rejects a stale, misleading or missing filter contract: %s',
+  (botFilter) => {
+    const data = fixture();
+    Object.assign(data.quality, { botFilter });
+    expect(() => validateReadership(data, '30d')).toThrow(
+      'stats_response_invalid',
+    );
+  },
+);
 it('hides unavailable/failing traffic without disturbing A, and supports explicit retry', async () => {
   const root = dom();
   const fetch = vi

@@ -1,7 +1,8 @@
-import type {
-  Readership,
-  StatsRange,
-  Coverage,
+import {
+  rumBotFilter,
+  type Readership,
+  type StatsRange,
+  type Coverage,
 } from '../../src/lib/stats/readership-contract';
 import type { StatsManifest } from '../manifest';
 import type { Database } from './db';
@@ -12,6 +13,7 @@ interface Site {
   visits: number;
   quality_state: 'observed' | 'sampled-estimate' | 'partial';
   archive_at: string;
+  bot_filter: typeof rumBotFilter;
 }
 interface State {
   day_utc: string;
@@ -44,7 +46,7 @@ export async function readership(
   const result = await db.batch([
     db
       .prepare(
-        'SELECT day_utc,page_loads,visits,quality_state,archive_at FROM daily_site_traffic WHERE day_utc BETWEEN ? AND ? ORDER BY day_utc',
+        'SELECT day_utc,page_loads,visits,quality_state,archive_at,bot_filter FROM daily_site_traffic WHERE day_utc BETWEEN ? AND ? ORDER BY day_utc',
       )
       .bind(start, end),
     db
@@ -68,6 +70,9 @@ export async function readership(
     states = result[1].results as unknown as State[];
   const pages = result[2].results as unknown as Page[],
     refs = result[3].results as unknown as Referral[];
+  // Never relabel archived C1/unfiltered rows as the new filtered scope.
+  if (sites.some((site) => site.bot_filter !== rumBotFilter))
+    throw Error('stats_filter_mismatch');
   const siteByDay = new Map(sites.map((s) => [s.day_utc, s]));
   const current = new Map(
     manifest.routes
@@ -153,7 +158,7 @@ export async function readership(
     end,
     quality: {
       source: 'Cloudflare Web Analytics RUM',
-      botFilter: 'unverified',
+      botFilter: rumBotFilter,
       visitsAreUniqueUsers: false,
       estimated: sites.some((s) => s.quality_state !== 'observed'),
     },

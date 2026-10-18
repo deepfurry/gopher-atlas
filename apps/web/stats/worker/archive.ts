@@ -1,9 +1,10 @@
 import type { RumDay } from '../rum/types';
 import { utcWindow } from '../rum/normalize';
 import { validateManifest, type StatsManifest } from '../manifest';
-import type {
-  CoverageState,
-  SourceKey,
+import {
+  rumBotFilter,
+  type CoverageState,
+  type SourceKey,
 } from '../../src/lib/stats/readership-contract';
 import type { Database, Statement } from './db';
 
@@ -103,7 +104,13 @@ export async function archiveDay(
     rum.dateUtc !== dayUtc ||
     rum.window?.startInclusive !== window.startInclusive ||
     rum.window?.endExclusive !== window.endExclusive ||
-    rum.site.quality.status === 'unavailable'
+    rum.site.quality.status === 'unavailable' ||
+    [
+      rum.quality,
+      rum.site.quality,
+      rum.pages.quality,
+      rum.referrers.quality,
+    ].some((quality) => quality.botFilter !== rumBotFilter)
   ) {
     await recordFailure(db, dayUtc, at, 'invalid_input', duration);
     return { ...unavailable };
@@ -160,7 +167,7 @@ export async function archiveDay(
     audit(db, dayUtc, at, states, null, duration),
     db
       .prepare(
-        `INSERT INTO daily_site_traffic VALUES (?,?,?,?,?,'unverified',?,?,?)
+        `INSERT INTO daily_site_traffic VALUES (?,?,?,?,?,?,?,?,?)
       ON CONFLICT(day_utc) DO UPDATE SET page_loads=excluded.page_loads,visits=excluded.visits,
       sample_min=excluded.sample_min,sample_max=excluded.sample_max,quality_state=excluded.quality_state,
       archive_at=excluded.archive_at,source_window=excluded.source_window WHERE excluded.archive_at >= daily_site_traffic.archive_at`,
@@ -171,6 +178,7 @@ export async function archiveDay(
         rum.site.visits,
         rum.site.quality.sampleIntervalRange?.[0] ?? null,
         rum.site.quality.sampleIntervalRange?.[1] ?? null,
+        rumBotFilter,
         quality,
         at,
         `${window.startInclusive}/${window.endExclusive}`,

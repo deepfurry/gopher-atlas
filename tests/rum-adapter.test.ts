@@ -37,7 +37,7 @@ function success(day: RumDay) {
 function unavailable(day: RumDay, code: string, stage?: string) {
   expect(day).toMatchObject({
     ok: false,
-    quality: { status: 'unavailable' },
+    quality: { status: 'unavailable', botFilter: 'cloudflare-rum-bot-0' },
     error: { code, ...(stage ? { stage } : {}) },
     site: null,
     pages: null,
@@ -96,7 +96,11 @@ it('reads the fixed Settings + three scoped queries and preserves RUM metrics', 
       startInclusive: '2026-10-16T00:00:00Z',
       endExclusive: '2026-10-17T00:00:00Z',
     },
-    quality: { status: 'complete', botFilter: 'unverified', sampled: false },
+    quality: {
+      status: 'complete',
+      botFilter: 'cloudflare-rum-bot-0',
+      sampled: false,
+    },
     site: { pageLoads: 18, visits: 7, sampleInterval: 1 },
     pages: {
       coverage: { returnedGroups: 3, pageLoadsDelta: 0, visitsDelta: 0 },
@@ -111,6 +115,12 @@ it('reads the fixed Settings + three scoped queries and preserves RUM metrics', 
   ]);
   expect(JSON.stringify(r.data)).toBe(before);
   expect(r.fetch).toHaveBeenCalledTimes(4);
+  for (const dimension of ['site', 'pages', 'referrers'] as const) {
+    expect(day[dimension].quality.botFilter).toBe('cloudflare-rum-bot-0');
+    expect(day[dimension].quality.warnings).not.toContain(
+      'bot_filter_unverified',
+    );
+  }
   const queries = [settingsQuery, siteQuery, pagesQuery, referrersQuery];
   r.fetch.mock.calls.forEach(([url, init], i) => {
     expect(url).toBe('https://api.cloudflare.com/client/v4/graphql');
@@ -134,6 +144,10 @@ it('reads the fixed Settings + three scoped queries and preserves RUM metrics', 
       });
       expect(body.query).toContain('requestHost: "gopheratlas.com"');
       expect(body.query).toContain('datetime_geq: $start, datetime_lt: $end');
+      const filters = body.query.match(/filter:\s*\{[^}]*siteTag:[^}]*\}/g);
+      expect(filters).toEqual([
+        'filter: { siteTag: $siteTag, requestHost: "gopheratlas.com", datetime_geq: $start, datetime_lt: $end, bot: 0 }',
+      ]);
       expect(body.query).not.toMatch(
         /botScore|requestSource|datetime_leq|cursor|mutation/,
       );

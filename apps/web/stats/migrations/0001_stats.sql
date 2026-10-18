@@ -5,7 +5,7 @@ CREATE TABLE daily_site_traffic (
   visits REAL NOT NULL CHECK (visits >= 0),
   sample_min REAL CHECK (sample_min >= 1),
   sample_max REAL CHECK (sample_max >= sample_min),
-  bot_filter TEXT NOT NULL CHECK (bot_filter = 'unverified'),
+  bot_filter TEXT NOT NULL CHECK (bot_filter = 'cloudflare-rum-bot-0'),
   quality_state TEXT NOT NULL CHECK (quality_state IN ('observed','sampled-estimate','partial')),
   archive_at TEXT NOT NULL,
   source_window TEXT NOT NULL

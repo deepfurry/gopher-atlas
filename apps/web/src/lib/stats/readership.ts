@@ -1,5 +1,6 @@
 import {
   ranges,
+  rumBotFilter,
   type Readership,
   type StatsRange,
 } from './readership-contract';
@@ -24,7 +25,7 @@ export function validateReadership(
     !dayPattern.test(v.start) ||
     !dayPattern.test(v.end) ||
     v.quality?.source !== 'Cloudflare Web Analytics RUM' ||
-    v.quality.botFilter !== 'unverified' ||
+    v.quality.botFilter !== rumBotFilter ||
     v.quality.visitsAreUniqueUsers !== false ||
     typeof v.quality.estimated !== 'boolean' ||
     !Array.isArray(v.daily) ||
@@ -172,8 +173,8 @@ export function mountReadership(
     text(
       'quality',
       zh
-        ? '来源：Cloudflare Web Analytics RUM · UTC。数据为供应商聚合观测，可能包含采样估计；机器人过滤口径尚未验证。仅显示已归档日期，不补全未知历史。'
-        : 'Source: Cloudflare Web Analytics RUM · UTC. Provider aggregates may be sampled estimates; bot filtering is unverified. Only archived days are shown, without invented history.',
+        ? '来源：Cloudflare Web Analytics RUM · UTC。三个统计维度均使用 RUM bot: 0 过滤，不保证全部为真人访问，也不等同于 WAF Bot Score。供应商聚合数据仍可能包含采样估计；Visits 不代表独立访客 UV。仅显示已归档日期，不补全未知历史。'
+        : 'Source: Cloudflare Web Analytics RUM · UTC. All three dimensions use the RUM bot: 0 filter; this does not guarantee human-only traffic and is not WAF Bot Score. Provider aggregates may still be sampled estimates; Visits are not unique visitors (UV). Only archived days are shown, without invented history.',
     );
     if (data.totals) {
       text('pv', number(data.totals.pageLoads));

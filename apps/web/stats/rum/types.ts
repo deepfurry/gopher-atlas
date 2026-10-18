@@ -1,3 +1,5 @@
+import type { rumBotFilter } from '../../src/lib/stats/readership-contract';
+
 /** Internal server data only. Never serialize configuration into Public output. */
 export interface RumConfig {
   accountId: string;
@@ -16,7 +18,6 @@ export interface RumSettings {
 }
 
 export type RumWarning =
-  | 'bot_filter_unverified'
   | 'sampled_estimate'
   | 'sampling_unknown'
   | 'sampled_group_coverage_unverified'
@@ -27,8 +28,8 @@ export type RumWarning =
 export interface RumQuality {
   status: 'complete' | 'partial' | 'unavailable';
   timezone: 'UTC';
-  // B has no evidence supporting either "included" or "verified-excluded".
-  botFilter: 'unverified';
+  /** Requested query scope, including on failures; not a guarantee of human traffic. */
+  botFilter: typeof rumBotFilter;
   sampled: boolean | 'unknown';
   /** Range of reported group averages, NOT a combined/weighted sampling rate. */
   sampleIntervalRange: [number, number] | null;

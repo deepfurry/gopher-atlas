@@ -55,3 +55,15 @@ under sampling. A future policy to show estimated Top-N requires a separate deci
 Production remains D1-free until C2 validates exact queries, Settings, UTC/Host,
 sampling and bot policy, then C3 provisions real resources and enables bindings,
 read/sync flags and Cron. See [local verification and rollout](../operations/statistics.md).
+
+## C2 amendment — 2026-10-19
+
+The maintainer supplied successful GraphQL Explorer evidence for RUM `bot: 0`;
+see the [audit](../statistics-rum-audit.md). This supersedes the original C1
+`unverified` filtering label only. Site, Pages and Referrers now use the same
+literal filter, with `cloudflare-rum-bot-0` as the shared reader/D1/REST/browser
+discriminator. It describes Cloudflare's RUM scope, not guaranteed human traffic
+or WAF Bot Score. Sampling and independent completeness gates remain unchanged.
+The initial statistics migration is amended before production provisioning;
+old local rows are never relabeled as filtered data. No production configuration,
+resource, secret, migration or deployment is enabled by this amendment.

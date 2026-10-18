@@ -2,6 +2,8 @@ export const ranges = ['7d', '30d', '90d'] as const;
 export type StatsRange = (typeof ranges)[number];
 export type CoverageState = 'complete' | 'partial' | 'unavailable';
 export type SourceKey = 'direct-unknown' | 'search' | 'external-other';
+/** Fixed Cloudflare RUM filter { bot: 0 }; not proof of human visits or WAF Bot Score. */
+export const rumBotFilter = 'cloudflare-rum-bot-0' as const;
 export interface Coverage {
   available: boolean;
   status: CoverageState;
@@ -18,7 +20,7 @@ export interface Readership {
   end: string;
   quality: {
     source: 'Cloudflare Web Analytics RUM';
-    botFilter: 'unverified';
+    botFilter: typeof rumBotFilter;
     visitsAreUniqueUsers: false;
     estimated: boolean;
   };

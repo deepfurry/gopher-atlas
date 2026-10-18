@@ -1,0 +1,152 @@
+[
+  {
+    "name": "inline fractions and scripts",
+    "source": "比例 $\\frac{1}{2}$ and $x_i^2$.",
+    "valid": true,
+    "math": 2,
+    "display": 0
+  },
+  {
+    "name": "block fraction",
+    "source": "$$\n\\frac{a+b}{c+d}\n$$",
+    "valid": true,
+    "math": 1,
+    "display": 1
+  },
+  {
+    "name": "matrix",
+    "source": "$$\n\\begin{pmatrix}1 & 2 \\\\ 3 & 4\\end{pmatrix}\n$$",
+    "valid": true,
+    "math": 1,
+    "display": 1
+  },
+  {
+    "name": "inequality and Chinese",
+    "source": "$x < y$ 与 $\\text{中文} + x$",
+    "valid": true,
+    "math": 2,
+    "display": 0
+  },
+  {
+    "name": "unmatched currency",
+    "source": "价格 $5。Price $10.50",
+    "valid": true,
+    "math": 0,
+    "display": 0,
+    "text": "价格 $5。Price $10.50"
+  },
+  {
+    "name": "paired currency",
+    "source": "Prices $5 and $10; $15 and $20.",
+    "valid": true,
+    "math": 0,
+    "display": 0,
+    "text": "Prices $5 and $10; $15 and $20."
+  },
+  {
+    "name": "escaped currency with math",
+    "source": "Cost \\$5; formula $x+1$.",
+    "valid": true,
+    "math": 1,
+    "display": 0
+  },
+  {
+    "name": "inline code",
+    "source": "`$x$` and `$$x$$`",
+    "valid": true,
+    "math": 0,
+    "display": 0,
+    "code": 2
+  },
+  {
+    "name": "code fence",
+    "source": "```go\nfmt.Println(\"$x$ $$y$$\")\n```",
+    "valid": true,
+    "math": 0,
+    "display": 0,
+    "code": 1
+  },
+  {
+    "name": "math-labelled fence is still code",
+    "source": "```math\n$x$\n$$y$$\n```",
+    "valid": true,
+    "math": 0,
+    "display": 0,
+    "code": 1
+  },
+  {
+    "name": "invalid formula",
+    "source": "$\\frac{1}{$",
+    "valid": true,
+    "math": 0,
+    "display": 0,
+    "error": true
+  },
+  {
+    "name": "bounded recursive macro",
+    "source": "$\\def\\a{\\a}\\a$",
+    "valid": true,
+    "math": 0,
+    "display": 0,
+    "error": true
+  },
+  {
+    "name": "untrusted href",
+    "source": "$\\href{javascript:alert(1)}{click}$",
+    "valid": true,
+    "math": 1,
+    "display": 0,
+    "untrusted": true
+  },
+  {
+    "name": "untrusted image",
+    "source": "$\\includegraphics{https://evil.example/image.png}$",
+    "valid": true,
+    "math": 1,
+    "display": 0,
+    "untrusted": true
+  },
+  {
+    "name": "untrusted style",
+    "source": "$\\htmlStyle{position:fixed}{x}$",
+    "valid": true,
+    "math": 1,
+    "display": 0,
+    "untrusted": true
+  },
+  {
+    "name": "HTML inside math remains forbidden",
+    "source": "$<img src=x onerror=alert(1)>$",
+    "valid": false
+  },
+  {
+    "name": "unsafe Markdown link inside math",
+    "source": "$[bad](javascript:alert%281%29)$",
+    "valid": false
+  },
+  {
+    "name": "external Markdown image inside math",
+    "source": "$![x](https://evil.example/image.png)$",
+    "valid": false
+  },
+  {
+    "name": "H1 inside math remains forbidden",
+    "source": "$$\n# Heading\n$$",
+    "valid": false
+  },
+  {
+    "name": "raw HTML after math",
+    "source": "$x$\n\n<script>alert(1)</script>",
+    "valid": false
+  },
+  {
+    "name": "unsafe URL after math",
+    "source": "$x$ [bad](data:text/html,bad)",
+    "valid": false
+  },
+  {
+    "name": "external image after math",
+    "source": "$x$ ![x](https://evil.example/image.png)",
+    "valid": false
+  }
+]

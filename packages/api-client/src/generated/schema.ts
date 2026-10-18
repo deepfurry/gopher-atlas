@@ -785,7 +785,7 @@ export interface paths {
         };
         /**
          * List assets for active roles; only Admin can include deleted rows
-         * @description List assets for active roles; only Admin can include deleted rows
+         * @description Return at most 20 assets by descending ID (newest first). Only Admin can include deleted rows. SHA deduplication and restoration retain the original ID and order.
          */
         get: operations["listAssets"];
         put?: never;
@@ -1541,7 +1541,10 @@ export interface components {
         };
         AssetPage: {
             items: components["schemas"]["Asset"][];
-            /** Format: int64 */
+            /**
+             * Format: int64
+             * @description ID of the last displayed asset when older matching rows exist; otherwise null. Not a total count or page number.
+             */
             nextCursor: number | null;
         };
         PublicationJob: {
@@ -2955,7 +2958,7 @@ export interface operations {
     listAssets: {
         parameters: {
             query?: {
-                /** @description Exclusive keyset cursor returned as nextCursor. */
+                /** @description Omit or use 0 for the newest page. A nonzero nextCursor returns older assets with ID strictly less than this value. */
                 after?: number;
                 includeDeleted?: boolean;
             };

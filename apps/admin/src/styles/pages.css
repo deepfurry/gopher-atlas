@@ -171,6 +171,9 @@
   grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
   gap: 16px;
 }
+.asset-browser > .pagination {
+  flex-wrap: wrap;
+}
 .asset-grid > li {
   border: 1px solid var(--border);
   border-radius: 7px;

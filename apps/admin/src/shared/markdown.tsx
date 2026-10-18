@@ -1,8 +1,8 @@
 import { memo, useMemo } from 'react';
 import { useDebounced } from '@/hooks/use-debounced';
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { isSafeLink } from '@gopheratlas/markdown';
+import { isSafeLink, remarkSyntaxPlugins } from '@gopheratlas/markdown';
+import { rehypeMath } from '@gopheratlas/markdown/math';
 import { isControlledImage, validateMarkdown } from './asset-policy';
 export const MarkdownPreview = memo(function MarkdownPreview({
   source,
@@ -12,7 +12,8 @@ export const MarkdownPreview = memo(function MarkdownPreview({
   return (
     <div className="markdown-preview">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={remarkSyntaxPlugins}
+        rehypePlugins={[rehypeMath]}
         skipHtml
         urlTransform={(url, key) =>
           key === 'src'

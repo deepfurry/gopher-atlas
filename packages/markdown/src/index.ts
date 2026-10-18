@@ -1,5 +1,6 @@
 import type { Root } from 'mdast';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
 import remarkParse from 'remark-parse';
 import { unified, type Plugin, type PluggableList } from 'unified';
 import { visit } from 'unist-util-visit';
@@ -108,27 +109,85 @@ function inspect(tree: Root, policy?: AssetPolicy): MarkdownIssue[] {
   return issues;
 }
 
+// A paired currency phrase such as "$5 and $10" must not become math merely
+// because it contains two dollars. Ambiguous currency mixed with formulas can
+// still be written explicitly as \$5; the Markdown source is never rewritten.
+const remarkCurrency: Plugin<[], Root> = () => (tree, file) => {
+  const source = String(file);
+  visit(tree, 'inlineMath', (node, index, parent) => {
+    const start = node.position?.start.offset;
+    const end = node.position?.end.offset;
+    if (
+      parent &&
+      index !== undefined &&
+      start !== undefined &&
+      end !== undefined &&
+      /^\d/u.test(node.value) &&
+      /^\d/u.test(source.slice(end)) &&
+      !source.slice(start).startsWith('$$')
+    ) {
+      parent.children[index] = {
+        type: 'text',
+        value: source.slice(start, end),
+        position: node.position,
+      };
+    }
+  });
+};
+
+/** Syntax shared by validation, Admin preview and Public rendering. */
+export const remarkSyntaxPlugins: PluggableList = [
+  remarkGfm,
+  [remarkMath, { singleDollarTextMath: true }],
+  remarkCurrency,
+];
+
+function inspectSource(
+  tree: Root,
+  source: string,
+  policy?: AssetPolicy,
+): MarkdownIssue[] {
+  // Goldmark deliberately remains the independent GFM safety boundary. Math
+  // nodes must not conceal HTML, headings, unsafe links or images that it rejects.
+  const issues = inspect(tree, policy);
+  if (source.includes('$')) {
+    const plainTree = unified().use(remarkParse).use(remarkGfm).parse(source);
+    issues.push(...inspect(plainTree, policy));
+  }
+  if (/^---\r?\n[\s\S]*?\r?\n(?:---|\.\.\.)(?:\r?\n|$)/u.test(source))
+    issues.push({ code: 'frontmatter', line: 1 });
+  return [
+    ...new Map(
+      issues.map((issue) => [`${issue.code}:${issue.line}`, issue]),
+    ).values(),
+  ];
+}
+
 /** Build-time Astro guard; Admin uses the same validator for feedback plus safe renderers. Never enable rehype-raw. */
 export const remarkGuard: Plugin<[AssetPolicy?], Root> =
   (policy) => (tree, file) => {
-    const issues = inspect(tree, policy);
-    if (/^---\r?\n[\s\S]*?\r?\n(?:---|\.\.\.)(?:\r?\n|$)/u.test(String(file)))
-      issues.push({ code: 'frontmatter', line: 1 });
+    const issues = inspectSource(tree, String(file), policy);
     if (issues.length)
       file.fail(
         `Invalid Markdown: ${issues.map((issue) => issue.code).join(', ')}`,
       );
   };
 
-export const remarkPlugins: PluggableList = [remarkGfm, remarkGuard];
+export const remarkPlugins: PluggableList = [
+  ...remarkSyntaxPlugins,
+  remarkGuard,
+];
 export const markdownPlugins = (policy?: AssetPolicy): PluggableList => [
-  remarkGfm,
+  ...remarkSyntaxPlugins,
   [remarkGuard, policy],
 ];
 
 /** The shared non-executing parser; consumers must still apply safety validation. */
 export function parseMarkdown(markdown: string): Root {
-  return unified().use(remarkParse).use(remarkGfm).parse(markdown);
+  const processor = unified().use(remarkParse).use(remarkSyntaxPlugins);
+  return processor.runSync(processor.parse(markdown), {
+    value: markdown,
+  }) as Root;
 }
 
 export function validateMarkdown(
@@ -136,8 +195,5 @@ export function validateMarkdown(
   policy?: AssetPolicy,
 ): MarkdownIssue[] {
   const tree = parseMarkdown(markdown);
-  const issues = inspect(tree, policy);
-  if (/^---\r?\n[\s\S]*?\r?\n(?:---|\.\.\.)(?:\r?\n|$)/u.test(markdown))
-    issues.push({ code: 'frontmatter', line: 1 });
-  return issues;
+  return inspectSource(tree, markdown, policy);
 }

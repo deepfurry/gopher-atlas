@@ -17,6 +17,7 @@
     "@gopheratlas/markdown": "workspace:*",
     "@phosphor-icons/core": "2.1.1",
     "astro": "7.3.8",
+    "katex": "0.16.47",
     "motion": "14.1.0"
   },
   "devDependencies": {

@@ -28,6 +28,7 @@ const MaxFileBytes = 10 << 20
 const OuterBodyLimit = 12 << 20
 const PublicOrigin = "https://assets.gopheratlas.com"
 const ImmutableCache = "public, max-age=31536000, immutable"
+const pageSize = 20
 
 type Summary struct {
 	ID       int64  `json:"id"`
@@ -176,15 +177,16 @@ func (s *Service) List(ctx context.Context, p auth.Principal, after int64, delet
 		if deleted && !policy.CanManageAssets(u) {
 			return fault.Permission
 		}
-		rows, err := q.ListAssets(ctx, dbsqlc.ListAssetsParams{AfterID: after, IncludeDeleted: deleted, PageSize: 100})
+		rows, err := q.ListAssets(ctx, dbsqlc.ListAssetsParams{AfterID: after, IncludeDeleted: deleted, PageSize: pageSize + 1})
 		if err != nil {
 			return fault.Unavailable
 		}
+		if len(rows) > pageSize {
+			rows = rows[:pageSize]
+			result.NextCursor = &rows[pageSize-1].ID
+		}
 		for _, r := range rows {
 			result.Items = append(result.Items, s.dto(r, u))
-		}
-		if len(rows) == 100 {
-			result.NextCursor = &rows[len(rows)-1].ID
 		}
 		return nil
 	})

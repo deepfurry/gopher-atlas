@@ -1,5 +1,19 @@
 # Changelog
 
+## Asset pagination (2026-10-18)
+
+- List assets newest first by ID in pages of at most 20, with exact next-page
+  detection and shared previous/next navigation in management and image pickers.
+- Restart at the first page after upload and refresh cursor boundaries after
+  deletion/restoration; preserve deduplicated IDs and historical image URLs.
+
+## Markdown mathematics (2026-10-18)
+
+- Share inline and display math between Admin preview and Public with local
+  KaTeX assets; Public renders HTML and MathML at build time.
+- Preserve Markdown and Go safety validation, code fences and ordinary currency;
+  bound TeX expansion and show readable fallback for malformed formulas.
+
 ## B2 taxonomy authority and Snapshot v2 writer (2026-10-17)
 
 - Add schema 4 with independent Note groups, English tag translations and protected

@@ -1,3 +1,4 @@
+@import 'katex/dist/katex.min.css';
 @import './tokens.css';
 @import './chrome.css';
 @import './controls.css';

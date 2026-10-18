@@ -4,9 +4,26 @@ Authoring uses UTF-8 CommonMark + GFM body content. Metadata is held in CMS fiel
 not frontmatter. Page templates supply the single H1; bodies use H2–H6.
 
 Supported syntax: paragraphs, emphasis, lists, task lists, blockquotes, links,
-controlled images, tables, footnotes, strikethrough, inline/fenced code and autolinks.
-No MDX processing, JSX execution, raw HTML, script, iframe, Mermaid or KaTeX in P0.
+controlled images, tables, footnotes, strikethrough, inline/fenced code, autolinks,
+inline `$...$` math and standalone `$$` math blocks (Issue #6).
+No MDX processing, JSX execution, raw HTML, script, iframe or Mermaid.
 Never enable `rehype-raw` or an executable content pipeline.
+
+Shared `remark-math` syntax and the shared `rehype-katex` adapter give Admin and
+Public the same formula semantics. Public emits HTML + MathML at build time;
+only Admin runs the renderer in its preview. Both bundle matching KaTeX CSS/fonts
+locally. Code spans/fences, including a `math` fence, remain code. Unmatched `$5`
+and adjacent prices such as `$5 and $10` remain text; escape currency as `\$5`
+when mixed with formulas to resolve dollar-delimiter ambiguity. Source is unchanged.
+
+KaTeX uses `trust: false`, bounded macro expansion (1000) and sizes (20 em), with
+no persistent/shared macros. TeX URL/image/HTML extension commands do not gain
+network or DOM privileges, even for asset-origin images. Malformed TeX falls back
+to escaped, readable source instead of failing the document. Formula parse
+failures do not relax Markdown safety: Go's independent GFM validator is unchanged,
+and TS also inspects the original GFM AST so math cannot conceal forbidden HTML,
+headings, links or images. Markdown-like unsafe text inside a formula remains
+invalid for saving/publishing. The shared math fixtures lock this boundary.
 
 `packages/markdown` exports a validator and a shared remark plugin list. Links allow
 HTTP(S), mailto, anchors and root-relative paths; protocol-relative URLs, control

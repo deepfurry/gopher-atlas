@@ -5,6 +5,8 @@ import { layout as l } from '../styles/layout.stylex';
 import MarkdownBody from './MarkdownBody.astro';
 import CuratedCard from './CuratedCard.astro';
 import PageHero from './PageHero.astro';
+import Share from './Share.astro';
+import { taxonomyText } from '../lib/publication/taxonomy';
 import type { Content } from '../lib/publication/types';
 import type { Publication } from '../lib/publication/indexes';
 import { words, localized, type Locale } from '../lib/i18n';
@@ -34,7 +36,33 @@ const entries = previewEntries ?? p.topicTargets.get(item.id) ?? [];
     href={localized('/articles/?topic=' + item.slug, locale)}
     >{t.viewArticles}</a
   >
-  <button data-copy-link>{t.copyTopic}</button>
+  <div slot="after">
+    {
+      item.tagIds.length > 0 && (
+        <ul class="tag-list" aria-label={t.tags} data-pagefind-ignore>
+          {item.tagIds.map((id) => {
+            const tag = p.tagById.get(id)!;
+            return (
+              <li>
+                <a class="chip" href={localized(`/tags/${tag.slug}/`, locale)}>
+                  {taxonomyText(tag, locale).name}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      )
+    }
+    {
+      !previewEntries && (
+        <Share
+          path={localized(item.canonicalPath, locale)}
+          title={item.title}
+          locale={locale}
+        />
+      )
+    }
+  </div>
 </PageHero>
 <article
   class:list={['content-detail', stylex.attrs(s.topicGuide).class]}

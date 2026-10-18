@@ -1,0 +1,21 @@
+# GopherAtlas
+
+> A Go knowledge atlas: original learning notes, curated technical articles and topic reading paths. Chinese and English navigation; article bodies retain their original language.
+
+## Read
+
+- [Learning notes](https://gopheratlas.com/notes/): Original writing, organized into groups.
+- [Curated articles](https://gopheratlas.com/articles/): Editorial summaries and links to external originals; third-party full texts are not reproduced.
+- [Topics](https://gopheratlas.com/topics/): Ordered reading paths through curated articles.
+- [Tags](https://gopheratlas.com/tags/): Published taxonomy.
+- [Authors](https://gopheratlas.com/authors/): Public author profiles.
+- [English navigation](https://gopheratlas.com/en/): English site chrome, not automatic article translation.
+
+## Site information
+
+- [About](https://gopheratlas.com/about/): Project and editorial context.
+- [Contribute](https://gopheratlas.com/contribute/): Contribution guidance.
+- [Statistics](https://gopheratlas.com/stats/): Published-content counts and available aggregate readership.
+- [Copyright, privacy and terms](https://gopheratlas.com/legal/): Separate code, original writing and third-party rights.
+- [RSS](https://gopheratlas.com/rss.xml): Published feed.
+- [Sitemap](https://gopheratlas.com/sitemap-index.xml): Canonical public pages.

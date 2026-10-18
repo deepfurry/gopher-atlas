@@ -67,3 +67,13 @@ or WAF Bot Score. Sampling and independent completeness gates remain unchanged.
 The initial statistics migration is amended before production provisioning;
 old local rows are never relabeled as filtered data. No production configuration,
 resource, secret, migration or deployment is enabled by this amendment.
+
+## Release configuration preparation — 2026-10-19
+
+The maintainer subsequently created `gopheratlas-statistics` and authorized its
+binding in the existing `gopheratlas-web` configuration. The repository now
+prepares that binding and the Worker entry with both flags false and Cron empty.
+Only the two statistics API patterns run Worker-first; other routes retain Static
+Assets handling. This supersedes C1's unchanged-config boundary, without executing
+remote migration, Secret changes or deployment. Operator steps remain in the
+existing [statistics runbook](../operations/statistics.md).

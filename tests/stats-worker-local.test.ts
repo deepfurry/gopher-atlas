@@ -1,5 +1,5 @@
 import { spawn, execFileSync, type ChildProcess } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createServer } from 'node:net';
 import { afterAll, beforeAll, expect, it, vi, describe } from 'vitest';
@@ -19,7 +19,8 @@ describe.skipIf(process.env.STATS_LOCAL_INTEGRATION !== '1')(
     let child: ChildProcess,
       origin: string,
       logs = '';
-    const folder = resolve('.cache/stats-c1/integration'),
+    mkdirSync('.cache/stats-c1', { recursive: true });
+    const folder = resolve(mkdtempSync('.cache/stats-c1/integration-')),
       configPath = resolve(folder, 'wrangler.json'),
       persistTo = resolve(folder, 'state');
     const cli = resolve('node_modules/wrangler/bin/wrangler.js');
@@ -63,11 +64,17 @@ describe.skipIf(process.env.STATS_LOCAL_INTEGRATION !== '1')(
       )
         throw Error('synthetic_build_required');
       mkdirSync(folder, { recursive: true });
-      // Reuse the exact local config's route/binding policy, only resolve file paths.
+      // Reuse production's routing/entry; substitute ONLY local D1 and local flags.
       const base = parseConfigFileTextToJson(
-        'wrangler.local.jsonc',
-        readFileSync('apps/web/stats/wrangler.local.jsonc', 'utf8'),
+        'wrangler.jsonc',
+        readFileSync('apps/web/wrangler.jsonc', 'utf8'),
       ).config;
+      base.name = 'gopheratlas-stats-test';
+      base.send_metrics = false;
+      base.d1_databases[0].database_id = 'local-only-stats';
+      base.d1_databases[0].database_name = 'local-only-stats';
+      base.d1_databases[0].remote = false;
+      base.vars.STATS_READ_ENABLED = 'true';
       base.main = resolve('apps/web/stats/worker/index.ts');
       base.assets.directory = resolve('apps/web/dist');
       base.d1_databases[0].migrations_dir = resolve(
@@ -204,6 +211,13 @@ describe.skipIf(process.env.STATS_LOCAL_INTEGRATION !== '1')(
         '/sitemap-index.xml',
         '/pagefind/pagefind.js',
         '/.well-known/gopheratlas-build.json',
+        '/.well-known/security.txt',
+        '/llms.txt',
+        '/favicon.svg',
+        '/favicon-32.png',
+        '/favicon.ico',
+        '/apple-touch-icon.png',
+        '/images/og-default.png',
       ]) {
         const response = await fetch(`${origin}${path}`);
         expect(response.status, path).toBe(200);
@@ -211,6 +225,11 @@ describe.skipIf(process.env.STATS_LOCAL_INTEGRATION !== '1')(
           's-maxage=900',
         );
       }
+      expect(
+        (await fetch(`${origin}/.well-known/security.txt`)).headers.get(
+          'content-type',
+        ),
+      ).toContain('text/plain');
       const missing = await fetch(`${origin}/nonexistent-offline-test/`);
       expect(missing.status).toBe(404);
       expect(await missing.text()).not.toContain('stats_unavailable');

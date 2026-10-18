@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { JSDOM } from 'jsdom';
 import { taxonomyText } from '../apps/web/src/lib/publication/taxonomy.ts';
 import { copyrightYears } from '../apps/web/src/lib/copyright.ts';
+import { shareLinks } from '../apps/web/src/lib/share.ts';
 import { buildStatsManifest } from './stats-manifest.ts';
 import { validateSnapshot, sha256 } from './snapshot.mjs';
 import {
@@ -37,6 +38,29 @@ assert.deepEqual(
 const pageDocument = (path) =>
   new JSDOM(read(path === '/' ? 'index.html' : `${path.slice(1)}index.html`))
     .window.document;
+for (const file of [
+  'favicon.svg',
+  'favicon-32.png',
+  'favicon.ico',
+  'apple-touch-icon.png',
+  'images/og-default.png',
+  '.well-known/security.txt',
+  'llms.txt',
+])
+  assert.deepEqual(
+    readFileSync(`${out}/${file}`),
+    readFileSync(`apps/web/public/${file}`),
+  );
+for (const match of read('llms.txt').matchAll(/\]\((https:\/\/[^)]+)\)/g)) {
+  const url = new URL(match[1]);
+  assert.equal(url.origin, 'https://gopheratlas.com');
+  assert(
+    existsSync(
+      `${out}${url.pathname}${url.pathname.endsWith('/') ? 'index.html' : ''}`,
+    ),
+    `llms.txt public target exists: ${url.pathname}`,
+  );
+}
 const pages = publicPages(p);
 const allPaths = [
   '/',
@@ -60,6 +84,58 @@ const aliases = [
 allPaths.push(...aliases.map((path) => '/en' + path));
 for (const path of allPaths) {
   const doc = pageDocument(path);
+  assert(
+    doc.querySelector(
+      'link[rel=icon][href="/favicon.svg"][type="image/svg+xml"]',
+    ),
+  );
+  assert(
+    doc.querySelector('link[rel=icon][href="/favicon-32.png"][sizes="32x32"]'),
+  );
+  assert(doc.querySelector('link[rel=icon][href="/favicon.ico"]'));
+  assert(
+    doc.querySelector(
+      'link[rel=apple-touch-icon][href="/apple-touch-icon.png"]',
+    ),
+  );
+  const item = snapshot.content.find((item) =>
+    [item.canonicalPath, `/en${item.canonicalPath}`].includes(path),
+  );
+  const cover = item?.coverAssetId
+    ? p.assetById.get(item.coverAssetId)
+    : undefined;
+  const image = cover?.url ?? 'https://gopheratlas.com/images/og-default.png';
+  assert.equal(doc.querySelector('meta[property="og:image"]')?.content, image);
+  assert.equal(
+    doc.querySelector('meta[property="og:image:width"]')?.content,
+    String(cover?.width ?? 1200),
+  );
+  assert.equal(
+    doc.querySelector('meta[property="og:image:height"]')?.content,
+    String(cover?.height ?? 630),
+  );
+  assert.equal(
+    doc.querySelector('meta[property="og:image:type"]')?.content,
+    cover?.mimeType ?? 'image/png',
+  );
+  assert(doc.querySelector('meta[property="og:image:alt"]')?.content.trim());
+  assert.equal(
+    doc.querySelector('meta[property="og:locale"]')?.content,
+    localeOf(path) === 'zh' ? 'zh_CN' : 'en_US',
+  );
+  assert.equal(
+    doc.querySelector('meta[name="twitter:card"]')?.content,
+    'summary_large_image',
+  );
+  assert.equal(doc.querySelector('meta[name="twitter:image"]')?.content, image);
+  assert.equal(
+    doc.querySelector('meta[name="twitter:title"]')?.content,
+    doc.querySelector('meta[property="og:title"]')?.content,
+  );
+  assert.equal(
+    doc.querySelector('meta[name="twitter:description"]')?.content,
+    doc.querySelector('meta[name="description"]')?.content,
+  );
   assert.equal(
     doc.querySelector('link[rel=canonical]')?.getAttribute('href'),
     `https://gopheratlas.com${canonicalPaths.includes(path) ? path : path.slice(3)}`,
@@ -337,10 +413,33 @@ for (const locale of ['zh', 'en']) {
   }
   for (const item of p.snapshot.content) {
     const doc = pageDocument(localized(item.canonicalPath, locale));
+    if (item.type !== 'post') {
+      const shares = doc.querySelectorAll('[data-share]');
+      assert.equal(shares.length, 1);
+      const sharing = shareLinks(
+        localized(item.canonicalPath, locale),
+        item.title,
+      );
+      assert.deepEqual(
+        [...shares[0].querySelectorAll('a')].map((link) => link.href),
+        sharing.links.map((link) => link.href),
+      );
+      assert.equal(doc.querySelectorAll('[data-copy-link]').length, 1);
+      assert.equal(
+        shares[0].querySelector('button')?.dataset.copyText,
+        sharing.url,
+      );
+      assert(shares[0].closest('header'));
+      for (const link of shares[0].querySelectorAll('a')) {
+        assert.equal(link.target, '_blank');
+        assert.equal(link.rel, 'noopener noreferrer');
+        assert(link.getAttribute('aria-label'));
+      }
+    }
     for (const id of item.tagIds) {
       const tag = p.tagById.get(id);
       const link = doc.querySelector(
-        `.content-detail a[href="${localized(`/tags/${tag.slug}/`, locale)}"]`,
+        `.tag-list a[href="${localized(`/tags/${tag.slug}/`, locale)}"]`,
       );
       assert.equal(link?.textContent.trim(), taxonomyText(tag, locale).name);
     }

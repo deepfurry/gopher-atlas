@@ -80,6 +80,11 @@ published data, route, safety and editorial semantics stay unchanged.
 - Notes paging uses a 160 ms opacity change without vertical movement. Reserve
   each multi-page group's largest measured page height, remeasure at new widths
   and after fonts load, and leave single-page/SSR lists unreserved.
+- Detail sharing uses five 38 px circular controls after title metadata/tags and
+  before the body. Theme-aware translucent neutral fills and monochrome marks;
+  hover changes only color/background/border over 420 ms, with no transforms.
+  Reduced motion removes the transition; keyboard focus remains visible. Reuse
+  Clipboard/Toast, with one copy action per page and no preview sharing.
 
 ## Admin: dense, calm editorial workspace
 

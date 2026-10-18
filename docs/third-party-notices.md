@@ -62,6 +62,14 @@ Regular SVGs from [Phosphor Icons](https://github.com/phosphor-icons/core) 2.1.1
 are compiled into HTML; [MIT license](../apps/web/public/licenses/Phosphor-MIT.txt)
 ships with the site. Motion 14.1.0 and StyleX 0.19.1 retain package MIT notices.
 
+The monochrome Bluesky sharing mark comes from
+[Simple Icons](https://github.com/simple-icons/simple-icons/blob/develop/icons/bluesky.svg),
+whose icon data uses [CC0 1.0](https://github.com/simple-icons/simple-icons/blob/develop/LICENSE.md).
+Brand trademarks remain with their owners; inclusion does not imply endorsement.
+X, Reddit and link icons use the existing Phosphor distribution. The Hacker News
+button uses a plain Y mark. The default OG artwork is project-owned vector art;
+it does not reuse the homepage's third-party background photograph.
+
 The user supplied background.avif for the homepage: actual AVIF/AV1, 1920×1080,
 60,533 bytes, preserved without recompression. The supplied listing source is
 [Wallhaven 0jz7gm](https://wallhaven.cc/w/0jz7gm). Wallhaven is the listing source,

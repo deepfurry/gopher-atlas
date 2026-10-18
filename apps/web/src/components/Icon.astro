@@ -9,6 +9,12 @@ import sun from '@phosphor-icons/core/assets/regular/sun.svg?raw';
 import moon from '@phosphor-icons/core/assets/regular/moon.svg?raw';
 import caretDown from '@phosphor-icons/core/assets/regular/caret-down.svg?raw';
 import check from '@phosphor-icons/core/assets/regular/check.svg?raw';
+import xLogo from '@phosphor-icons/core/assets/regular/x-logo.svg?raw';
+import reddit from '@phosphor-icons/core/assets/regular/reddit-logo.svg?raw';
+import link from '@phosphor-icons/core/assets/regular/link.svg?raw';
+import bluesky from '../assets/bluesky.svg?raw';
+const hackerNews =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="m6 4 6 9 6-9M12 13v7"/></svg>';
 const icons = {
   arrowUpRight,
   arrowRight,
@@ -20,6 +26,11 @@ const icons = {
   moon,
   caretDown,
   check,
+  xLogo,
+  reddit,
+  bluesky,
+  hackerNews,
+  link,
 };
 interface Props {
   name: keyof typeof icons;
@@ -27,5 +38,5 @@ interface Props {
 const { name } = Astro.props;
 ---
 
-<!-- Trusted, bundled Phosphor Regular SVG only; never accepts content markup. -->
+<!-- Trusted, bundled icons only; never accepts content markup. -->
 <span class="icon" aria-hidden="true" set:html={icons[name]} />

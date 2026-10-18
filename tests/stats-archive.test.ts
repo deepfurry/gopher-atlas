@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 import { archiveDay, observeContent } from '../apps/web/stats/worker/archive';
@@ -392,7 +392,5 @@ it('exports only validated public routes/counts and verifies the deployed marker
   await expect(loadManifest(mismatched)).rejects.toThrow(
     'stats_manifest_mismatch',
   );
-  expect(readFileSync('apps/web/wrangler.jsonc', 'utf8')).not.toMatch(
-    /main|d1_databases|triggers|run_worker_first/,
-  );
+  // Production binding and disabled-by-default policy are checked in site-release.test.ts.
 });

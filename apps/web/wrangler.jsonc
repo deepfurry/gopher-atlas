@@ -1,5 +1,21 @@
 {
   "name": "gopheratlas-web",
+  "main": "stats/worker/index.ts",
   "compatibility_date": "2026-09-10",
-  "assets": { "directory": "./dist" },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/stats", "/api/stats/*"],
+  },
+  "d1_databases": [
+    {
+      "binding": "STATS_DB",
+      "database_name": "gopheratlas-statistics",
+      "database_id": "33474c53-2d09-4c1b-9545-2711f5f8bc2a",
+      "migrations_dir": "stats/migrations",
+    },
+  ],
+  "vars": { "STATS_READ_ENABLED": "false", "STATS_SYNC_ENABLED": "false" },
+  // Operator enables a UTC schedule only after migration and runtime Secrets.
+  "triggers": { "crons": [] },
 }

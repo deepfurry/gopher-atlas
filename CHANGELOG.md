@@ -1,5 +1,16 @@
 # Changelog
 
+## Public release preparation (2026-10-19)
+
+- Prepare the existing Worker and real statistics D1 binding with reads, sync and
+  Cron disabled; preserve static asset, Snapshot and redirect publication.
+- Add PNG/ICO icons, a static default OG image and complete bilingual social
+  metadata, plus security.txt and a concise public-link llms.txt.
+- Share Note, Curated and Topic pages through four platform intents and the
+  existing Clipboard/Toast, with quiet theme-aware circular controls.
+- No production migration, secret configuration, activation or deployment is
+  performed by this preparation.
+
 ## Asset pagination (2026-10-18)
 
 - List assets newest first by ID in pages of at most 20, with exact next-page

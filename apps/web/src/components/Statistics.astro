@@ -1,6 +1,7 @@
 ---
 import * as stylex from '@stylexjs/stylex';
 import PageHero from './PageHero.astro';
+import Readership from './Readership.astro';
 import { layout as s } from '../styles/layout.stylex';
 import { stats as v } from '../styles/stats.stylex';
 import { words, type Locale } from '../lib/i18n';
@@ -294,6 +295,7 @@ const metrics = [
       }
     </div>
   </section>
+  <Readership locale={locale} />
   <section
     {...stylex.attrs(s.editorial, v.section)}
     aria-labelledby="stats-data-notes"

@@ -26,6 +26,7 @@ silently rewriting history. Routine implementation choices do not need an ADR.
 | [0018](0018-public-snapshot-dual-read.md)               | Public v1/v2 compatibility, localized taxonomy and staged rollout             | Accepted; deployed with v1           |
 
 | [0019](0019-taxonomy-authority-and-v2-writer.md) | Authoritative taxonomy, explicit data upgrade and v2 CMS writer | Accepted; B3 pending |
+| [0020](0020-statistics-local-archive.md) | Independent statistics archive, per-dimension quality and conditional readership | Local C1; production pending |
 
 New records include date, status, context, decision, alternatives, consequences
 and implementation scope. Earlier ADR phase boundaries describe their original

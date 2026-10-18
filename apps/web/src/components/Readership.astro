@@ -1,0 +1,214 @@
+---
+import * as stylex from '@stylexjs/stylex';
+import { layout as s } from '../styles/layout.stylex';
+import { stats as v } from '../styles/stats.stylex';
+import { readershipStyles as r } from '../styles/readership.stylex';
+import type { Locale } from '../lib/i18n';
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props,
+  zh = locale === 'zh';
+---
+
+<div
+  data-readership
+  data-locale={locale}
+  data-row-class={stylex.attrs(r.row).class}
+  data-link-class={stylex.attrs(r.link).class}
+  data-value-class={stylex.attrs(r.value).class}
+  data-meter-class={stylex.attrs(r.meter).class}
+  data-cell-class={stylex.attrs(r.cell).class}
+>
+  <section
+    hidden
+    data-traffic-site
+    {...stylex.attrs(s.editorial, v.section)}
+    aria-labelledby="traffic-title"
+  >
+    <header>
+      <p {...stylex.attrs(s.eyebrow)}>02 / READERSHIP</p>
+      <h2 id="traffic-title" {...stylex.attrs(s.sectionTitle)}>
+        {zh ? '访问趋势' : 'Readership'}
+      </h2>
+      <p {...stylex.attrs(v.help)}>
+        {
+          zh
+            ? 'Cloudflare Web Analytics 的日度聚合观测。Visits 是访问次数，不是独立访客 UV。'
+            : 'Daily aggregates from Cloudflare Web Analytics. Visits are not unique visitors (UV).'
+        }
+      </p>
+    </header>
+    <div {...stylex.attrs(v.content)}>
+      <div
+        {...stylex.attrs(v.switches)}
+        role="group"
+        aria-label={zh ? '已完成 UTC 日范围' : 'Completed UTC days'}
+      >
+        {
+          [7, 30, 90].map((n) => (
+            <button
+              type="button"
+              data-traffic-range={`${n}d`}
+              aria-pressed={n === 30}
+              {...stylex.attrs(v.switch, r.control)}
+            >
+              {n} {zh ? '天' : 'days'}
+            </button>
+          ))
+        }
+      </div>
+      <dl {...stylex.attrs(r.totals)}>
+        <div>
+          <dt {...stylex.attrs(v.label)}>
+            {zh ? '页面浏览 / Page Views' : 'Page Views'}
+          </dt><dd data-traffic-pv {...stylex.attrs(r.number)}></dd>
+        </div>
+        <div>
+          <dt {...stylex.attrs(v.label)}>
+            {zh ? '访问次数 / Visits' : 'Visits'}
+          </dt><dd data-traffic-visits {...stylex.attrs(r.number)}></dd>
+        </div>
+      </dl>
+      <p data-traffic-coverage {...stylex.attrs(v.help)}></p>
+      <div
+        {...stylex.attrs(v.switches)}
+        role="group"
+        aria-label={zh ? '趋势指标' : 'Trend metric'}
+      >
+        <button
+          type="button"
+          data-traffic-metric="pageLoads"
+          aria-pressed="true"
+          {...stylex.attrs(v.switch, r.control)}>Page Views</button
+        >
+        <button
+          type="button"
+          data-traffic-metric="visits"
+          aria-pressed="false"
+          {...stylex.attrs(v.switch, r.control)}>Visits</button
+        >
+      </div>
+      <figure {...stylex.attrs(v.figure)}>
+        <figcaption data-traffic-caption {...stylex.attrs(v.summary)}>
+        </figcaption>
+        <div {...stylex.attrs(v.chart)}>
+          <div {...stylex.attrs(v.axis)} aria-hidden="true">
+            <span data-traffic-max {...stylex.attrs(v.tick('0%'))}></span><span
+              {...stylex.attrs(v.tick('100%'))}>0</span
+            >
+          </div>
+          <div {...stylex.attrs(v.plot)}>
+            <svg
+              data-traffic-chart
+              {...stylex.attrs(v.svg)}
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              role="img"
+              aria-labelledby="traffic-chart-title traffic-chart-desc"
+            >
+              <title id="traffic-chart-title"></title><desc
+                id="traffic-chart-desc"
+                >{
+                  zh
+                    ? 'UTC 日度读数；缺失日期留空，不补零、不跨缺口连线。数据表提供每一天的值。'
+                    : 'UTC daily readings. Missing days remain gaps, without zero fill or connecting lines. The table provides each day’s values.'
+                }</desc
+              >
+              <line
+                {...stylex.attrs(v.gridline)}
+                x1="0"
+                x2="100"
+                y1="100"
+                y2="100"
+                vector-effect="non-scaling-stroke"></line>
+              <g data-traffic-lines {...stylex.attrs(v.line)}></g>
+            </svg>
+          </div>
+          <div {...stylex.attrs(v.dates)}>
+            <span data-traffic-start></span><span data-traffic-end></span>
+          </div>
+        </div>
+      </figure>
+      <details {...stylex.attrs(v.details)}>
+        <summary {...stylex.attrs(v.tableSummary)}
+          >{zh ? '查看日度数据' : 'View daily data'}</summary
+        >
+        <div {...stylex.attrs(v.tableScroll)}>
+          <table {...stylex.attrs(v.table)}>
+            <thead
+              ><tr
+                ><th {...stylex.attrs(r.cell)}>UTC</th><th
+                  {...stylex.attrs(r.cell)}>Page Views</th
+                ><th {...stylex.attrs(r.cell)}>Visits</th></tr
+              ></thead
+            ><tbody data-traffic-table></tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+  </section>
+  <div {...stylex.attrs(r.rankings)}>
+    <section
+      hidden
+      data-traffic-pages
+      {...stylex.attrs(v.section)}
+      aria-labelledby="traffic-pages-title"
+    >
+      <p {...stylex.attrs(s.eyebrow)}>03 / POPULAR PAGES</p><h2
+        id="traffic-pages-title"
+        {...stylex.attrs(s.sectionTitle)}
+      >
+        {zh ? '热门页面' : 'Popular Pages'}
+      </h2>
+      <p {...stylex.attrs(v.help)}>
+        {
+          zh
+            ? '按已覆盖日期的页面浏览排序；包括首页、栏目与文章。'
+            : 'Ranked by page views on covered days, including home, collections and articles.'
+        }
+      </p>
+      <ol data-traffic-pages-list {...stylex.attrs(r.list)}></ol>
+    </section>
+    <section
+      hidden
+      data-traffic-referrers
+      {...stylex.attrs(v.section)}
+      aria-labelledby="traffic-referrers-title"
+    >
+      <p {...stylex.attrs(s.eyebrow)}>04 / REFERRALS</p><h2
+        id="traffic-referrers-title"
+        {...stylex.attrs(s.sectionTitle)}
+      >
+        {zh ? '访问来源' : 'Referrals'}
+      </h2>
+      <p {...stylex.attrs(v.help)}>
+        {
+          zh
+            ? '按 Visits 汇总，排除站内 Referer。Direct / Unknown 不代表一定手动输入网址。'
+            : 'Visits by source, excluding internal Referers. Direct / Unknown does not necessarily mean a typed URL.'
+        }
+      </p>
+      <ul data-traffic-referrers-list {...stylex.attrs(r.list)}></ul>
+    </section>
+  </div>
+  <p data-traffic-quality hidden {...stylex.attrs(v.help)}></p>
+  <p {...stylex.attrs(v.help)} role="status" aria-live="polite">
+    <span data-traffic-notice
+      >{
+        zh
+          ? '流量统计尚未可用。内容统计不受影响。'
+          : 'Traffic statistics are not available. Published content statistics remain available.'
+      }</span
+    >
+    <button type="button" data-traffic-retry hidden {...stylex.attrs(r.retry)}
+      >{zh ? '重试' : 'Retry'}</button
+    >
+  </p>
+</div>
+<script>
+  import { mountReadership } from '../lib/stats/readership';
+  document
+    .querySelectorAll<HTMLElement>('[data-readership]')
+    .forEach((root) => mountReadership(root));
+</script>

@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { JSDOM } from 'jsdom';
 import { taxonomyText } from '../apps/web/src/lib/publication/taxonomy.ts';
 import { copyrightYears } from '../apps/web/src/lib/copyright.ts';
+import { buildStatsManifest } from './stats-manifest.ts';
 import { validateSnapshot, sha256 } from './snapshot.mjs';
 import {
   createPublication,
@@ -29,6 +30,10 @@ const snapshot = validateSnapshot(input),
   p = createPublication(snapshot);
 const out = 'apps/web/dist';
 const read = (path) => readFileSync(`${out}/${path}`, 'utf8');
+assert.deepEqual(
+  JSON.parse(read('.well-known/gopheratlas-stats.json')),
+  buildStatsManifest(p, sha256(input)),
+);
 const pageDocument = (path) =>
   new JSDOM(read(path === '/' ? 'index.html' : `${path.slice(1)}index.html`))
     .window.document;
@@ -163,11 +168,13 @@ for (const path of ['/stats/', '/en/stats/']) {
     ),
   );
   assert(!doc.querySelector('main[data-pagefind-body], astro-island'));
-  assert(
-    !/Page Views|Visits|Readership|Popular Pages|Referrals|访问趋势|热门页面|访问来源/.test(
-      doc.querySelector('main').textContent,
-    ),
-  );
+  for (const dimension of ['site', 'pages', 'referrers'])
+    assert(
+      doc.querySelector(`[data-traffic-${dimension}]`).hasAttribute('hidden'),
+      'No traffic shell is visible without API data',
+    );
+  assert.equal(doc.querySelectorAll('[data-traffic-pages-list] li').length, 0);
+  assert.equal(doc.querySelectorAll('[data-traffic-table] tr').length, 0);
 }
 for (const path of ['/legal/', '/en/legal/']) {
   const doc = pageDocument(path);
@@ -571,6 +578,9 @@ for (const path of walk(out)) {
     'CONTENT_R2_SECRET_ACCESS_KEY',
     'GITHUB_OAUTH_CLIENT_SECRET',
     'CLOUDFLARE_DEPLOY_HOOK_URL',
+    'RUM_ANALYTICS_TOKEN',
+    'synthetic-private-token',
+    'rumPageloadEventsAdaptiveGroups',
     '"githubUserId"',
     '"pendingReviewRevisionId"',
   ])

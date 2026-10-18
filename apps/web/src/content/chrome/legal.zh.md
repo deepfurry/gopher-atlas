@@ -13,6 +13,8 @@
 
 ## 隐私说明
 
+- **聚合流量统计**：统计功能启用时，本站使用 Cloudflare Web Analytics 的聚合页面浏览与 Visits 数据，按 UTC 日保存在独立统计归档中，用于展示访问趋势、公开页面排行及来源类别。Visits 不代表独立访客，数据可能采样，机器人过滤口径以统计页说明为准。本站统计归档不保存 IP、逐次访问记录、完整 Referer、Cookie 或指纹，不增加新的访问采集脚本或用户标识；这不代表 Cloudflare 的全部网络处理都不存在，也不代表其全部日志会存入本站。可用范围以统计页为准。
+
 - **搜索**：Pagefind 下载本站静态索引并在浏览器中匹配关键词。当前站点代码不向 CMS 或独立搜索服务提交搜索词；下载索引仍会产生托管/CDN 的资源请求。
 - **主题偏好**：本站用浏览器 localStorage 中的 `gopheratlas-theme` 保存明暗主题，便于下次访问恢复。可通过清除本站浏览器存储删除该偏好。
 - **评论**：学习随笔使用 Giscus/GitHub Discussions。评论区接近视口或手动加载时会请求 Giscus 脚本与评论界面；即使不发表评论，第三方组件加载也会产生网络请求。评论或回应通过 GitHub 授权，相关账户信息与公开评论由第三方服务处理。请参阅 [Giscus 服务说明](https://giscus.app/)及 [GitHub 隐私声明](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement)。

@@ -21,6 +21,9 @@ interface Props {
   locale?: Locale;
   image?: string;
   imageAlt?: string;
+  imageWidth?: number;
+  imageHeight?: number;
+  imageType?: string;
   ogType?: 'website' | 'article';
   searchIndex?: boolean;
   noindex?: boolean;
@@ -28,7 +31,7 @@ interface Props {
 }
 const {
   title,
-  description = '原创学习随笔、Go 技术精选与话题阅读路径。',
+  description: descriptionProp,
   canonical: path = chromePaths.includes(withoutLocale(Astro.url.pathname))
     ? Astro.url.pathname
     : withoutLocale(Astro.url.pathname),
@@ -36,6 +39,9 @@ const {
   lang = locale === 'zh' ? 'zh-CN' : 'en',
   image,
   imageAlt = '',
+  imageWidth,
+  imageHeight,
+  imageType,
   ogType = 'website',
   searchIndex = false,
   noindex = false,
@@ -43,6 +49,22 @@ const {
 } = Astro.props;
 const t = words[locale],
   canonical = new URL(path, Astro.site);
+const description =
+  descriptionProp ??
+  (locale === 'zh'
+    ? '原创学习随笔、Go 技术精选与话题阅读路径。'
+    : 'Original learning notes, curated Go articles and topic reading paths.');
+const socialImage = {
+  url: new URL(image || '/images/og-default.png', Astro.site).href,
+  alt: image
+    ? imageAlt || title
+    : locale === 'zh'
+      ? 'GopherAtlas — 代码之内，自有旷野。'
+      : 'GopherAtlas — Within the code, the wild remains.',
+  width: image ? imageWidth : 1200,
+  height: image ? imageHeight : 630,
+  type: image ? imageType : 'image/png',
+};
 const base = withoutLocale(Astro.url.pathname);
 const links = [
   ['/articles/', locale === 'zh' ? '文章' : 'Articles'],
@@ -99,19 +121,43 @@ const year = new Date().getFullYear();
       property="og:type"
       content={ogType}
     /><meta property="og:site_name" content="GopherAtlas" />
+    <meta property="og:locale" content={locale === 'zh' ? 'zh_CN' : 'en_US'} />
     {
-      image && (
-        <>
-          <>
-            <meta property="og:image" content={image} />
-            <meta property="og:image:alt" content={imageAlt} />
-          </>
-        </>
+      chromePaths.includes(base) && (
+        <meta
+          property="og:locale:alternate"
+          content={locale === 'zh' ? 'en_US' : 'zh_CN'}
+        />
       )
     }
+    <meta property="og:image" content={socialImage.url} />
+    <meta property="og:image:alt" content={socialImage.alt} />
+    {
+      socialImage.width && (
+        <meta property="og:image:width" content={String(socialImage.width)} />
+      )
+    }
+    {
+      socialImage.height && (
+        <meta property="og:image:height" content={String(socialImage.height)} />
+      )
+    }
+    {
+      socialImage.type && (
+        <meta property="og:image:type" content={socialImage.type} />
+      )
+    }
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImage.url} />
+    <meta name="twitter:image:alt" content={socialImage.alt} />
     {noindex && <meta name="robots" content="noindex, follow" />}
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
     {
       home && (
         <link
@@ -262,6 +308,7 @@ const year = new Date().getFullYear();
           <a href={localized('/contribute/')}>{t.contribute}</a>
           <a href={localized('/search/')}>{t.search}</a>
           <a href={localized('/legal/')}>{t.legal}</a>
+          <a href={localized('/stats/')}>{t.stats}</a>
           <a href="/rss.xml">RSS</a>
         </nav>
       </div>

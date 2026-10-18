@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { prepare } from './prepare-web-content.mjs';
 import { createPublication } from '../apps/web/src/lib/publication/indexes.ts';
+import { buildStatsManifest } from './stats-manifest.ts';
 import {
   publicPages,
   redirects,
@@ -35,7 +36,9 @@ if (
   pathToFileURL(resolve(process.argv[1])).href === import.meta.url
 ) {
   const result = await prepare();
-  publicPages(createPublication(result.snapshot));
+  const publication = createPublication(result.snapshot);
+  publicPages(publication);
+  const statsManifest = buildStatsManifest(publication, result.hash);
   const redirectFile = redirects(result.snapshot);
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
     encoding: 'utf8',
@@ -47,6 +50,10 @@ if (
   );
   const out = new URL('../apps/web/dist/.well-known/', import.meta.url);
   mkdirSync(out, { recursive: true });
+  writeFileSync(
+    new URL('gopheratlas-stats.json', out),
+    JSON.stringify(statsManifest) + '\n',
+  );
   writeFileSync(
     new URL('gopheratlas-build.json', out),
     JSON.stringify(buildMarker(result, commit)) + '\n',

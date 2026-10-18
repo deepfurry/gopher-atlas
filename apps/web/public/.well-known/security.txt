@@ -1,0 +1,4 @@
+Contact: mailto:faolanthewooolf@gmail.com
+Expires: 2027-10-01T00:00:00Z
+Canonical: https://gopheratlas.com/.well-known/security.txt
+Preferred-Languages: zh, en

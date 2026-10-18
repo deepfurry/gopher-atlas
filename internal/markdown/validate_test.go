@@ -1,10 +1,36 @@
 package markdown
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+func TestSharedMathSafetyFixtures(t *testing.T) {
+	source, err := os.ReadFile("../../tests/fixtures/markdown-math.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cases []struct {
+		Name   string `json:"name"`
+		Source string `json:"source"`
+		Valid  bool   `json:"valid"`
+	}
+	if err := json.Unmarshal(source, &cases); err != nil {
+		t.Fatal(err)
+	}
+	if len(cases) == 0 {
+		t.Fatal("math fixtures missing")
+	}
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			if got := Valid(tc.Source); got != tc.Valid {
+				t.Fatalf("Go math safety = %t, want %t", got, tc.Valid)
+			}
+		})
+	}
+}
 
 func TestSharedMarkdownFixtures(t *testing.T) {
 	files, err := filepath.Glob("../../tests/fixtures/markdown/*.md")

@@ -9,6 +9,7 @@ import SourceMeta from './SourceMeta.astro';
 import TopicBody from './TopicBody.astro';
 import Discussion from './Discussion.astro';
 import NoteNavigation from './NoteNavigation.astro';
+import Share from './Share.astro';
 import { displayDate, words, localized, type Locale } from '../lib/i18n';
 import {
   required,
@@ -71,6 +72,10 @@ const contentFamily =
   locale={locale}
   lang={locale === 'en' ? 'en' : item.language}
   image={cover?.url}
+  imageWidth={cover?.width}
+  imageHeight={cover?.height}
+  imageType={cover?.mimeType}
+  imageAlt={item.title}
   ogType={item.type === 'topic' ? 'website' : 'article'}
   searchIndex={!preview && item.type !== 'post' && locale === 'zh'}
   noindex={Boolean(preview)}
@@ -214,6 +219,14 @@ const contentFamily =
                 ))}
               </ul>
             )}
+            {!preview &&
+              (item.type === 'note' || item.type === 'curated_article') && (
+                <Share
+                  path={localized(item.canonicalPath, locale)}
+                  title={item.title}
+                  locale={locale}
+                />
+              )}
           </header>
           <div
             class:list={[

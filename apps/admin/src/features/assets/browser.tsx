@@ -1,5 +1,10 @@
 import { useRef, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+  type InfiniteData,
+} from '@tanstack/react-query';
 import { isControlledImage } from '@/shared/asset-policy';
 import { toast } from 'sonner';
 import {
@@ -12,8 +17,6 @@ import {
 } from '@phosphor-icons/react';
 import { useMe } from '@/app/context';
 import { client, unwrap, ErrorNotice, type Schema } from '@/shared/api';
-import { usePages } from '@/shared/query';
-import { LoadMore } from '@/shared/pagination';
 import { useConfirm } from '@/shared/confirm';
 import { date } from '@/shared/status';
 import { Button, IconButton } from '@/components/ui/button';
@@ -61,31 +64,69 @@ export function AssetBrowser({
     cache = useQueryClient(),
     confirm = useConfirm();
   const [includeDeleted, setIncludeDeleted] = useState(false),
+    [pageIndex, setPageIndex] = useState(0),
     [file, setFile] = useState<File | null>(null),
     [clipboardError, setClipboardError] = useState<unknown>(null),
     [preview, setPreview] = useState<Schema<'Asset'> | null>(null);
   const input = useRef<HTMLInputElement>(null);
-  const list = usePages(
-    ['assets', { includeDeleted }],
-    async (after, signal) =>
+  const list = useInfiniteQuery({
+    queryKey: ['assets', { includeDeleted }],
+    initialPageParam: 0,
+    queryFn: async ({ pageParam: after, signal }) =>
       unwrap(
         await client.GET('/api/admin/v1/assets', {
           signal,
           params: { query: { after, includeDeleted } },
         }),
       ),
-    me.permissions.uploadAssets,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: me.permissions.uploadAssets,
+    retry: false,
+  });
+  const pages = list.data?.pages ?? [];
+  // A refreshed cursor chain may lose its last page after deletions.
+  const lastPage = pages.reduce(
+    (last, page, index) => (page.items.length ? index : last),
+    0,
   );
-  const refresh = async () => {
-    await cache.invalidateQueries({ queryKey: ['assets'] });
-    await cache.invalidateQueries({ queryKey: ['audit'] });
+  const currentPage = Math.min(pageIndex, lastPage);
+  const items = pages[currentPage]?.items ?? [];
+  const nextPage = async () => {
+    if (currentPage < lastPage) {
+      setPageIndex(currentPage + 1);
+      return;
+    }
+    const result = await list.fetchNextPage();
+    if (!result.isError && result.data?.pages[currentPage + 1]?.items.length)
+      setPageIndex(currentPage + 1);
+  };
+  const refresh = async (firstPage = false) => {
+    if (firstPage) {
+      await cache.cancelQueries({ queryKey: ['assets'] });
+      // Uploads restart browsing. Discard old cursor chains before refetching.
+      cache.setQueriesData<InfiniteData<Schema<'AssetPage'>, number>>(
+        { queryKey: ['assets'] },
+        (data) =>
+          data && {
+            pages: data.pages.slice(0, 1),
+            pageParams: data.pageParams.slice(0, 1),
+          },
+      );
+      setPageIndex(0);
+    }
+    // Infinite Query refetches from the first page using fresh cursors, so a
+    // deletion/restoration cannot leave gaps between cached pages.
+    await Promise.all([
+      cache.invalidateQueries({ queryKey: ['assets'] }),
+      cache.invalidateQueries({ queryKey: ['audit'] }),
+    ]);
   };
   const upload = useMutation({
     mutationFn: uploadAsset,
     onSuccess: async (asset) => {
       setFile(null);
       if (input.current) input.current.value = '';
-      await refresh();
+      await refresh(true);
       toast.success('素材已上传。');
       select?.(asset);
     },
@@ -125,6 +166,7 @@ export function AssetBrowser({
       .then(() => toast.success('素材 URL 已复制。'))
       .catch(setClipboardError);
   };
+  const busy = list.isFetching || upload.isPending || change.isPending;
   return (
     <div className="asset-browser">
       <div
@@ -180,12 +222,16 @@ export function AssetBrowser({
         </p>
       )}
       <div className="section-heading">
-        <span className="caption">已加载 {list.items.length} 个素材</span>
+        <span className="caption">本页 {items.length} 个素材</span>
         {!select && me.permissions.manageAssets && (
           <Checkbox
             label="包含已删除素材"
             checked={includeDeleted}
-            onCheckedChange={setIncludeDeleted}
+            disabled={busy}
+            onCheckedChange={(checked) => {
+              setPageIndex(0);
+              setIncludeDeleted(checked);
+            }}
           />
         )}
       </div>
@@ -194,14 +240,18 @@ export function AssetBrowser({
       />
       {list.isPending ? (
         <LoadingState label="正在加载素材…" />
-      ) : !list.items.length ? (
+      ) : list.isError && !list.data ? (
+        <Button variant="outline" onClick={() => void list.refetch()}>
+          重试
+        </Button>
+      ) : !items.length ? (
         <EmptyState
           title="素材库还是空的"
           description="上传第一张图片，为内容添加封面或正文插图。"
         />
       ) : (
         <ul className="asset-grid" aria-label="素材库">
-          {list.items.map((asset) => (
+          {items.map((asset) => (
             <li
               key={asset.id}
               className={asset.deletedAt !== null ? 'asset-deleted' : ''}
@@ -248,7 +298,7 @@ export function AssetBrowser({
                     (asset.actions.delete || asset.actions.restore) && (
                       <IconButton
                         label={`${asset.actions.restore ? '恢复' : '删除'}素材 ${asset.id}`}
-                        disabled={change.isPending}
+                        disabled={busy}
                         onClick={() => change.mutate(asset)}
                       >
                         {asset.actions.restore ? (
@@ -266,7 +316,23 @@ export function AssetBrowser({
       )}
       <div className="pagination">
         <span>历史引用不会因素材删除而失效。</span>
-        <LoadMore {...list} />
+        <nav className="toolbar" aria-label="素材分页">
+          <Button
+            variant="outline"
+            disabled={busy || currentPage === 0}
+            onClick={() => setPageIndex(currentPage - 1)}
+          >
+            上一页
+          </Button>
+          <span aria-live="polite">第 {currentPage + 1} 页</span>
+          <Button
+            variant="outline"
+            disabled={busy || !(currentPage < lastPage || list.hasNextPage)}
+            onClick={() => void nextPage()}
+          >
+            下一页
+          </Button>
+        </nav>
       </div>
       <Dialog
         open={!!preview}

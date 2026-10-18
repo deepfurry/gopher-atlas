@@ -1,0 +1,169 @@
+{
+  "settings": {
+    "data": {
+      "viewer": {
+        "accounts": [
+          {
+            "settings": {
+              "rumPageloadEventsAdaptiveGroups": {
+                "enabled": true,
+                "availableFields": [
+                  "dimensions_date",
+                  "dimensions_requestHost",
+                  "dimensions_requestPath",
+                  "dimensions_refererHost",
+                  "count",
+                  "sum_visits",
+                  "avg_sampleInterval"
+                ],
+                "maxDuration": 172800,
+                "maxPageSize": 20,
+                "notOlderThan": 604800,
+                "maxNumberOfFields": 10
+              }
+            }
+          }
+        ]
+      }
+    },
+    "errors": null
+  },
+  "site": {
+    "data": {
+      "viewer": {
+        "accounts": [
+          {
+            "rumPageloadEventsAdaptiveGroups": [
+              {
+                "dimensions": {
+                  "date": "2026-10-16",
+                  "requestHost": "gopheratlas.com"
+                },
+                "count": 18,
+                "sum": { "visits": 7 },
+                "avg": { "sampleInterval": 1 }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "errors": null
+  },
+  "pages": {
+    "data": {
+      "viewer": {
+        "accounts": [
+          {
+            "rumPageloadEventsAdaptiveGroups": [
+              {
+                "dimensions": {
+                  "date": "2026-10-16",
+                  "requestHost": "gopheratlas.com",
+                  "requestPath": "/"
+                },
+                "count": 10,
+                "sum": { "visits": 5 },
+                "avg": { "sampleInterval": 1 }
+              },
+              {
+                "dimensions": {
+                  "date": "2026-10-16",
+                  "requestHost": "gopheratlas.com",
+                  "requestPath": "/en/"
+                },
+                "count": 5,
+                "sum": { "visits": 2 },
+                "avg": { "sampleInterval": 1 }
+              },
+              {
+                "dimensions": {
+                  "date": "2026-10-16",
+                  "requestHost": "gopheratlas.com",
+                  "requestPath": "/notes/offline/"
+                },
+                "count": 3,
+                "sum": { "visits": 0 },
+                "avg": { "sampleInterval": 1 }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "errors": null
+  },
+  "referrers": {
+    "data": {
+      "viewer": {
+        "accounts": [
+          {
+            "rumPageloadEventsAdaptiveGroups": [
+              {
+                "dimensions": {
+                  "date": "2026-10-16",
+                  "requestHost": "gopheratlas.com",
+                  "refererHost": "gopheratlas.com"
+                },
+                "count": 6,
+                "sum": { "visits": 0 },
+                "avg": { "sampleInterval": 1 }
+              },
+              {
+                "dimensions": {
+                  "date": "2026-10-16",
+                  "requestHost": "gopheratlas.com",
+                  "refererHost": "WWW.GopherAtlas.com."
+                },
+                "count": 2,
+                "sum": { "visits": 1 },
+                "avg": { "sampleInterval": 1 }
+              },
+              {
+                "dimensions": {
+                  "date": "2026-10-16",
+                  "requestHost": "gopheratlas.com",
+                  "refererHost": ""
+                },
+                "count": 5,
+                "sum": { "visits": 4 },
+                "avg": { "sampleInterval": 1 }
+              },
+              {
+                "dimensions": {
+                  "date": "2026-10-16",
+                  "requestHost": "gopheratlas.com",
+                  "refererHost": "www.bing.com"
+                },
+                "count": 3,
+                "sum": { "visits": 1 },
+                "avg": { "sampleInterval": 1 }
+              },
+              {
+                "dimensions": {
+                  "date": "2026-10-16",
+                  "requestHost": "gopheratlas.com",
+                  "refererHost": "unknown.example"
+                },
+                "count": 1,
+                "sum": { "visits": 1 },
+                "avg": { "sampleInterval": 1 }
+              },
+              {
+                "dimensions": {
+                  "date": "2026-10-16",
+                  "requestHost": "gopheratlas.com",
+                  "refererHost": "unapproved.gopheratlas.com"
+                },
+                "count": 1,
+                "sum": { "visits": 0 },
+                "avg": { "sampleInterval": 1 }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "errors": null
+  }
+}

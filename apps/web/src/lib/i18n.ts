@@ -21,6 +21,7 @@ export const chromePaths = [
   '/about/',
   '/contribute/',
   '/legal/',
+  '/stats/',
   '/search/',
 ];
 export function alternateChrome(path: string, locale: Locale) {
@@ -40,6 +41,9 @@ export const words = {
     contribute: '参与贡献',
     legal: '法律与版权',
     legalTitle: '版权、隐私与使用说明',
+    stats: '统计',
+    statsTitle: '站点统计',
+    statsIntro: '记录知识的积累，以及读者如何抵达这里。',
     search: '搜索',
     theme: '切换主题',
     menu: '菜单',
@@ -165,6 +169,10 @@ export const words = {
     contribute: 'Contribute',
     legal: 'Legal',
     legalTitle: 'Copyright, Privacy & Terms',
+    stats: 'Statistics',
+    statsTitle: 'Statistics',
+    statsIntro:
+      'A record of growing knowledge and the paths readers take to reach it.',
     search: 'Search',
     theme: 'Toggle theme',
     menu: 'Menu',

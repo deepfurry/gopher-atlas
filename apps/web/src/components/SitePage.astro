@@ -8,6 +8,7 @@ import Home from './Home.astro';
 import Articles from './Articles.astro';
 import ProductDirectory from './ProductDirectory.astro';
 import Search from './Search.astro';
+import Statistics from './Statistics.astro';
 import MarkdownBody from './MarkdownBody.astro';
 import { words, localized, type Locale } from '../lib/i18n';
 import { publication } from '../lib/publication/snapshot';
@@ -26,6 +27,7 @@ interface Props {
     | 'about'
     | 'contribute'
     | 'legal'
+    | 'stats'
     | 'search'
     | 'authors'
     | 'tags';
@@ -43,24 +45,32 @@ const body =
     ? information[page][locale]
     : '';
 const title =
-  page === 'home' ? t.subtitle : page === 'legal' ? t.legalTitle : t[page];
+  page === 'home'
+    ? t.subtitle
+    : page === 'legal'
+      ? t.legalTitle
+      : page === 'stats'
+        ? t.statsTitle
+        : t[page];
 ---
 
 <Layout
   title={title}
   description={page === 'home'
     ? t.hero
-    : page === 'authors'
-      ? t.authorsIntro
-      : page === 'tags'
-        ? t.tagsIntro
-        : page === 'articles'
-          ? t.articlesIntro
-          : page === 'topics'
-            ? t.topicsIntro
-            : page === 'notes'
-              ? t.notesIntro
-              : title}
+    : page === 'stats'
+      ? t.statsIntro
+      : page === 'authors'
+        ? t.authorsIntro
+        : page === 'tags'
+          ? t.tagsIntro
+          : page === 'articles'
+            ? t.articlesIntro
+            : page === 'topics'
+              ? t.topicsIntro
+              : page === 'notes'
+                ? t.notesIntro
+                : title}
   locale={locale}
   home={page === 'home'}
   searchIndex={page === 'about' || page === 'contribute'}
@@ -74,6 +84,8 @@ const title =
       <ProductDirectory kind={page} publication={publication} locale={locale} />
     ) : page === 'search' ? (
       <Search locale={locale} />
+    ) : page === 'stats' ? (
+      <Statistics publication={publication} locale={locale} />
     ) : page === 'authors' || page === 'tags' ? (
       <section>
         <header {...stylex.attrs(s.pageHeading)}>

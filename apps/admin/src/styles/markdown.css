@@ -90,3 +90,15 @@
   margin: 12px 0;
   padding-left: 18px;
 }
+
+.markdown-preview .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.25em;
+}
+.markdown-preview .katex-error {
+  color: var(--error) !important;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

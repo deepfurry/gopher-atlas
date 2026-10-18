@@ -4,6 +4,8 @@ import { resolve } from 'node:path';
 import { JSDOM } from 'jsdom';
 import { taxonomyText } from '../apps/web/src/lib/publication/taxonomy.ts';
 import { copyrightYears } from '../apps/web/src/lib/copyright.ts';
+import { shareLinks } from '../apps/web/src/lib/share.ts';
+import { buildStatsManifest } from './stats-manifest.ts';
 import { validateSnapshot, sha256 } from './snapshot.mjs';
 import {
   createPublication,
@@ -29,15 +31,43 @@ const snapshot = validateSnapshot(input),
   p = createPublication(snapshot);
 const out = 'apps/web/dist';
 const read = (path) => readFileSync(`${out}/${path}`, 'utf8');
+assert.deepEqual(
+  JSON.parse(read('.well-known/gopheratlas-stats.json')),
+  buildStatsManifest(p, sha256(input)),
+);
 const pageDocument = (path) =>
   new JSDOM(read(path === '/' ? 'index.html' : `${path.slice(1)}index.html`))
     .window.document;
+for (const file of [
+  'favicon.svg',
+  'favicon-32.png',
+  'favicon.ico',
+  'apple-touch-icon.png',
+  'images/og-default.png',
+  '.well-known/security.txt',
+  'llms.txt',
+])
+  assert.deepEqual(
+    readFileSync(`${out}/${file}`),
+    readFileSync(`apps/web/public/${file}`),
+  );
+for (const match of read('llms.txt').matchAll(/\]\((https:\/\/[^)]+)\)/g)) {
+  const url = new URL(match[1]);
+  assert.equal(url.origin, 'https://gopheratlas.com');
+  assert(
+    existsSync(
+      `${out}${url.pathname}${url.pathname.endsWith('/') ? 'index.html' : ''}`,
+    ),
+    `llms.txt public target exists: ${url.pathname}`,
+  );
+}
 const pages = publicPages(p);
 const allPaths = [
   '/',
   '/about/',
   '/contribute/',
   '/legal/',
+  '/stats/',
   '/search/',
   '/notes/',
   '/tags/',
@@ -54,6 +84,58 @@ const aliases = [
 allPaths.push(...aliases.map((path) => '/en' + path));
 for (const path of allPaths) {
   const doc = pageDocument(path);
+  assert(
+    doc.querySelector(
+      'link[rel=icon][href="/favicon.svg"][type="image/svg+xml"]',
+    ),
+  );
+  assert(
+    doc.querySelector('link[rel=icon][href="/favicon-32.png"][sizes="32x32"]'),
+  );
+  assert(doc.querySelector('link[rel=icon][href="/favicon.ico"]'));
+  assert(
+    doc.querySelector(
+      'link[rel=apple-touch-icon][href="/apple-touch-icon.png"]',
+    ),
+  );
+  const item = snapshot.content.find((item) =>
+    [item.canonicalPath, `/en${item.canonicalPath}`].includes(path),
+  );
+  const cover = item?.coverAssetId
+    ? p.assetById.get(item.coverAssetId)
+    : undefined;
+  const image = cover?.url ?? 'https://gopheratlas.com/images/og-default.png';
+  assert.equal(doc.querySelector('meta[property="og:image"]')?.content, image);
+  assert.equal(
+    doc.querySelector('meta[property="og:image:width"]')?.content,
+    String(cover?.width ?? 1200),
+  );
+  assert.equal(
+    doc.querySelector('meta[property="og:image:height"]')?.content,
+    String(cover?.height ?? 630),
+  );
+  assert.equal(
+    doc.querySelector('meta[property="og:image:type"]')?.content,
+    cover?.mimeType ?? 'image/png',
+  );
+  assert(doc.querySelector('meta[property="og:image:alt"]')?.content.trim());
+  assert.equal(
+    doc.querySelector('meta[property="og:locale"]')?.content,
+    localeOf(path) === 'zh' ? 'zh_CN' : 'en_US',
+  );
+  assert.equal(
+    doc.querySelector('meta[name="twitter:card"]')?.content,
+    'summary_large_image',
+  );
+  assert.equal(doc.querySelector('meta[name="twitter:image"]')?.content, image);
+  assert.equal(
+    doc.querySelector('meta[name="twitter:title"]')?.content,
+    doc.querySelector('meta[property="og:title"]')?.content,
+  );
+  assert.equal(
+    doc.querySelector('meta[name="twitter:description"]')?.content,
+    doc.querySelector('meta[name="description"]')?.content,
+  );
   assert.equal(
     doc.querySelector('link[rel=canonical]')?.getAttribute('href'),
     `https://gopheratlas.com${canonicalPaths.includes(path) ? path : path.slice(3)}`,
@@ -85,6 +167,16 @@ for (const path of allPaths) {
   );
   assert.equal(legalLinks.length, 1, `One localized Legal entry: ${path}`);
   assert.equal(legalLinks[0].textContent, words[localeOf(path)].legal);
+  const statsLinks = doc.querySelectorAll(
+    `footer a[href="${localized('/stats/', localeOf(path))}"]`,
+  );
+  assert.equal(statsLinks.length, 1, `One localized Statistics entry: ${path}`);
+  assert.equal(statsLinks[0].textContent, words[localeOf(path)].stats);
+  assert(
+    !doc.querySelector(
+      '#primary-navigation a[href$="/stats/"]:not([data-language-link])',
+    ),
+  );
   for (const link of doc.querySelectorAll('a[href^="/"]')) {
     const target = link.getAttribute('href').split(/[?#]/)[0];
     assert(
@@ -92,6 +184,73 @@ for (const path of allPaths) {
       `Broken generated link in ${path}: ${target}`,
     );
   }
+}
+for (const path of ['/stats/', '/en/stats/']) {
+  const doc = pageDocument(path),
+    locale = localeOf(path);
+  assert.equal(doc.title, `${words[locale].statsTitle} · GopherAtlas`);
+  assert.equal(doc.querySelector('h1').textContent, words[locale].statsTitle);
+  assert.equal(
+    doc.querySelector('meta[name=description]').content,
+    words[locale].statsIntro,
+  );
+  assert.equal(doc.documentElement.lang, locale === 'zh' ? 'zh-CN' : 'en');
+  for (const [language, target] of [
+    ['zh-CN', '/stats/'],
+    ['en', '/en/stats/'],
+    ['x-default', '/stats/'],
+  ])
+    assert.equal(
+      doc.querySelector(`link[rel=alternate][hreflang="${language}"]`).href,
+      `https://gopheratlas.com${target}`,
+    );
+  for (const type of ['note', 'curated_article', 'topic', 'tags'])
+    assert.equal(
+      Number(doc.querySelector(`[data-stat-count="${type}"]`).textContent),
+      type === 'tags'
+        ? snapshot.tags.length
+        : snapshot.content.filter((item) => item.type === type).length,
+    );
+  assert(
+    doc.querySelector('[data-stats-switch]').hasAttribute('hidden'),
+    'Progressive chart controls',
+  );
+  for (const type of ['all', 'note', 'curated_article', 'topic']) {
+    const panel = doc.querySelector(`[data-stats-panel="${type}"]`);
+    assert.equal(panel.hasAttribute('hidden'), type !== 'all');
+    const days = new Map();
+    for (const item of snapshot.content.filter(
+      (item) => item.type !== 'post' && (type === 'all' || type === item.type),
+    )) {
+      const day = new Date(item.firstPublishedAt).toISOString().slice(0, 10);
+      days.set(day, (days.get(day) ?? 0) + 1);
+    }
+    let total = 0;
+    const expected = [...days]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, added]) => [date, String((total += added))]);
+    assert.deepEqual(
+      [...panel.querySelectorAll('tbody tr')].map((row) =>
+        [...row.querySelectorAll('td')].map((cell) => cell.textContent.trim()),
+      ),
+      expected,
+    );
+    assert(panel.querySelector('svg title') && panel.querySelector('svg desc'));
+    assert(panel.querySelector('details > summary'));
+  }
+  assert(
+    doc.querySelector(
+      '[data-statistics] time[datetime="' + snapshot.exportedAt + '"]',
+    ),
+  );
+  assert(!doc.querySelector('main[data-pagefind-body], astro-island'));
+  for (const dimension of ['site', 'pages', 'referrers'])
+    assert(
+      doc.querySelector(`[data-traffic-${dimension}]`).hasAttribute('hidden'),
+      'No traffic shell is visible without API data',
+    );
+  assert.equal(doc.querySelectorAll('[data-traffic-pages-list] li').length, 0);
+  assert.equal(doc.querySelectorAll('[data-traffic-table] tr').length, 0);
 }
 for (const path of ['/legal/', '/en/legal/']) {
   const doc = pageDocument(path);
@@ -254,10 +413,33 @@ for (const locale of ['zh', 'en']) {
   }
   for (const item of p.snapshot.content) {
     const doc = pageDocument(localized(item.canonicalPath, locale));
+    if (item.type !== 'post') {
+      const shares = doc.querySelectorAll('[data-share]');
+      assert.equal(shares.length, 1);
+      const sharing = shareLinks(
+        localized(item.canonicalPath, locale),
+        item.title,
+      );
+      assert.deepEqual(
+        [...shares[0].querySelectorAll('a')].map((link) => link.href),
+        sharing.links.map((link) => link.href),
+      );
+      assert.equal(doc.querySelectorAll('[data-copy-link]').length, 1);
+      assert.equal(
+        shares[0].querySelector('button')?.dataset.copyText,
+        sharing.url,
+      );
+      assert(shares[0].closest('header'));
+      for (const link of shares[0].querySelectorAll('a')) {
+        assert.equal(link.target, '_blank');
+        assert.equal(link.rel, 'noopener noreferrer');
+        assert(link.getAttribute('aria-label'));
+      }
+    }
     for (const id of item.tagIds) {
       const tag = p.tagById.get(id);
       const link = doc.querySelector(
-        `.content-detail a[href="${localized(`/tags/${tag.slug}/`, locale)}"]`,
+        `.tag-list a[href="${localized(`/tags/${tag.slug}/`, locale)}"]`,
       );
       assert.equal(link?.textContent.trim(), taxonomyText(tag, locale).name);
     }
@@ -495,6 +677,9 @@ for (const path of walk(out)) {
     'CONTENT_R2_SECRET_ACCESS_KEY',
     'GITHUB_OAUTH_CLIENT_SECRET',
     'CLOUDFLARE_DEPLOY_HOOK_URL',
+    'RUM_ANALYTICS_TOKEN',
+    'synthetic-private-token',
+    'rumPageloadEventsAdaptiveGroups',
     '"githubUserId"',
     '"pendingReviewRevisionId"',
   ])

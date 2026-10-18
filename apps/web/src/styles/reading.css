@@ -31,9 +31,21 @@
   border-radius: 8px;
 }
 .markdown {
+  min-width: 0;
   color: var(--text);
   font-size: 17px;
   line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+.markdown .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.25em;
+}
+.markdown .katex-error {
+  color: var(--text) !important;
+  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 .markdown > :first-child {

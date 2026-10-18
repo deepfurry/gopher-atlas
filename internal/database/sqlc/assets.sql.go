@@ -147,8 +147,8 @@ func (q *Queries) GetAssetsByIDs(ctx context.Context, ids []int64) ([]Asset, err
 }
 
 const listAssets = `-- name: ListAssets :many
-SELECT id, sha256, object_key, mime_type, byte_size, width, height, created_by, created_at, deleted_at FROM assets WHERE id > ?1
-AND (deleted_at IS NULL OR ?2) ORDER BY id LIMIT ?3
+SELECT id, sha256, object_key, mime_type, byte_size, width, height, created_by, created_at, deleted_at FROM assets WHERE (id < ?1 OR ?1 = 0)
+AND (deleted_at IS NULL OR ?2) ORDER BY id DESC LIMIT ?3
 `
 
 type ListAssetsParams struct {

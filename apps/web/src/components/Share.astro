@@ -1,0 +1,49 @@
+---
+import * as stylex from '@stylexjs/stylex';
+import Icon from './Icon.astro';
+import { share } from '../styles/share.stylex';
+import { shareLinks } from '../lib/share';
+import type { Locale } from '../lib/i18n';
+interface Props {
+  path: string;
+  title: string;
+  locale: Locale;
+}
+const { path, title, locale } = Astro.props;
+const { url, links } = shareLinks(path, title);
+---
+
+<nav
+  {...stylex.attrs(share.row)}
+  data-share
+  data-pagefind-ignore
+  aria-label={locale === 'zh' ? '分享此页' : 'Share this page'}
+>
+  {
+    links.map(({ name, icon, href }) => (
+      <a
+        {...stylex.attrs(share.button)}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={
+          locale === 'zh'
+            ? `分享到 ${name}（新窗口）`
+            : `Share on ${name} (new window)`
+        }
+        title={name}
+      >
+        <Icon name={icon} />
+      </a>
+    ))
+  }
+  <button
+    type="button"
+    {...stylex.attrs(share.button)}
+    data-copy-link
+    data-copy-text={url}
+    aria-label={locale === 'zh' ? '复制链接' : 'Copy link'}
+    title={locale === 'zh' ? '复制链接' : 'Copy link'}
+    ><Icon name="link" /></button
+  >
+</nav>

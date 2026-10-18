@@ -1,0 +1,22 @@
+{
+  // Local C1 only. Never pass this configuration to `wrangler deploy`.
+  "name": "gopheratlas-stats-local",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-10",
+  "send_metrics": false,
+  "assets": {
+    "directory": "../dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/stats", "/api/stats/*"],
+  },
+  "d1_databases": [
+    {
+      "binding": "STATS_DB",
+      "database_name": "gopheratlas-stats-local",
+      "database_id": "local-only-stats",
+      "migrations_dir": "migrations",
+      "remote": false,
+    },
+  ],
+  "vars": { "STATS_READ_ENABLED": "true", "STATS_SYNC_ENABLED": "false" },
+}

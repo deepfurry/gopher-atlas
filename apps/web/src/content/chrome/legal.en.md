@@ -13,6 +13,8 @@ IBM Plex fonts use SIL OFL 1.1; Phosphor icons use the MIT license. See [Third-p
 
 ## Privacy
 
+- **Aggregate traffic statistics**: When enabled, this site archives Cloudflare Web Analytics page views and Visits by UTC day in a separate statistics store to show traffic trends, public-page rankings and source categories. Visits are not unique visitors; data may be sampled, and bot-filter scope is described on the statistics page. Our archive does not store IP addresses, individual visits, full Referers, cookies or fingerprints, and adds no tracking script or user identifier. This does not describe all processing by Cloudflare or imply that its full logs are copied here. Available coverage is shown on the statistics page.
+
 - **Search**: Pagefind downloads this site's static index and matches keywords in your browser. The current site code does not submit search terms to the CMS or a separate search service. Index downloads still make requests to the host/CDN.
 - **Theme preference**: Browser localStorage stores `gopheratlas-theme` to restore your light/dark preference on later visits. Clearing this site's browser storage removes it.
 - **Comments**: Learning Notes use Giscus/GitHub Discussions. Approaching the comments section or loading it manually requests Giscus scripts and its comment interface. Loading third-party components makes network requests even without posting. Comments and reactions use GitHub authorization; those services process related account information and public comments. See [Giscus](https://giscus.app/) and the [GitHub Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement).

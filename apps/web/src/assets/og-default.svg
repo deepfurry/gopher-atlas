@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#101215"/>
+  <g fill="#8495a6" opacity=".28">
+    <circle cx="1064" cy="80" r="2"/><circle cx="1096" cy="80" r="2"/><circle cx="1128" cy="80" r="2"/>
+    <circle cx="1064" cy="112" r="2"/><circle cx="1096" cy="112" r="2"/><circle cx="1128" cy="112" r="2"/>
+    <circle cx="1064" cy="144" r="2"/><circle cx="1096" cy="144" r="2"/><circle cx="1128" cy="144" r="2"/>
+  </g>
+  <text x="72" y="100" font-family="IBM Plex Mono, monospace" font-size="20" letter-spacing="2" fill="#aeb4b9">GO KNOWLEDGE ATLAS</text>
+  <text x="66" y="250" font-family="IBM Plex Sans, Arial, sans-serif" font-size="100" font-weight="600" letter-spacing="-4" fill="#e8e9e7">GopherAtlas</text>
+  <text x="72" y="340" font-family="IBM Plex Sans, Arial, sans-serif" font-size="36" fill="#bdcbd6">Within the code, the wild remains.</text>
+  <path d="M72 486H1128" stroke="#30353a"/>
+  <path d="M72 486H160" stroke="#8495a6" stroke-width="3"/>
+  <text x="72" y="550" font-family="IBM Plex Mono, monospace" font-size="21" fill="#aeb4b9">NOTES / ARTICLES / TOPICS</text>
+  <text x="1128" y="550" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="21" fill="#aeb4b9">gopheratlas.com</text>
+</svg>

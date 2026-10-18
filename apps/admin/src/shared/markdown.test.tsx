@@ -3,6 +3,26 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import { MarkdownPreview, MarkdownFeedback } from './markdown';
 import { MarkdownEditor } from '@/features/content/markdown-editor';
+import mathCases from '../../../../tests/fixtures/markdown-math.json';
+
+it.each(mathCases)('safe math preview: $name', (fixture) => {
+  const { container } = render(<MarkdownPreview source={fixture.source} />);
+  expect(
+    container.querySelector('script, iframe, img, a, [onerror], [onclick]'),
+  ).toBeNull();
+  expect(container.querySelector('[style*="position:fixed"]')).toBeNull();
+  if (!fixture.valid) return;
+  expect(container.querySelectorAll('.katex')).toHaveLength(fixture.math!);
+  expect(container.querySelectorAll('.katex-display')).toHaveLength(
+    fixture.display!,
+  );
+  expect(container.querySelectorAll('math')).toHaveLength(fixture.math!);
+  if (fixture.error)
+    expect(container.querySelector('.katex-error')?.textContent).toBeTruthy();
+  if (fixture.code)
+    expect(container.querySelectorAll('code')).toHaveLength(fixture.code);
+  if (fixture.text) expect(container.textContent).toBe(fixture.text);
+});
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();

@@ -1,0 +1,334 @@
+---
+import * as stylex from '@stylexjs/stylex';
+import PageHero from './PageHero.astro';
+import Readership from './Readership.astro';
+import { layout as s } from '../styles/layout.stylex';
+import { stats as v } from '../styles/stats.stylex';
+import { words, type Locale } from '../lib/i18n';
+import type { Publication } from '../lib/publication/indexes';
+import {
+  contentStatistics,
+  growthPlot,
+  growthTypes,
+} from '../lib/stats/content';
+
+interface Props {
+  publication: Publication;
+  locale: Locale;
+}
+const { publication, locale } = Astro.props;
+const t = words[locale],
+  data = contentStatistics(publication);
+const copy =
+  locale === 'zh'
+    ? {
+        scale: '内容规模',
+        tags: '技术标签',
+        growth: '内容积累',
+        method:
+          '当前仍公开内容的首次发布时间累计；不等于网站曾经每一天的完整已发布库存。',
+        filter: '按内容类型查看累计',
+        labels: {
+          all: '全部',
+          note: '随笔',
+          curated_article: '精选',
+          topic: '话题',
+        },
+        unit: '项内容',
+        empty: '该类型暂无公开内容，尚无首次发布日期。',
+        unavailable: '尚无可用的发布快照，内容统计暂不可用。',
+        table: '查看日期与累计数据',
+        date: '首发日期（UTC）',
+        cumulative: '累计内容',
+        chart: '按 UTC 首发日累计；日期之间的水平线表示数量保持不变。',
+        notes: '统计说明',
+        source:
+          '来源为当前已验证的 Published Snapshot，按内容 ID 和标签 ID 统计。中英文页面别名不重复计数；独立发表的中英文内容分别计数。',
+        scope:
+          '“全部”包含学习随笔、精选文章与话题专区，不包含兼容 Post。标签计入内容规模，但不参与首发曲线。',
+        dates:
+          '日期使用 UTC，范围仅覆盖对应内容的真实首次发布日期。更新或再次发布不会改用最后发布时间；已撤下的内容不在当前快照中，因此这条回溯曲线也会随公开内容变化。',
+        privacy: '这些统计仅使用已公开内容，不新增访问采集或用户标识。',
+        updated: '快照更新',
+      }
+    : {
+        scale: 'Published Content',
+        tags: 'Technical Tags',
+        growth: 'Publication Growth',
+        method:
+          'Cumulative first publications of content still public today; not a complete historical inventory of the site.',
+        filter: 'View cumulative publications by type',
+        labels: {
+          all: 'All',
+          note: 'Notes',
+          curated_article: 'Curated',
+          topic: 'Topics',
+        },
+        unit: 'items',
+        empty:
+          'No public content of this type yet, so no first publication dates.',
+        unavailable:
+          'No published snapshot is available yet. Content statistics are unavailable.',
+        table: 'View dates and cumulative data',
+        date: 'First published (UTC)',
+        cumulative: 'Cumulative items',
+        chart:
+          'Cumulative by UTC first publication day; horizontal segments hold the count between dates.',
+        notes: 'Data Notes',
+        source:
+          'Source: the current validated Published Snapshot, counted by content and tag ID. Language aliases do not add items; independently published Chinese and English content counts separately.',
+        scope:
+          '“All” includes learning notes, curated articles and topics, excluding compatibility Posts. Tags contribute to the scale figures but have no first publication curve.',
+        dates:
+          'Dates use UTC and span only actual first publication dates for the selected content. Updates and republication do not substitute the last publication date. Withdrawn content is absent from the current snapshot, so this retrospective curve changes with the public collection.',
+        privacy:
+          'This content view uses published data only; it adds no visitor tracking or user identifiers.',
+        updated: 'Snapshot updated',
+      };
+const metrics = [
+  { key: 'note', label: t.notes },
+  {
+    key: 'curated_article',
+    label: locale === 'zh' ? '精选文章' : 'Curated Articles',
+  },
+  { key: 'topic', label: t.topics },
+  { key: 'tags', label: copy.tags },
+] as const;
+---
+
+<div data-statistics>
+  <PageHero
+    label="GOPHERATLAS / STATISTICS"
+    title={t.statsTitle}
+    description={t.statsIntro}
+  />
+  <section {...stylex.attrs(v.scale)} aria-labelledby="stats-scale">
+    <h2 id="stats-scale" {...stylex.attrs(v.label)}>{copy.scale}</h2>
+    <dl {...stylex.attrs(v.counts)}>
+      {
+        metrics.map(({ key, label }) => (
+          <div {...stylex.attrs(v.metric)}>
+            <dt {...stylex.attrs(v.label)}>{label}</dt>
+            <dd {...stylex.attrs(v.number)} data-stat-count={key}>
+              {data.available ? data.counts[key] : '—'}
+            </dd>
+          </div>
+        ))
+      }
+    </dl>
+    {!data.available && <p {...stylex.attrs(v.help)}>{copy.unavailable}</p>}
+  </section>
+  <section
+    {...stylex.attrs(s.editorial, v.section)}
+    aria-labelledby="stats-growth"
+  >
+    <header>
+      <p {...stylex.attrs(s.eyebrow)}>01 / PUBLICATION GROWTH</p>
+      <h2 id="stats-growth" {...stylex.attrs(s.sectionTitle)}>{copy.growth}</h2>
+      <p id="stats-method" {...stylex.attrs(v.help)}>{copy.method}</p>
+    </header>
+    <div {...stylex.attrs(v.content)}>
+      {
+        data.available ? (
+          <>
+            <div
+              {...stylex.attrs(v.switches)}
+              role="tablist"
+              aria-label={copy.filter}
+              data-stats-switch
+              hidden
+            >
+              {growthTypes.map((key, index) => (
+                <button
+                  {...stylex.attrs(v.switch)}
+                  type="button"
+                  role="tab"
+                  id={`stats-tab-${key}`}
+                  aria-controls={`stats-panel-${key}`}
+                  aria-selected={index === 0}
+                  tabindex={index === 0 ? 0 : -1}
+                >
+                  {copy.labels[key]}
+                </button>
+              ))}
+            </div>
+            {growthTypes.map((key, index) => {
+              const series = data.series[key],
+                plot = growthPlot(series);
+              const unit =
+                locale === 'en' && series.total === 1 ? 'item' : copy.unit;
+              return (
+                <section
+                  id={`stats-panel-${key}`}
+                  data-stats-panel={key}
+                  role="tabpanel"
+                  aria-labelledby={`stats-tab-${key}`}
+                  tabindex="0"
+                  hidden={index !== 0}
+                >
+                  {plot ? (
+                    <>
+                      <figure {...stylex.attrs(v.figure)}>
+                        <figcaption {...stylex.attrs(v.summary)}>
+                          <h3 {...stylex.attrs(v.total)}>
+                            {copy.labels[key]} · {series.total} {unit}
+                          </h3>
+                          <span {...stylex.attrs(v.range)}>UTC</span>
+                        </figcaption>
+                        <div {...stylex.attrs(v.chart)}>
+                          <div {...stylex.attrs(v.axis)} aria-hidden="true">
+                            {plot.ticks.map((tick) => (
+                              <span {...stylex.attrs(v.tick(`${tick.y}%`))}>
+                                {tick.value}
+                              </span>
+                            ))}
+                          </div>
+                          <div {...stylex.attrs(v.plot)}>
+                            <svg
+                              {...stylex.attrs(v.svg)}
+                              viewBox="0 0 100 100"
+                              preserveAspectRatio="none"
+                              role="img"
+                              aria-labelledby={`stats-chart-title-${key} stats-chart-description-${key}`}
+                            >
+                              <title id={`stats-chart-title-${key}`}>
+                                {copy.labels[key]}: {series.total} {unit},{' '}
+                                {series.firstDate}
+                                {series.firstDate !== series.lastDate
+                                  ? ` — ${series.lastDate}`
+                                  : ''}{' '}
+                                (UTC)
+                              </title>
+                              <desc id={`stats-chart-description-${key}`}>
+                                {copy.chart} {copy.method}
+                              </desc>
+                              {plot.ticks.map((tick) => (
+                                <line
+                                  {...stylex.attrs(v.gridline)}
+                                  x1="0"
+                                  x2="100"
+                                  y1={tick.y}
+                                  y2={tick.y}
+                                  vector-effect="non-scaling-stroke"
+                                />
+                              ))}
+                              <path
+                                {...stylex.attrs(v.line)}
+                                d={plot.path}
+                                vector-effect="non-scaling-stroke"
+                              />
+                            </svg>
+                            <span
+                              {...stylex.attrs(
+                                v.dot(`${plot.end.x}%`, `${plot.end.y}%`),
+                              )}
+                              aria-hidden="true"
+                            />
+                          </div>
+                          <div
+                            {...stylex.attrs(
+                              v.dates,
+                              series.firstDate === series.lastDate &&
+                                v.singleDate,
+                            )}
+                            aria-hidden="true"
+                          >
+                            <span>{series.firstDate}</span>
+                            {series.firstDate !== series.lastDate && (
+                              <span>{series.lastDate}</span>
+                            )}
+                          </div>
+                        </div>
+                      </figure>
+                      <details {...stylex.attrs(v.details)}>
+                        <summary {...stylex.attrs(v.tableSummary)}>
+                          {copy.table}
+                        </summary>
+                        <div
+                          {...stylex.attrs(v.tableScroll)}
+                          tabindex="0"
+                          role="region"
+                          aria-label={`${copy.labels[key]} — ${copy.table}`}
+                        >
+                          <table {...stylex.attrs(v.table)}>
+                            <caption class="sr-only">
+                              {copy.labels[key]} — {copy.method}
+                            </caption>
+                            <thead>
+                              <tr>
+                                <th {...stylex.attrs(v.cell)} scope="col">
+                                  {copy.date}
+                                </th>
+                                <th {...stylex.attrs(v.cell)} scope="col">
+                                  {copy.cumulative}
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {series.points.map((point) => (
+                                <tr>
+                                  <td {...stylex.attrs(v.cell)}>
+                                    <time datetime={point.date}>
+                                      {point.date}
+                                    </time>
+                                  </td>
+                                  <td {...stylex.attrs(v.cell)}>
+                                    {point.total}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </details>
+                    </>
+                  ) : (
+                    <p {...stylex.attrs(s.empty)}>{copy.empty}</p>
+                  )}
+                </section>
+              );
+            })}
+          </>
+        ) : (
+          <p {...stylex.attrs(s.empty)}>{copy.unavailable}</p>
+        )
+      }
+    </div>
+  </section>
+  <Readership locale={locale} />
+  <section
+    {...stylex.attrs(s.editorial, v.section)}
+    aria-labelledby="stats-data-notes"
+  >
+    <header>
+      <p {...stylex.attrs(s.eyebrow)}>DATA NOTES</p>
+      <h2 id="stats-data-notes" {...stylex.attrs(s.sectionTitle)}>
+        {copy.notes}
+      </h2>
+    </header>
+    <div {...stylex.attrs(v.notes)}>
+      <p>{copy.source}</p><p>{copy.scope}</p><p>{copy.dates}</p><p>
+        {copy.privacy}
+      </p>
+      {
+        data.available && (
+          <p {...stylex.attrs(v.updated)}>
+            {copy.updated} ·{' '}
+            <time datetime={data.updatedAt}>
+              {new Date(data.updatedAt)
+                .toISOString()
+                .replace('T', ' ')
+                .replace('.000Z', ' UTC')}
+            </time>
+          </p>
+        )
+      }
+    </div>
+  </section>
+</div>
+<script>
+  import { mountStatistics } from '../lib/stats/switcher';
+  document
+    .querySelectorAll<HTMLElement>('[data-statistics]')
+    .forEach(mountStatistics);
+</script>

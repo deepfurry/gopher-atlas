@@ -4,9 +4,18 @@ import { describe, expect, it } from 'vitest';
 import remarkParse from 'remark-parse';
 import { unified } from 'unified';
 import { isSafeLink, remarkPlugins, validateMarkdown } from './index';
+import mathCases from '../../../tests/fixtures/markdown-math.json';
 
 const fixtures = new URL('../../../tests/fixtures/markdown/', import.meta.url);
 describe('shared Markdown boundary', () => {
+  it.each(mathCases)('math safety: $name', ({ source, valid }) => {
+    expect(validateMarkdown(source).length === 0).toBe(valid);
+    const processor = unified().use(remarkParse).use(remarkPlugins);
+    const run = () =>
+      processor.runSync(processor.parse(source), { value: source });
+    if (valid) expect(run).not.toThrow();
+    else expect(run).toThrow('Invalid Markdown');
+  });
   for (const name of readdirSync(fixtures).filter((name) =>
     name.endsWith('.md'),
   )) {

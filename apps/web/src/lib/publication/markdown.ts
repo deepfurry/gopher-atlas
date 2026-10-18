@@ -9,6 +9,7 @@ import {
   markdownPlugins,
   validateMarkdown,
 } from '@gopheratlas/markdown';
+import { rehypeMath } from '@gopheratlas/markdown/math';
 import { assetPolicy } from './asset-policy';
 import { readingEnhancements } from './reading';
 
@@ -17,7 +18,7 @@ export const markdownOptions = {
   remarkPlugins: remarkPlugins as RemarkPlugins,
   smartypants: false,
   remarkRehype: { allowDangerousHtml: false },
-  rehypePlugins: [readingEnhancements] as RehypePlugins,
+  rehypePlugins: [rehypeMath, readingEnhancements] as RehypePlugins,
   shikiConfig: {
     themes: { light: 'github-light', dark: 'github-dark' },
     transformers: [

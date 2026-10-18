@@ -5,8 +5,8 @@ SELECT * FROM assets WHERE id = ?;
 SELECT * FROM assets WHERE sha256 = ?;
 
 -- name: ListAssets :many
-SELECT * FROM assets WHERE id > sqlc.arg(after_id)
-AND (deleted_at IS NULL OR sqlc.arg(include_deleted)) ORDER BY id LIMIT sqlc.arg(page_size);
+SELECT * FROM assets WHERE (id < sqlc.arg(after_id) OR sqlc.arg(after_id) = 0)
+AND (deleted_at IS NULL OR sqlc.arg(include_deleted)) ORDER BY id DESC LIMIT sqlc.arg(page_size);
 
 -- name: CreateAsset :one
 INSERT INTO assets(sha256,object_key,mime_type,byte_size,width,height,created_by,created_at)

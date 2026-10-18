@@ -15,7 +15,7 @@
       "migrations_dir": "stats/migrations",
     },
   ],
-  "vars": { "STATS_READ_ENABLED": "false", "STATS_SYNC_ENABLED": "false" },
-  // Operator enables a UTC schedule only after migration and runtime Secrets.
-  "triggers": { "crons": [] },
+  "vars": { "STATS_READ_ENABLED": "true", "STATS_SYNC_ENABLED": "true" },
+  // Daily archive at 03:15 UTC.
+  "triggers": { "crons": ["15 3 * * *"] },
 }

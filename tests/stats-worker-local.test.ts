@@ -75,6 +75,11 @@ describe.skipIf(process.env.STATS_LOCAL_INTEGRATION !== '1')(
       base.d1_databases[0].database_name = 'local-only-stats';
       base.d1_databases[0].remote = false;
       base.vars.STATS_READ_ENABLED = 'true';
+      // Never inherit production sync or schedules into the local test runtime.
+      base.vars.STATS_SYNC_ENABLED = 'false';
+      base.triggers.crons = [];
+      expect(base.vars.STATS_SYNC_ENABLED).toBe('false');
+      expect(base.triggers.crons).toEqual([]);
       base.main = resolve('apps/web/stats/worker/index.ts');
       base.assets.directory = resolve('apps/web/dist');
       base.d1_databases[0].migrations_dir = resolve(

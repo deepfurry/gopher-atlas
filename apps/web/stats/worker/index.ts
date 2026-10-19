@@ -95,6 +95,8 @@ export async function runSchedule(
       },
       day,
     );
+    if (rum.ok === false)
+      console.warn({ day, stage: rum.error.stage, code: rum.error.code });
     const states = await archiveDay(
       env.STATS_DB,
       day,

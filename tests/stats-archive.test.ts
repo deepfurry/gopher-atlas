@@ -1,12 +1,21 @@
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { archiveDay, observeContent } from '../apps/web/stats/worker/archive';
 import { fetchStats, runSchedule } from '../apps/web/stats/worker/index';
 import { readership } from '../apps/web/stats/worker/api';
 import { loadManifest, validateManifest } from '../apps/web/stats/manifest';
 import { validateReadership } from '../apps/web/src/lib/stats/readership';
 import type { Database } from '../apps/web/stats/worker/db';
+import type { RumConfig } from '../apps/web/stats/rum/types';
 import { manifest, assets, rum, migrate, now, at } from './helpers/stats';
 
 let db: Database, dispose: () => Promise<void>;
@@ -59,6 +68,7 @@ afterAll(async () => {
   await dispose?.();
   vi.unstubAllEnvs();
 });
+afterEach(() => vi.restoreAllMocks());
 const rows = async (table: string) =>
   (await db.prepare(`SELECT * FROM ${table}`).all()).results;
 const get = (path = '/api/stats?range=7d', method = 'GET') =>
@@ -356,6 +366,7 @@ it('enforces REST method/range boundaries and returns no internal diagnostics or
   expect(await bad.text()).toBe('{"error":"stats_unavailable"}');
 });
 it('uses a stable two-day schedule and only observes content on the execution day, with sync disabled by default', async () => {
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
   const reader = vi.fn(async (_config, day: string) => rum(day));
   const env = { ASSETS: assets(m), STATS_DB: db, STATS_SYNC_ENABLED: 'true' };
   await runSchedule({ ...env, STATS_SYNC_ENABLED: undefined }, now, reader);
@@ -370,7 +381,74 @@ it('uses a stable two-day schedule and only observes content on the execution da
   ]);
   await observeContent(db, m, at);
   expect(await rows('daily_content_counts')).toHaveLength(1);
+  expect(warn).not.toHaveBeenCalled();
 });
+it.each([
+  ['input', 'invalid_config'],
+  ['settings', 'forbidden'],
+  ['site', 'graphql_error'],
+  ['pages', 'invalid_response'],
+  ['referrers', 'network_error'],
+] as const)(
+  'logs only date, stage and fixed code on %s failure',
+  async (stage, code) => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const env = {
+      ASSETS: assets(m),
+      STATS_DB: db,
+      STATS_SYNC_ENABLED: 'true',
+      RUM_ACCOUNT_ID: 'a'.repeat(32),
+      RUM_SITE_TAG: 'b'.repeat(32),
+      RUM_ANALYTICS_TOKEN: 'synthetic-private-token',
+      RUM_GROUP_LIMIT: '12345',
+    };
+    const reader = vi.fn(async (config: RumConfig, day: string) => ({
+      ...(await rum(day)),
+      ok: false as const,
+      error: { stage, code, message: 'synthetic-raw-graphql-error' },
+      // Extra runtime fields must never leak through logging the result or error.
+      config,
+      headers: { Authorization: `Bearer ${config.token}` },
+      response: { errors: [{ message: 'synthetic-raw-graphql-error' }] },
+      site: null,
+      pages: null,
+      referrers: null,
+    }));
+    await expect(runSchedule(env, now, reader)).rejects.toThrow(
+      'stats_sync_unavailable',
+    );
+    expect(warn.mock.calls).toEqual([
+      [{ day: '2026-10-17', stage, code }],
+      [{ day: '2026-10-18', stage, code }],
+    ]);
+    const logged = JSON.stringify(warn.mock.calls);
+    for (const value of [
+      env.STATS_SYNC_ENABLED,
+      env.RUM_ACCOUNT_ID,
+      env.RUM_SITE_TAG,
+      env.RUM_ANALYTICS_TOKEN,
+      env.RUM_GROUP_LIMIT,
+      'Authorization',
+      'Bearer',
+      'synthetic-raw-graphql-error',
+    ])
+      expect(logged).not.toContain(value);
+    expect(await rows('daily_site_traffic')).toEqual([]);
+    expect(
+      (await rows('sync_runs')).map(({ day_utc, result, error_code }) => ({
+        day_utc,
+        result,
+        error_code,
+      })),
+    ).toEqual(
+      ['2026-10-17', '2026-10-18'].map((day_utc) => ({
+        day_utc,
+        result: 'failed',
+        error_code: 'upstream_unavailable',
+      })),
+    );
+  },
+);
 it('exports only validated public routes/counts and verifies the deployed marker', async () => {
   expect(await loadManifest(assets(m))).toEqual(m);
   expect(JSON.stringify(m)).not.toMatch(

@@ -25,9 +25,13 @@ it('binds the real statistics database, keeps Static Assets and enables reads an
     },
   ]);
   expect(config.vars).toEqual({
+    RUM_ACCOUNT_ID: 'f7cbff767a75ea1e28f0d4806258ae7e',
+    RUM_SITE_TAG: '03e6ff13e85744e9b5144069bcef41be',
+    RUM_GROUP_LIMIT: '100',
     STATS_READ_ENABLED: 'true',
     STATS_SYNC_ENABLED: 'true',
   });
+  expect(config.vars).not.toHaveProperty('RUM_ANALYTICS_TOKEN');
   expect(config.triggers.crons).toEqual(['15 3 * * *']);
   expect(config.account_id).toBeUndefined();
 });

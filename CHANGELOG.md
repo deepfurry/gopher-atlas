@@ -1,5 +1,14 @@
 # Changelog
 
+## Statistics chart polish (2026-10-21)
+
+- Replace native SVG hover titles with accessible ARIA names/descriptions while
+  retaining the shared custom Tooltip, keyboard and touch controller.
+- Use the full plot width for one to three archived days, with values, light
+  stems and one date row; keep the selected window and coverage explicit.
+- Align plot geometry and scales; preserve zero readings, missing-day breaks,
+  sampling semantics and the static cumulative chart/data table.
+
 ## Editorial localization (2026-10-21)
 
 - Version Chinese and explicitly enabled English Curated/Topic text together in

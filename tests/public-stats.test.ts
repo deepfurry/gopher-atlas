@@ -99,8 +99,8 @@ it('handles a single content type and one-day plot without inventing an earlier 
   expect(stats.series.curated_article.points).toEqual([]);
   expect(stats.series.topic.points).toEqual([]);
   expect(growthPlot(stats.series.all)).toMatchObject({
-    path: 'M 50 0',
-    end: { x: 50, y: 0 },
+    path: 'M 50 12',
+    end: { x: 50, y: 12 },
   });
   expect(stats.series.all.firstDate).toBe(stats.series.all.lastDate);
   const posts = contentStatistics(checked(select([1])));
@@ -130,7 +130,7 @@ it('sorts first publications by UTC day, retains independent language IDs and ig
     ],
   });
   const plot = growthPlot(stats.series.all)!;
-  expect(plot.path).toMatch(/^M 1 .+ H 99 V 0$/);
+  expect(plot.path).toMatch(/^M 1 .+ H 99 V 12$/);
   const calendar = growthCalendar(stats.series.all);
   expect(calendar.count).toBe(3);
   expect(calendar.point(0)).toMatchObject({

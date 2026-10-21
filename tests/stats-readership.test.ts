@@ -57,11 +57,11 @@ function dom() {
   document.body.innerHTML = `<div data-stat-count="note">5</div><div data-readership data-locale="en">
     <section data-traffic-site hidden><div>${['7d', '30d', '90d'].map((r) => `<button data-traffic-range="${r}">${r}</button>`).join('')}</div>
     <button data-traffic-metric="pageLoads">Page Views</button><button data-traffic-metric="visits">Visits</button>
-    ${['pv', 'visits', 'coverage', 'max', 'start', 'end', 'caption'].map((k) => `<span data-traffic-${k}></span>`).join('')}
-    <p data-traffic-empty hidden></p><div data-traffic-plot-layout><div data-traffic-plot>
-    <svg><title id="traffic-chart-title"></title><g data-traffic-lines></g></svg>
+    ${['pv', 'visits', 'coverage', 'start', 'end'].map((k) => `<span data-traffic-${k}></span>`).join('')}
+    <figcaption id="traffic-chart-caption" data-traffic-caption></figcaption><p data-traffic-empty hidden></p><div data-traffic-plot-layout><div data-traffic-plot>
+    <div data-traffic-axis></div><svg role="img" aria-labelledby="traffic-chart-caption" aria-describedby="traffic-chart-desc"><desc id="traffic-chart-desc">Missing dates remain gaps.</desc><g data-traffic-grid></g><g data-traffic-stems></g><g data-traffic-lines></g></svg>
     <div data-traffic-point-labels></div><span data-chart-guide hidden></span><span data-chart-dot hidden></span><div data-chart-tooltip hidden></div><span data-chart-status></span><span data-chart-instructions id="traffic-keys" hidden></span></div></div>
-    <details><summary>Data</summary><table><tbody data-traffic-table></tbody></table></details></section>
+    <div data-traffic-range-dates></div><details><summary>Data</summary><table><tbody data-traffic-table></tbody></table></details></section>
     <section data-traffic-pages hidden><ol data-traffic-pages-list></ol></section>
     <section data-traffic-referrers hidden><ul data-traffic-referrers-list></ul></section>
     <p data-traffic-quality hidden></p><p data-traffic-notice></p><button data-traffic-retry hidden>Retry</button></div>`;
@@ -105,7 +105,10 @@ it('shows independent valid dimensions, preserves keyboard focus and table state
   button.click();
   expect(document.activeElement).toBe(button);
   expect(details.open).toBe(true);
-  expect(root.querySelector('svg title')!.textContent).toContain('Visits');
+  expect(root.querySelector('svg title, [title]')).toBeNull();
+  expect(root.querySelector('#traffic-chart-caption')!.textContent).toContain(
+    'Visits',
+  );
   expect(fetch).toHaveBeenCalledTimes(1);
   expect(root.querySelectorAll('tbody tr')).toHaveLength(30);
   expect(root.textContent).toContain(
@@ -162,6 +165,20 @@ it.each([0, 1, 2, 3, 4])(
       n === 0 ? 'empty' : n < 4 ? 'discrete' : 'trend',
     );
     expect(root.querySelectorAll('[data-traffic-point]')).toHaveLength(n);
+    expect(root.querySelectorAll('[data-traffic-point-value]')).toHaveLength(
+      n < 4 ? n : 0,
+    );
+    expect(root.querySelectorAll('[data-traffic-stems] line')).toHaveLength(
+      n < 4 ? n : 0,
+    );
+    expect(
+      root.querySelector<HTMLElement>('[data-traffic-range-dates]')!.hidden,
+    ).toBe(n > 0 && n < 4);
+    expect(root.querySelector('svg title, [title]')).toBeNull();
+    if (n > 0 && n < 4)
+      expect(
+        root.querySelector('[data-traffic-point-value]')!.textContent,
+      ).toBe('0');
     expect(root.querySelector('tbody')!.textContent).toContain('—');
     if (!n) {
       expect(plot.hasAttribute('tabindex')).toBe(false);
@@ -253,6 +270,83 @@ it('leaves missing dates as disconnected gaps and retains actual zero points', (
   expect(plot.points).toHaveLength(4);
   expect(plot.paths[0]).toContain(' L');
   expect(plot.paths[1]).not.toContain(' L');
+});
+it.each(['7d', '30d', '90d'] as const)(
+  'spaces discrete days over one plot and preserves the %s window on range/metric switches',
+  async (range) => {
+    const root = dom();
+    const fetcher = vi.fn<typeof fetch>(async (url) => {
+      const requested = new URL(
+        String(url),
+        'http://localhost',
+      ).searchParams.get('range') as StatsRange;
+      const data = fixture(requested);
+      data.daily[0] = {
+        ...data.daily[0],
+        pageLoads: 0,
+        visits: 0,
+        quality: 'observed',
+      };
+      data.coverage.site.days = 2;
+      return Response.json(data);
+    });
+    stop = mountReadership(root, fetcher);
+    await waitFor(() =>
+      expect(root.querySelectorAll('[data-traffic-point]')).toHaveLength(2),
+    );
+    root
+      .querySelector<HTMLButtonElement>(`[data-traffic-range="${range}"]`)!
+      .click();
+    await waitFor(() =>
+      expect(root.querySelectorAll('tbody tr')).toHaveLength(
+        Number(range.slice(0, -1)),
+      ),
+    );
+    for (const metric of ['visits', 'pageLoads']) {
+      root
+        .querySelector<HTMLButtonElement>(`[data-traffic-metric="${metric}"]`)!
+        .click();
+      const points = [
+        ...root.querySelectorAll<HTMLElement>('[data-traffic-point]'),
+      ];
+      expect(points.map((p) => p.style.getPropertyValue('--point-x'))).toEqual([
+        '20%',
+        '80%',
+      ]);
+      expect(
+        root.querySelector('[data-traffic-caption]')!.textContent,
+      ).toContain(`2 / ${range.slice(0, -1)} archived days`);
+      expect(
+        root.querySelectorAll('[data-traffic-grid] line').length,
+      ).toBeGreaterThan(1);
+      expect(root.querySelector('[data-traffic-axis]')!.textContent).toMatch(
+        /0$/,
+      );
+      expect(
+        root.querySelector<HTMLElement>('[data-traffic-range-dates]')!.hidden,
+      ).toBe(true);
+    }
+  },
+);
+it('keeps four isolated observed dates as four isolated segments with calendar-proportional X', () => {
+  const daily = fixture('30d').daily.map((d, i) => ({
+    ...d,
+    pageLoads: [0, 5, 17, 29].includes(i) ? i : null,
+    visits: [0, 5, 17, 29].includes(i) ? i : null,
+    quality: [0, 5, 17, 29].includes(i) ? ('observed' as const) : null,
+  }));
+  const before = JSON.stringify(daily);
+  const plot = trafficPlot(daily, 'pageLoads');
+  expect(plot.mode).toBe('trend');
+  expect(plot.samples).toHaveLength(30);
+  expect(plot.paths).toHaveLength(4);
+  expect(plot.paths.every((path) => !path.includes('L'))).toBe(true);
+  expect(plot.points.map((p) => p.x)).toEqual(
+    [0, 5, 17, 29].map((i) => 1 + (i / 29) * 98),
+  );
+  expect(plot.points[0].y).toBe(92);
+  expect(plot.ticks.at(-1)).toEqual({ value: 0, y: 92 });
+  expect(JSON.stringify(daily)).toBe(before);
 });
 it.each([0, 1, 2, 3, 4, 7])(
   'uses the full selected calendar or compact discrete days for %i real readings',

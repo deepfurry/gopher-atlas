@@ -1,11 +1,12 @@
 import * as stylex from '@stylexjs/stylex';
 export const readershipStyles = stylex.create({
-  plot: {
-    maxWidth: { default: 'none', ':is([data-chart-mode="discrete"])': 420 },
-    height: { default: 240, ':is([data-chart-mode="discrete"])': 140 },
-    '@media (max-width: 767px)': {
-      height: { default: 200, ':is([data-chart-mode="discrete"])': 120 },
-    },
+  chart: {
+    paddingBottom: { default: 0, ':is([data-chart-mode="discrete"])': 28 },
+  },
+  stem: {
+    stroke: 'var(--line)',
+    strokeWidth: 1,
+    strokeDasharray: '3 4',
   },
   sparseLabels: { position: 'absolute', inset: 0, pointerEvents: 'none' },
   sparseLabel: {
@@ -13,13 +14,26 @@ export const readershipStyles = stylex.create({
     top: '100%',
     left: 'var(--point-x)',
     transform: 'translateX(-50%)',
-    paddingTop: 6,
+    paddingTop: 8,
     fontFamily: 'var(--font-mono)',
-    fontSize: 'clamp(8px, 2.9vw, 10px)',
+    fontSize: 10,
     color: 'var(--text-soft)',
     whiteSpace: 'nowrap',
   },
-  rangeDates: { marginTop: 30 },
+  pointValue: {
+    position: 'absolute',
+    left: 'var(--point-x)',
+    top: 'var(--point-y)',
+    transform: 'translate(-50%, calc(-100% - 6px))',
+    maxWidth: '30%',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    fontFamily: 'var(--font-mono)',
+    fontSize: 12,
+    lineHeight: 1.5,
+    color: 'var(--text)',
+    whiteSpace: 'nowrap',
+  },
   point: {
     position: 'absolute',
     left: 'var(--point-x)',

@@ -32,6 +32,10 @@ it('binds the real statistics database, keeps Static Assets and enables reads an
     STATS_SYNC_ENABLED: 'true',
   });
   expect(config.vars).not.toHaveProperty('RUM_ANALYTICS_TOKEN');
+  expect(config.observability).toEqual({
+    enabled: true,
+    logs: { invocation_logs: true },
+  });
   expect(config.triggers.crons).toEqual(['15 3 * * *']);
   expect(config.account_id).toBeUndefined();
 });

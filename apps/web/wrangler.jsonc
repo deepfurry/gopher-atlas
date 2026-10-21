@@ -15,7 +15,13 @@
       "migrations_dir": "stats/migrations",
     },
   ],
-  "vars": { "STATS_READ_ENABLED": "true", "STATS_SYNC_ENABLED": "true" },
+  "vars": {
+    "RUM_ACCOUNT_ID": "f7cbff767a75ea1e28f0d4806258ae7e",
+    "RUM_SITE_TAG": "03e6ff13e85744e9b5144069bcef41be",
+    "RUM_GROUP_LIMIT": "100",
+    "STATS_READ_ENABLED": "true",
+    "STATS_SYNC_ENABLED": "true",
+  },
   // Daily archive at 03:15 UTC.
   "triggers": { "crons": ["15 3 * * *"] },
 }

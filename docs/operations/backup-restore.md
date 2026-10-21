@@ -6,6 +6,11 @@ identity/session/state hashes, private Drafts/Reviews/Audit, assets and publicat
 state. Backups are private. Copying only the main DB of a live WAL database is not
 a consistent backup. Immutable public R2 snapshots cannot replace private backups.
 
+Current dev adds Schema 5 / Snapshot v3; it has not been applied to Production.
+Keep each backup with its matching binary/migrations and recorded schema. Do not
+start a Schema-5 writer on a Schema-4 backup or infer a recovery drill from a
+synthetic migration test. See the [localization upgrade gates](editorial-localization-upgrade.md).
+
 ## On-demand backup
 
 From the existing server checkout, run as the operator:

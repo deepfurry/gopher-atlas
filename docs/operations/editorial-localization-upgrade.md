@@ -2,7 +2,9 @@
 
 Issue #20 / ADR 0021. These are operator instructions, **not a record of a
 Production upgrade**. No Production database has been rehearsed for this change.
-`make prod-update` does not migrate the database.
+`make prod-update` does not migrate the database. The last confirmed Production
+database/writer remains Schema 4 / Snapshot v2; current dev targets Schema 5 / v3.
+Do not apply the historical B2 `db-up` instructions from this newer checkout.
 
 ## Release gate 1: Public reader first
 

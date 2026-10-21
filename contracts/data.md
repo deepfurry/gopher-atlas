@@ -2,8 +2,10 @@
 
 ## Issue #20 editorial localization (ADR 0021)
 
-Current CMS requires SQLite schema 5 and exports closed Snapshot v3. Public accepts
-v1/v2/v3. Schema 4, v2 writer and B2 operational facts below remain historical.
+Current dev CMS requires SQLite schema 5 and exports closed Snapshot v3. Public accepts
+v1/v2/v3. The last confirmed Production database/writer remains Schema 4 / v2;
+Schema 5 / v3 is not a record of a Production upgrade. B2 facts below retain their
+original release context.
 Curated/Topic use one identity/version/review/published pointer with optional
 editorialEn in full Draft/Revision DTOs. English text is stored in SQL TEXT columns,
 not the 32 KiB payload (payload schema stays 1). Enabled English must have nonblank

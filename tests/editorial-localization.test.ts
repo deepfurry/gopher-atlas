@@ -22,7 +22,7 @@ it('preserves original redirects and derives bounded English history for editori
   const c = raw.content.find(
     (c: { type: string }) => c.type === 'curated_article',
   );
-  raw.routes.push({
+  expect(raw.routes).toContainEqual({
     path: '/articles/old-curated/',
     kind: 'redirect',
     contentId: c.id,

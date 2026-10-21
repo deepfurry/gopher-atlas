@@ -1,5 +1,11 @@
 # B2 / B3 分类升级操作说明
 
+本页命令属于 B2 的 Schema 3→4 / Snapshot v2 合同，须使用已审核的匹配版本
+（历史生产提交 `ad73db3`）及其 Migration/工具；不要从当前 dev 执行此处的
+`make db-up` 或导出命令。当前 dev 的 `db-up` 会迁移至 Schema 5，导出工具也
+要求本地化 activation 并写 v3。Schema 4→5 须改用[本地化升级说明](editorial-localization-upgrade.md)，
+另行演练与授权；本页历史生产事实不代表 #20 已上线。
+
 ## 已确认进度（2026-10-17）
 
 B2 开发交付时仅有合成库验证，生产升级尚未执行；前置 B1 Public `9236209`

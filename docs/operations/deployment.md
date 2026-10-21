@@ -42,6 +42,15 @@ fields are recorded in the [Marker acceptance supplement](production-runbook.md#
 This confirms that public build, not disaster recovery; CMS health alone does not
 establish public synchronization.
 
+## Development release boundary (Issue #20)
+
+The last confirmed Production database/writer remains Schema 4 / Snapshot v2.
+Current dev requires Schema 5 plus editorial-localization activation and writes v3;
+its Public reader accepts v1/v2/v3. No Schema-5 Production migration or real-backup
+rehearsal is recorded. Before installing this CMS, follow the separately authorized
+[reader-first upgrade gates](editorial-localization-upgrade.md). A Git release or
+Public deployment does not upgrade the installed CMS/database.
+
 ## Binary and unit
 
 For an already installed Linux/systemd CMS whose database meets the target
@@ -148,18 +157,20 @@ writable report directory. Do not make the DB world-readable or transfer it to
 using them under the service account also requires its access to the checkout and
 build tools. For the reviewed-binary workflow and permission checks, see
 [the taxonomy upgrade runbook](taxonomy-v2-upgrade.md#linux-服务账户与迁移文件权限).
-Schema 3→4 order: stop/verify the sole writer → consistent backup → plan → 00004 →
+Historical B2 (matching Schema-4 release) order: stop/verify the sole writer → consistent backup → plan → 00004 →
 fingerprint recheck and taxonomy apply → integrity/history/export checks → matching
 embedded binary → service readiness → private Admin and Public Marker acceptance.
 `prod-update` does not perform the migration/apply and starts the CMS; do not run
-it before those prerequisites. P0-5 itself needed no migration; B2 adds 00004.
+it before those prerequisites. B2 adds 00004; Issue #20 additionally requires 00005
+and activation. On current dev, `db-up` targets Schema 5, not the historical B2 target.
 
 Logging uses one Zap logger, stdout plus Lumberjack rotation (100 MB, ten backups,
 30 days, compressed by default). Access fields exclude callback query, body,
 headers/cookies and provider errors. Tailscale configuration must not introduce
 OAuth query logging. Monitor is `/ops/monitor`, active Admin only. Shutdown joins
-the worker before SQLite/logger closure. Readiness checks schema 4 and completed
-taxonomy initialization without external network probes. Manage users through
+the worker before SQLite/logger closure. The installed B2 release checks Schema 4 and taxonomy initialization. Current dev
+checks Schema 5 plus taxonomy/editorial-localization initialization, without external
+network probes. Manage users through
 Admin; last-active-Admin protection applies.
 
 ## Publication operations

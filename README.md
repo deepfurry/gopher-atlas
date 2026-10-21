@@ -6,9 +6,14 @@
 当前为 **P0-5.5：Product Realignment & Legacy-Ready Rebuild** 验收版本。
 私有 CMS 提供内容表格、Markdown 编辑/安全预览、串行 autosave、审核工作区、
 Revision History、Tags/Authors/Users/Audit 和 Monitor。Publish 仅表示 **已在 CMS 发布**；
-已实现 Assets/R2、原子 generation/outbox、Snapshot v2、Worker/Hook 和公开构建 marker。
-Public 兼容读取 snapshot v1/v2，通过统一模型构建阅读页面、静态 redirects、RSS/sitemap/SEO 与 Pagefind 搜索；CMS 统一导出 v2。
+已实现 Assets/R2、原子 generation/outbox、Snapshot v3、Worker/Hook 和公开构建 marker。
+当前 dev 的 Public 兼容读取 snapshot v1/v2/v3，通过统一模型构建阅读页面、静态 redirects、RSS/sitemap/SEO 与 Pagefind 搜索；开发版 CMS 统一导出 v3，要求 SQLite Schema 5 及显式本地化初始化。
 分类元数据支持中英文逐字段回退。B1 先部署并验证 v1，B2 再升级写入端，见 [ADR 0018](docs/decisions/0018-public-snapshot-dual-read.md)。
+**生产与开发状态分开记录：** 最近确认的生产数据库仍为 Schema 4、写入 Snapshot v2；
+Issue #20 的 Schema 5 / v3 为 dev 实现，尚未执行生产迁移或真实备份副本演练。
+先上线兼容 v1/v2/v3 的 Public，再按[本地化升级说明](docs/operations/editorial-localization-upgrade.md)
+另行授权升级 CMS。Git 分支更新不代表数据库或已安装 CMS 已升级。
+
 2026-10-17，真实生产备份的 B3 离线迁移演练通过；用户确认 main/CMS 已升级至
 `ad73db37c70946c8f8b5087103b462f53822a6c3`，SQLite Schema 4、`taxonomy_state.ready=1`、
 CMS generation 15，生产数据本地 v2 导出及服务健康检查通过。更新后备份为 `20261017T145739Z.nizHXb`。
@@ -30,18 +35,18 @@ B3 离线演练及公开同步验收均不等于完成生产灾难恢复演练�
 公共站不在请求时依赖 CMS；私有服务器离线不影响读者。源码留在 Git，内容
 通过 CMS 编辑与发布；about/contribute 页面继续随仓库维护。
 
-| 目录                                 | 当前职责                                                                    |
-| ------------------------------------ | --------------------------------------------------------------------------- |
-| `apps/web`                           | snapshot v1/v2 三条产品线、双语分类、Post 兼容详情、搜索、RSS/SEO/redirects |
-| `apps/admin`                         | 按 feature 拆分的 React/Vite 编辑工作台、Base UI、RHF、TanStack Table/Query |
-| `packages/markdown`                  | CommonMark/GFM 安全规则与共享 remark 插件                                   |
-| `packages/api-client`                | OpenAPI 生成类型、同源请求及 CSRF header                                    |
-| `cmd/gopheratlas-cms`                | 配置、共享 logger、SQLite、OAuth 服务的构造与关闭                           |
-| `internal/app`, `internal/http`      | Fiber 中间件顺序、API、错误与 cookie 边界                                   |
-| `internal/auth`, `internal/policy`   | 身份事务、会话和集中权限判断                                                |
-| `internal/content`, `internal/audit` | 内容工作流、路由、taxonomy 和同事务安全 Audit                               |
-| `internal/database`, `db`            | SQLite 连接池、真实 goose migrations 和 sqlc queries                        |
-| `internal/adminui`                   | 编译进 Go 二进制的 Admin 生产静态文件                                       |
+| 目录                                 | 当前职责                                                                       |
+| ------------------------------------ | ------------------------------------------------------------------------------ |
+| `apps/web`                           | snapshot v1/v2/v3 三条产品线、双语分类、Post 兼容详情、搜索、RSS/SEO/redirects |
+| `apps/admin`                         | 按 feature 拆分的 React/Vite 编辑工作台、Base UI、RHF、TanStack Table/Query    |
+| `packages/markdown`                  | CommonMark/GFM 安全规则与共享 remark 插件                                      |
+| `packages/api-client`                | OpenAPI 生成类型、同源请求及 CSRF header                                       |
+| `cmd/gopheratlas-cms`                | 配置、共享 logger、SQLite、OAuth 服务的构造与关闭                              |
+| `internal/app`, `internal/http`      | Fiber 中间件顺序、API、错误与 cookie 边界                                      |
+| `internal/auth`, `internal/policy`   | 身份事务、会话和集中权限判断                                                   |
+| `internal/content`, `internal/audit` | 内容工作流、路由、taxonomy 和同事务安全 Audit                                  |
+| `internal/database`, `db`            | SQLite 连接池、真实 goose migrations 和 sqlc queries                           |
+| `internal/adminui`                   | 编译进 Go 二进制的 Admin 生产静态文件                                          |
 
 ## 分支模型
 
@@ -74,10 +79,12 @@ make db-up
 
 Bash 使用 `mkdir -p data` 和 `export DATABASE_PATH=./data/gopheratlas.db` 后运行相同
 make 命令。迁移脚本不隐式加载 `.env`；CMS 启动和 `/readyz` 也不会执行迁移。
-已有数据库需显式迁移至 `00004_taxonomy_localization.sql`，00001–00003 保持不变；
-readiness 要求 schema version 4、完整分类初始化、cover 列、assets/jobs 和 site_state singleton。
-已有库升级必须先停 writer，显式迁移 00004 后执行 taxonomy plan/apply；见
-[B2/B3 分类升级说明](docs/operations/taxonomy-v2-upgrade.md)。不要直接用 prod-update 代替数据迁移。
+当前 dev 的新空库由 `make db-up` 显式迁移至 Schema 5；旧 Migration 保持不变。
+readiness 要求 Schema 5、分类和本地化初始化、cover 列、assets/jobs 和 site_state singleton。
+已有 Schema 4 库需先保护一致性副本、停止 writer，再执行 00005 和本地化 activation；见
+[本地化升级说明](docs/operations/editorial-localization-upgrade.md)。Schema 3 库还需先按匹配的
+B2 版本完成[分类初始化](docs/operations/taxonomy-v2-upgrade.md)，不可直接跳过。
+不要直接用 prod-update 代替数据迁移；这些命令不授权操作生产。
 
 配置好根 `.env` 后，可在一个终端启动全部开发服务（Windows PowerShell、Linux/macOS 相同）：
 

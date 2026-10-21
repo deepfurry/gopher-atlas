@@ -99,3 +99,38 @@ export function growthPlot(series: GrowthSeries) {
     .join(' ');
   return { ticks, path, end: points.at(-1)! };
 }
+
+/** Daily interaction over the same step curve, including days with no additions. */
+export function growthCalendar(series: GrowthSeries) {
+  const plot = growthPlot(series);
+  const start = Date.parse(series.firstDate!);
+  const count = plot
+    ? (Date.parse(series.lastDate!) - start) / 86400000 + 1
+    : 0;
+  return {
+    count,
+    point(index: number) {
+      const date = new Date(start + index * 86400000)
+        .toISOString()
+        .slice(0, 10);
+      let low = 0,
+        high = series.points.length - 1;
+      while (low < high) {
+        const mid = Math.ceil((low + high) / 2);
+        if (series.points[mid].date <= date) low = mid;
+        else high = mid - 1;
+      }
+      const item = series.points[low];
+      return {
+        date,
+        total: item.total,
+        added:
+          item.date === date
+            ? item.total - (series.points[low - 1]?.total ?? 0)
+            : 0,
+        x: count === 1 ? 50 : 1 + (index / (count - 1)) * 98,
+        y: (1 - item.total / plot!.ticks[0].value) * 100,
+      };
+    },
+  };
+}

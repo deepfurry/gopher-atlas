@@ -1,5 +1,36 @@
 import * as stylex from '@stylexjs/stylex';
 export const readershipStyles = stylex.create({
+  plot: {
+    maxWidth: { default: 'none', ':is([data-chart-mode="discrete"])': 420 },
+    height: { default: 240, ':is([data-chart-mode="discrete"])': 140 },
+    '@media (max-width: 767px)': {
+      height: { default: 200, ':is([data-chart-mode="discrete"])': 120 },
+    },
+  },
+  sparseLabels: { position: 'absolute', inset: 0, pointerEvents: 'none' },
+  sparseLabel: {
+    position: 'absolute',
+    top: '100%',
+    left: 'var(--point-x)',
+    transform: 'translateX(-50%)',
+    paddingTop: 6,
+    fontFamily: 'var(--font-mono)',
+    fontSize: 'clamp(8px, 2.9vw, 10px)',
+    color: 'var(--text-soft)',
+    whiteSpace: 'nowrap',
+  },
+  rangeDates: { marginTop: 30 },
+  point: {
+    position: 'absolute',
+    left: 'var(--point-x)',
+    top: 'var(--point-y)',
+    width: 7,
+    height: 7,
+    borderRadius: '50%',
+    backgroundColor: 'var(--accent)',
+    transform: 'translate(-50%, -50%)',
+    pointerEvents: 'none',
+  },
   control: {
     backgroundColor: {
       default: 'transparent',

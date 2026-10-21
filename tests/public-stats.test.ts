@@ -4,6 +4,7 @@ import { validateSnapshot } from '../scripts/snapshot.mjs';
 import {
   contentStatistics,
   growthPlot,
+  growthCalendar,
 } from '../apps/web/src/lib/stats/content';
 import { createPublication } from '../apps/web/src/lib/publication/indexes';
 import { publicPages } from '../apps/web/src/lib/publication/routes';
@@ -130,6 +131,23 @@ it('sorts first publications by UTC day, retains independent language IDs and ig
   });
   const plot = growthPlot(stats.series.all)!;
   expect(plot.path).toMatch(/^M 1 .+ H 99 V 0$/);
+  const calendar = growthCalendar(stats.series.all);
+  expect(calendar.count).toBe(3);
+  expect(calendar.point(0)).toMatchObject({
+    date: '2026-09-09',
+    total: 2,
+    added: 2,
+  });
+  expect(calendar.point(1)).toMatchObject({
+    date: '2026-09-10',
+    total: 2,
+    added: 0,
+  });
+  expect(calendar.point(2)).toMatchObject({
+    date: '2026-09-11',
+    total: 3,
+    added: 1,
+  });
   s.content.forEach((item) => (item.lastPublishedAt += 86400000));
   expect(contentStatistics(checked(s))).toEqual(stats);
 });

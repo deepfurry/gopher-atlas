@@ -4,6 +4,7 @@ import { layout as s } from '../styles/layout.stylex';
 import { stats as v } from '../styles/stats.stylex';
 import { readershipStyles as r } from '../styles/readership.stylex';
 import type { Locale } from '../lib/i18n';
+import ChartOverlay from './ChartOverlay.astro';
 interface Props {
   locale: Locale;
 }
@@ -19,6 +20,8 @@ const { locale } = Astro.props,
   data-value-class={stylex.attrs(r.value).class}
   data-meter-class={stylex.attrs(r.meter).class}
   data-cell-class={stylex.attrs(r.cell).class}
+  data-point-class={stylex.attrs(r.sparseLabel).class}
+  data-dot-class={stylex.attrs(r.point).class}
 >
   <section
     hidden
@@ -92,13 +95,25 @@ const { locale } = Astro.props,
       <figure {...stylex.attrs(v.figure)}>
         <figcaption data-traffic-caption {...stylex.attrs(v.summary)}>
         </figcaption>
-        <div {...stylex.attrs(v.chart)}>
+        <p data-traffic-empty hidden {...stylex.attrs(v.help)}>
+          {
+            zh
+              ? '此范围暂无已归档读数。'
+              : 'No archived readings in this range.'
+          }
+        </p>
+        <div data-traffic-plot-layout {...stylex.attrs(v.chart)}>
           <div {...stylex.attrs(v.axis)} aria-hidden="true">
             <span data-traffic-max {...stylex.attrs(v.tick('0%'))}></span><span
               {...stylex.attrs(v.tick('100%'))}>0</span
             >
           </div>
-          <div {...stylex.attrs(v.plot)}>
+          <div
+            data-traffic-plot
+            {...stylex.attrs(v.plot, r.plot)}
+            role="group"
+            aria-label={zh ? 'UTC 日度访问趋势' : 'UTC daily readership'}
+          >
             <svg
               data-traffic-chart
               {...stylex.attrs(v.svg)}
@@ -124,8 +139,15 @@ const { locale } = Astro.props,
                 vector-effect="non-scaling-stroke"></line>
               <g data-traffic-lines {...stylex.attrs(v.line)}></g>
             </svg>
+            <div
+              data-traffic-point-labels
+              {...stylex.attrs(r.sparseLabels)}
+              aria-hidden="true"
+            >
+            </div>
+            <ChartOverlay id="traffic" locale={locale} />
           </div>
-          <div {...stylex.attrs(v.dates)}>
+          <div {...stylex.attrs(v.dates, r.rangeDates)}>
             <span data-traffic-start></span><span data-traffic-end></span>
           </div>
         </div>
@@ -134,7 +156,12 @@ const { locale } = Astro.props,
         <summary {...stylex.attrs(v.tableSummary)}
           >{zh ? '查看日度数据' : 'View daily data'}</summary
         >
-        <div {...stylex.attrs(v.tableScroll)}>
+        <div
+          {...stylex.attrs(v.tableScroll)}
+          tabindex="0"
+          role="region"
+          aria-label={zh ? 'UTC 日度访问数据' : 'UTC daily readership data'}
+        >
           <table {...stylex.attrs(v.table)}>
             <thead
               ><tr

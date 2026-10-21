@@ -46,8 +46,9 @@ async function request(
         Accept: 'application/json',
       },
       body: JSON.stringify({ query, variables }),
-      redirect: 'error',
-      credentials: 'omit',
+      // Workers runtime: avoid unsupported RequestInit credentials/redirect modes.
+      // Do not follow redirects with an Authorization-bearing request.
+      redirect: 'manual',
       cache: 'no-store',
       signal,
     });

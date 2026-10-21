@@ -126,14 +126,14 @@ it('reads the fixed Settings + three scoped queries and preserves RUM metrics', 
     expect(url).toBe('https://api.cloudflare.com/client/v4/graphql');
     expect(init).toMatchObject({
       method: 'POST',
-      redirect: 'error',
-      credentials: 'omit',
+      redirect: 'manual',
       cache: 'no-store',
       headers: { Authorization: `Bearer ${config.token}` },
     });
     const body = JSON.parse(init!.body as string);
     expect(body.query).toBe(queries[i]);
     expect(body.variables.accountTag).toBe(config.accountId);
+    expect(init).not.toHaveProperty('credentials');
     expect(init!.body).not.toContain(config.token);
     if (i > 0) {
       expect(body.variables).toMatchObject({

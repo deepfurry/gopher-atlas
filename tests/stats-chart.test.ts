@@ -4,11 +4,24 @@ import {
   mountChart,
   nearestSampleIndex,
   tooltipPosition,
+  chartScale,
   type ChartSeries,
 } from '../apps/web/src/lib/stats/chart';
 
 let frames: Map<number, FrameRequestCallback>, serial: number;
 const stops: (() => void)[] = [];
+it.each([0, 1, 3, 24, 12.3456789])(
+  'pads the shared scale for labels without moving real zero off its baseline (%s)',
+  (total) => {
+    const scale = chartScale(total);
+    expect(scale.maximum).toBeGreaterThanOrEqual(Math.max(1, total));
+    expect(scale.ticks.length).toBeGreaterThanOrEqual(2);
+    expect(scale.ticks[0].y).toBe(12);
+    expect(scale.ticks.at(-1)).toEqual({ value: 0, y: 92 });
+    expect(scale.y(0)).toBe(92);
+    expect(scale.y(total)).toBeGreaterThanOrEqual(12);
+  },
+);
 const model: ChartSeries = {
   count: 3,
   sample(i) {

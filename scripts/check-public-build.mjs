@@ -247,7 +247,14 @@ for (const path of ['/stats/', '/en/stats/']) {
       ),
       expected,
     );
-    assert(panel.querySelector('svg title') && panel.querySelector('svg desc'));
+    const svg = panel.querySelector('svg');
+    assert(!svg.querySelector('title') && !svg.hasAttribute('title'));
+    assert(svg.getAttribute('aria-label')?.includes(String(total)));
+    assert(
+      panel
+        .querySelector('#' + svg.getAttribute('aria-describedby'))
+        ?.textContent.trim(),
+    );
     assert(panel.querySelector('details > summary'));
   }
   assert(
@@ -256,6 +263,10 @@ for (const path of ['/stats/', '/en/stats/']) {
     ),
   );
   assert(!doc.querySelector('main[data-pagefind-body], astro-island'));
+  const traffic = doc.querySelector('[data-traffic-chart]');
+  assert(!traffic.querySelector('title') && !traffic.hasAttribute('title'));
+  for (const attribute of ['aria-labelledby', 'aria-describedby'])
+    assert(doc.getElementById(traffic.getAttribute(attribute)));
   for (const dimension of ['site', 'pages', 'referrers'])
     assert(
       doc.querySelector(`[data-traffic-${dimension}]`).hasAttribute('hidden'),

@@ -86,6 +86,11 @@ export const stats = stylex.create({
     fontSize: 11,
     color: 'var(--text-muted)',
   },
+  axisLabel: {
+    position: 'absolute',
+    right: 0,
+    transform: 'translateY(-50%)',
+  },
   tick: (top: string) => ({
     position: 'absolute',
     right: 0,

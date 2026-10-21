@@ -155,6 +155,14 @@ table and TOC scrollports use thin semantic-color thumbs. Dock offsets include
 mobile safe areas; Toast sits above the dock at 84 px plus the bottom safe area.
 Hover remains 180 ms. No body overflow lock, custom wheel handling or scroll library.
 
+Public Statistics charts share SVG plot width, a padded vertical scale, gridlines,
+selection markers and the `chart.ts` Tooltip/controller. Accessible names use ARIA
+and descriptions use SVG `desc`; chart SVGs have no native hover `title`. One to
+three archived readership days use full-width discrete points with values, stems
+and one date row; the caption retains the full selected UTC window and coverage.
+Four or more days use calendar-proportional positions and retain missing-day gaps.
+Content remains a cumulative step chart with SSR geometry and a native data table.
+
 ## Admin implementation
 
 ADR 0010 defines the current Chinese-only editorial workspace. All interface copy

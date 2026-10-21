@@ -21,6 +21,8 @@ const { locale } = Astro.props,
   data-meter-class={stylex.attrs(r.meter).class}
   data-cell-class={stylex.attrs(r.cell).class}
   data-point-class={stylex.attrs(r.sparseLabel).class}
+  data-value-label-class={stylex.attrs(r.pointValue).class}
+  data-tick-class={stylex.attrs(v.axisLabel).class}
   data-dot-class={stylex.attrs(r.point).class}
 >
   <section
@@ -93,7 +95,11 @@ const { locale } = Astro.props,
         >
       </div>
       <figure {...stylex.attrs(v.figure)}>
-        <figcaption data-traffic-caption {...stylex.attrs(v.summary)}>
+        <figcaption
+          id="traffic-chart-caption"
+          data-traffic-caption
+          {...stylex.attrs(v.summary)}
+        >
         </figcaption>
         <p data-traffic-empty hidden {...stylex.attrs(v.help)}>
           {
@@ -102,15 +108,12 @@ const { locale } = Astro.props,
               : 'No archived readings in this range.'
           }
         </p>
-        <div data-traffic-plot-layout {...stylex.attrs(v.chart)}>
-          <div {...stylex.attrs(v.axis)} aria-hidden="true">
-            <span data-traffic-max {...stylex.attrs(v.tick('0%'))}></span><span
-              {...stylex.attrs(v.tick('100%'))}>0</span
-            >
+        <div data-traffic-plot-layout {...stylex.attrs(v.chart, r.chart)}>
+          <div data-traffic-axis {...stylex.attrs(v.axis)} aria-hidden="true">
           </div>
           <div
             data-traffic-plot
-            {...stylex.attrs(v.plot, r.plot)}
+            {...stylex.attrs(v.plot)}
             role="group"
             aria-label={zh ? 'UTC 日度访问趋势' : 'UTC daily readership'}
           >
@@ -120,23 +123,18 @@ const { locale } = Astro.props,
               viewBox="0 0 100 100"
               preserveAspectRatio="none"
               role="img"
-              aria-labelledby="traffic-chart-title traffic-chart-desc"
+              aria-labelledby="traffic-chart-caption"
+              aria-describedby="traffic-chart-desc"
             >
-              <title id="traffic-chart-title"></title><desc
-                id="traffic-chart-desc"
+              <desc id="traffic-chart-desc"
                 >{
                   zh
                     ? 'UTC 日度读数；缺失日期留空，不补零、不跨缺口连线。数据表提供每一天的值。'
                     : 'UTC daily readings. Missing days remain gaps, without zero fill or connecting lines. The table provides each day’s values.'
                 }</desc
               >
-              <line
-                {...stylex.attrs(v.gridline)}
-                x1="0"
-                x2="100"
-                y1="100"
-                y2="100"
-                vector-effect="non-scaling-stroke"></line>
+              <g data-traffic-grid {...stylex.attrs(v.gridline)}></g>
+              <g data-traffic-stems {...stylex.attrs(r.stem)}></g>
               <g data-traffic-lines {...stylex.attrs(v.line)}></g>
             </svg>
             <div
@@ -147,7 +145,11 @@ const { locale } = Astro.props,
             </div>
             <ChartOverlay id="traffic" locale={locale} />
           </div>
-          <div {...stylex.attrs(v.dates, r.rangeDates)}>
+          <div
+            data-traffic-range-dates
+            {...stylex.attrs(v.dates)}
+            aria-hidden="true"
+          >
             <span data-traffic-start></span><span data-traffic-end></span>
           </div>
         </div>

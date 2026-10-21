@@ -4,7 +4,7 @@ import {
   type Readership,
   type StatsRange,
 } from './readership-contract';
-import { mountChart } from './chart';
+import { chartScale, mountChart } from './chart';
 
 const dayPattern = /^\d{4}-\d{2}-\d{2}$/;
 const count = (n: unknown): n is number =>
@@ -111,7 +111,7 @@ export function trafficPlot(
   daily: Readership['daily'],
   metric: 'pageLoads' | 'visits',
 ) {
-  const maximum = Math.max(1, ...daily.map((d) => d[metric] ?? 0));
+  const scale = chartScale(Math.max(0, ...daily.map((d) => d[metric] ?? 0)));
   const valid = daily.filter((d) => d[metric] !== null);
   const mode =
     valid.length === 0 ? 'empty' : valid.length <= 3 ? 'discrete' : 'trend';
@@ -123,7 +123,7 @@ export function trafficPlot(
           ? 50
           : 20 + (i / (all.length - 1)) * 60
         : 1 + (i / Math.max(1, daily.length - 1)) * 98,
-    y: day[metric] === null ? null : 98 - (day[metric] / maximum) * 96,
+    y: day[metric] === null ? null : scale.y(day[metric]),
   }));
   const points: { x: number; y: number; date: string; value: number }[] = [],
     paths: string[] = [];
@@ -141,7 +141,15 @@ export function trafficPlot(
     if (mode === 'trend') path += `${path ? ' L' : 'M'}${x} ${y}`;
   });
   if (path) paths.push(path);
-  return { maximum, points, paths, samples, mode, observedCount: valid.length };
+  return {
+    maximum: scale.maximum,
+    ticks: scale.ticks,
+    points,
+    paths,
+    samples,
+    mode,
+    observedCount: valid.length,
+  };
 }
 
 export function mountReadership(
@@ -225,17 +233,40 @@ export function mountReadership(
     const plot = trafficPlot(data.daily, metric);
     const plotRoot = el<HTMLElement>('plot');
     plotRoot.dataset.chartMode = plot.mode;
+    el<HTMLElement>('plot-layout').dataset.chartMode = plot.mode;
     el<HTMLElement>('plot-layout').hidden = plot.mode === 'empty';
     el<HTMLElement>('empty').hidden = plot.mode !== 'empty';
-    text('max', number(plot.maximum));
+    el<HTMLElement>('range-dates').hidden = plot.mode === 'discrete';
+    const axis = el('axis'),
+      grid = el('grid'),
+      stems = el('stems');
+    axis.replaceChildren();
+    grid.replaceChildren();
+    stems.replaceChildren();
+    const svgLine = (x1: number, x2: number, y1: number, y2: number) => {
+      const line = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'line',
+      );
+      for (const [key, value] of Object.entries({ x1, x2, y1, y2 }))
+        line.setAttribute(key, String(value));
+      line.setAttribute('vector-effect', 'non-scaling-stroke');
+      return line;
+    };
+    for (const tick of plot.ticks) {
+      const label = document.createElement('span');
+      label.className = root.dataset.tickClass ?? '';
+      label.style.top = `${tick.y}%`;
+      label.textContent = number(tick.value);
+      axis.append(label);
+      grid.append(svgLine(0, 100, tick.y, tick.y));
+    }
     text('start', data.start);
     text('end', data.end);
     text(
       'caption',
       `${metric === 'pageLoads' ? 'Page Views' : 'Visits'} · ${data.start} — ${data.end} · UTC · ${plot.observedCount} / ${data.daily.length} ${zh ? '个已归档日' : 'archived days'}${plot.mode === 'discrete' ? (zh ? ' · 离散日读数' : ' · discrete daily readings') : ''}`,
     );
-    root.querySelector('#traffic-chart-title')!.textContent =
-      el('caption').textContent;
     const group = el<SVGGElement>('lines');
     group.replaceChildren();
     for (const path of plot.paths) {
@@ -262,6 +293,14 @@ export function mountReadership(
       dot.setAttribute('aria-hidden', 'true');
       plotRoot.append(dot);
       if (plot.mode === 'discrete') {
+        stems.append(svgLine(point.x, point.x, point.y, plot.ticks.at(-1)!.y));
+        const value = document.createElement('span');
+        value.dataset.trafficPointValue = '';
+        value.textContent = number(point.value);
+        value.className = root.dataset.valueLabelClass ?? '';
+        value.style.setProperty('--point-x', `${point.x}%`);
+        value.style.setProperty('--point-y', `${point.y}%`);
+        pointLabels.append(value);
         const date = document.createElement('time');
         date.dateTime = point.date;
         date.textContent = point.date;

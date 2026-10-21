@@ -195,16 +195,9 @@ const metrics = [
                               viewBox="0 0 100 100"
                               preserveAspectRatio="none"
                               role="img"
-                              aria-labelledby={`stats-chart-title-${key} stats-chart-description-${key}`}
+                              aria-label={`${copy.labels[key]}: ${series.total} ${unit}, ${series.firstDate}${series.firstDate !== series.lastDate ? ` — ${series.lastDate}` : ''} (UTC)`}
+                              aria-describedby={`stats-chart-description-${key}`}
                             >
-                              <title id={`stats-chart-title-${key}`}>
-                                {copy.labels[key]}: {series.total} {unit},{' '}
-                                {series.firstDate}
-                                {series.firstDate !== series.lastDate
-                                  ? ` — ${series.lastDate}`
-                                  : ''}{' '}
-                                (UTC)
-                              </title>
                               <desc id={`stats-chart-description-${key}`}>
                                 {copy.chart} {copy.method}
                               </desc>

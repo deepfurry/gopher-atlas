@@ -1,4 +1,16 @@
 /** Small SVG interaction layer; geometry/data stay with each chart. */
+// Shared label headroom and zero baseline; only presentation, never data filling.
+export function chartScale(total: number) {
+  const step = Math.max(1, Math.ceil(total / 4));
+  const maximum = Math.max(step, Math.ceil(total / step) * step);
+  const y = (value: number) => 12 + (1 - value / maximum) * 80;
+  const ticks = Array.from({ length: maximum / step + 1 }, (_, i) => {
+    const value = maximum - i * step;
+    return { value, y: y(value) };
+  });
+  return { maximum, ticks, y };
+}
+
 export interface ChartSample {
   date: string;
   x: number;

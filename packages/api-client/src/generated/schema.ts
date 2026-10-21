@@ -1045,8 +1045,25 @@ export interface components {
         };
         /** @description Subtype is determined by immutable Content.type. Unknown fields are rejected for that type. Omitted known subtype fields receive their Go zero/default values, then validated structs are marshaled canonically. Note group/groupSlug and Curated sourceUrl must be complete before submission/publication. payloadSchemaVersion is always 1. */
         TypedPayload: components["schemas"]["PostPayload"] | components["schemas"]["NotePayload"] | components["schemas"]["TopicPayload"] | components["schemas"]["CuratedPayload"];
+        EditorialEnglish: {
+            /** @description Explicit opt-in; complete safe English is required at publication, never inferred. */
+            enabled: boolean;
+            title: string;
+            summary: string;
+            /** @description At most 524288 UTF-8 bytes, same Markdown safety policy as Chinese. */
+            bodyMarkdown: string;
+            seoTitle: string;
+            seoDescription: string;
+            labels: {
+                sourceAuthor: string;
+                sourceName: string;
+                /** @description Optional English labels keyed by existing shared URL; no independent URL editing. */
+                relatedLinks: components["schemas"]["RelatedLink"][];
+            };
+        };
         /** @description Complete replacement snapshot; every property is required. version is the expected current Draft version. Fields, tags and topic entries commit atomically, incrementing version once. A stale version returns 409 content_version_conflict without partial writes. Only Admin may change featured or assign another byline. Topic cannot use tags; other types cannot use topic entries. */
         DraftInput: {
+            editorialEn?: components["schemas"]["EditorialEnglish"];
             /** Format: int64 */
             version: number;
             /** @description May be empty while authoring; required before submission/publication. */
@@ -1072,6 +1089,7 @@ export interface components {
             coverAssetId: number | null;
         };
         Draft: {
+            editorialEn?: components["schemas"]["EditorialEnglish"];
             /** Format: int64 */
             version: number;
             /** @description May be empty while authoring; required before submission/publication. */
@@ -1225,6 +1243,7 @@ export interface components {
         };
         /** @description Immutable persisted fields, typed payload and relation snapshot. Restore copies to Draft and never updates this Revision or the published pointer. */
         Revision: {
+            editorialEn?: components["schemas"]["EditorialEnglish"];
             /** Format: int64 */
             id: number;
             /** Format: int64 */

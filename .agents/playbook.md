@@ -13,15 +13,16 @@
    when behavior changes; use an ADR for decisions expensive to reverse.
    Editorial changes need real SQLite race scenarios, relation rollback,
    immutable snapshot/published isolation and transactional Audit checks.
-   Never edit migrations 00001–00003; B2 adds 00004 and explicit taxonomy
-   plan/apply. Readiness requires schema 4 and completed taxonomy initialization. Publication tests need job-failure rollback, freshness,
+   Never edit migrations 00001–00004. B2 uses 00004 and explicit taxonomy
+   plan/apply; ADR 0021 adds 00005 and explicit offline v3 writer activation.
+   Readiness requires schema 5 and both initialization gates. Publication tests need job-failure rollback, freshness,
    snapshot privacy and worker recovery with fake external dependencies. UI changes need autosave/409/flush/immutable-review
    tests and a preview test proving external images never produce img elements.
    Verify a fresh embedded build in a browser, including first lazy navigation,
    two-tab conflicts, light/dark and 360 px layouts.
 5. Run `make generate`, `make check` and Linux race. Never use real R2/Hook
    credentials or deployment for implementation checks. The gate uses an explicit
-   v1 and v2 fixtures and scans synthetic build secrets (only Web rebuilds for v2).
+   v1/v2/v3 fixtures and scans synthetic build secrets (only Web rebuilds after v1).
    This checks formatting, Go analysis/tests/build, TS checks,
    contracts, generation drift, disposable SQL tooling and static build artifacts.
    The final Go build uses freshly built Admin assets and `adminembed`; Linux CI

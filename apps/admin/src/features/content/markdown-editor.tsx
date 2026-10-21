@@ -1,4 +1,10 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import MDEditor, {
   commands,
   type RefMDEditor,
@@ -69,18 +75,28 @@ export function MarkdownEditor({
   readOnly = false,
   tools,
   saveStatus,
+  active = true,
+  sourceLabel = 'Markdown 源码',
+  focusSession,
 }: {
   value: string;
   onChange: (value: string) => void;
   readOnly?: boolean;
   tools?: (capture: () => MarkdownInsertion) => ReactNode;
   saveStatus?: SaveStatus;
+  active?: boolean;
+  sourceLabel?: string;
+  focusSession?: { active: boolean; onChange: (value: boolean) => void };
 }) {
   const [mode, setMode] = useState('source'),
     stable = useDebounced(value),
     { resolved } = useTheme();
   const editor = useRef<RefMDEditor>(null);
-  const focus = useWritingFocus(editor, readOnly);
+  const focus = useWritingFocus(editor, readOnly, active, focusSession);
+  useEffect(() => {
+    if (active && focusSession?.active)
+      editor.current?.textarea?.focus({ preventScroll: true });
+  }, [active, focusSession?.active]);
   const visited = useRef<HTMLTextAreaElement | null>(null);
   const revision = useRef(0);
   useLayoutEffect(() => {
@@ -88,7 +104,7 @@ export function MarkdownEditor({
     return () => {
       revision.current++;
     };
-  }, [value, mode, readOnly]);
+  }, [value, mode, readOnly, active]);
   const capture = (): MarkdownInsertion => {
     const textarea = editor.current?.textarea;
     const api = editor.current?.commandOrchestrator?.textApi;
@@ -151,7 +167,7 @@ export function MarkdownEditor({
       highlightEnable={false}
       hideToolbar={readOnly}
       textareaProps={{
-        'aria-label': 'Markdown 源码',
+        'aria-label': sourceLabel,
         readOnly,
         spellCheck: false,
         placeholder: '从这里开始写作…',

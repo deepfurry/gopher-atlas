@@ -75,6 +75,7 @@ func TestLocalPipelinePersistsRealDomainAndAssetsWithoutExternalCalls(t *testing
 		in.Slug = slug
 		in.Language = "zh"
 		in.BodyMarkdown = body
+		in.Summary = "Editorial summary"
 		in.Payload = json.RawMessage(payload)
 		in.CoverAssetID = cover
 		in.TopicEntries = targets

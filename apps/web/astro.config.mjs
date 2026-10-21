@@ -4,7 +4,20 @@ import sitemap from '@astrojs/sitemap';
 import stylex from '@stylexjs/unplugin';
 import { markdownOptions } from './src/lib/publication/markdown.ts';
 import developmentPreview from './dev/integration.mjs';
+import { readFileSync } from 'node:fs';
+import { hasEnglish } from './src/lib/publication/editorial.ts';
 import { chromePaths, withoutLocale } from './src/lib/i18n.ts';
+
+const englishPaths = new Set(
+  JSON.parse(
+    readFileSync(
+      new URL('./.generated/published-snapshot.json', import.meta.url),
+      'utf8',
+    ),
+  )
+    .content.filter(hasEnglish)
+    .map((item) => `/en${item.canonicalPath}`),
+);
 
 export default defineConfig({
   site: 'https://gopheratlas.com',
@@ -19,7 +32,8 @@ export default defineConfig({
         return (
           !path.endsWith('/404/') &&
           (!path.startsWith('/en/') ||
-            chromePaths.includes(withoutLocale(path)))
+            chromePaths.includes(withoutLocale(path)) ||
+            englishPaths.has(path))
         );
       },
     }),

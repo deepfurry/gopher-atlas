@@ -58,25 +58,26 @@ type TopicEntry struct {
 	TargetContentID int64 `json:"targetContentId"`
 }
 type PublicContent struct {
-	ID               int64           `json:"id"`
-	Type             string          `json:"type"`
-	RevisionNo       int64           `json:"revisionNo"`
-	CanonicalPath    string          `json:"canonicalPath"`
-	Title            string          `json:"title"`
-	Slug             string          `json:"slug"`
-	Summary          string          `json:"summary"`
-	BodyMarkdown     string          `json:"bodyMarkdown"`
-	AuthorID         int64           `json:"authorId"`
-	Language         string          `json:"language"`
-	Featured         bool            `json:"featured"`
-	SEOTitle         string          `json:"seoTitle"`
-	SEODescription   string          `json:"seoDescription"`
-	CoverAssetID     *int64          `json:"coverAssetId"`
-	FirstPublishedAt int64           `json:"firstPublishedAt"`
-	LastPublishedAt  int64           `json:"lastPublishedAt"`
-	TagIDs           []int64         `json:"tagIds"`
-	TopicEntries     []TopicEntry    `json:"topicEntries"`
-	Payload          json.RawMessage `json:"payload"`
+	EditorialEn      *content.EditorialEnglish `json:"editorialEn"`
+	ID               int64                     `json:"id"`
+	Type             string                    `json:"type"`
+	RevisionNo       int64                     `json:"revisionNo"`
+	CanonicalPath    string                    `json:"canonicalPath"`
+	Title            string                    `json:"title"`
+	Slug             string                    `json:"slug"`
+	Summary          string                    `json:"summary"`
+	BodyMarkdown     string                    `json:"bodyMarkdown"`
+	AuthorID         int64                     `json:"authorId"`
+	Language         string                    `json:"language"`
+	Featured         bool                      `json:"featured"`
+	SEOTitle         string                    `json:"seoTitle"`
+	SEODescription   string                    `json:"seoDescription"`
+	CoverAssetID     *int64                    `json:"coverAssetId"`
+	FirstPublishedAt int64                     `json:"firstPublishedAt"`
+	LastPublishedAt  int64                     `json:"lastPublishedAt"`
+	TagIDs           []int64                   `json:"tagIds"`
+	TopicEntries     []TopicEntry              `json:"topicEntries"`
+	Payload          json.RawMessage           `json:"payload"`
 }
 type Route struct {
 	Path      string `json:"path"`
@@ -143,7 +144,11 @@ func (e *Exporter) Export(ctx context.Context, generation int64) (Exported, erro
 	if err != nil || taxonomy.Ready != 1 {
 		return Exported{}, fault.SnapshotInvalid
 	}
-	result := Snapshot{SchemaVersion: 2, Generation: generation, ExportedAt: time.UnixMilli(state.UpdatedAt).UTC().Format(time.RFC3339Nano), Authors: []Author{}, Assets: []assets.Summary{}, Tags: []Tag{}, Groups: []Group{}, Content: []PublicContent{}, Routes: []Route{}}
+	var editorialReady int
+	if err := conn.QueryRowContext(ctx, "SELECT ready FROM editorial_localization_state WHERE id=1").Scan(&editorialReady); err != nil || editorialReady != 1 {
+		return Exported{}, fault.SnapshotInvalid
+	}
+	result := Snapshot{SchemaVersion: 3, Generation: generation, ExportedAt: time.UnixMilli(state.UpdatedAt).UTC().Format(time.RFC3339Nano), Authors: []Author{}, Assets: []assets.Summary{}, Tags: []Tag{}, Groups: []Group{}, Content: []PublicContent{}, Routes: []Route{}}
 	expected, err := q.CountPublishedContent(ctx)
 	if err != nil {
 		return Exported{}, fault.Unavailable
@@ -202,6 +207,17 @@ func (e *Exporter) Export(ctx context.Context, generation int64) (Exported, erro
 				}
 			}
 			item := PublicContent{ID: r.ContentID, Type: r.Type, RevisionNo: r.RevisionNo, CanonicalPath: r.CanonicalPath, Title: r.Title, Slug: r.Slug, Summary: r.Summary, BodyMarkdown: r.BodyMarkdown, AuthorID: r.BylineUserID, Language: r.Language, Featured: r.Featured == 1, SEOTitle: r.SeoTitle, SEODescription: r.SeoDescription, FirstPublishedAt: r.FirstPublishedAt.Int64, LastPublishedAt: r.LastPublishedAt.Int64, Payload: payload, TopicEntries: []TopicEntry{}}
+			labels := content.EnglishLabels{}
+			if json.Unmarshal([]byte(r.EnglishLabelsJson), &labels) != nil {
+				return Exported{}, fault.SnapshotInvalid
+			}
+			english := &content.EditorialEnglish{Enabled: r.EnglishEnabled == 1, Title: r.TitleEn, Summary: r.SummaryEn, BodyMarkdown: r.BodyMarkdownEn, SEOTitle: r.SeoTitleEn, SEODescription: r.SeoDescriptionEn, Labels: labels}
+			if r.EnglishEnabled == 1 {
+				item.EditorialEn, err = content.PublicEnglish(r.Type, content.Fields{Payload: payload, EditorialEn: english}, e.AssetPolicy)
+				if err != nil {
+					return Exported{}, fault.SnapshotInvalid
+				}
+			}
 			item.TagIDs, err = q.RevisionTagIDs(ctx, r.ID)
 			if err != nil {
 				return Exported{}, fault.SnapshotInvalid
@@ -325,7 +341,7 @@ func validateGraph(s Snapshot, policies ...markdown.Policy) error {
 	if len(policies) > 0 {
 		policy = policies[0]
 	}
-	if s.SchemaVersion != 2 || len(s.Groups) > 10000 || len(s.Content) > 10000 || len(s.Authors) > 10000 || len(s.Assets) > 10000 || len(s.Tags) > 100000 || len(s.Routes) > 100000 {
+	if s.SchemaVersion != 3 || len(s.Groups) > 10000 || len(s.Content) > 10000 || len(s.Authors) > 10000 || len(s.Assets) > 10000 || len(s.Tags) > 100000 || len(s.Routes) > 100000 {
 		return fault.SnapshotInvalid
 	}
 	contents := map[int64]PublicContent{}
@@ -363,6 +379,9 @@ func validateGraph(s Snapshot, policies ...markdown.Policy) error {
 		tagSlugs[t.Slug] = true
 	}
 	for _, c := range s.Content {
+		if _, err := content.PublicEnglish(c.Type, content.Fields{Payload: c.Payload, EditorialEn: c.EditorialEn}, policy); err != nil || (c.EditorialEn != nil && !c.EditorialEn.Enabled) {
+			return fault.SnapshotInvalid
+		}
 		if c.Type == "note" {
 			var note NotePayload
 			var raw map[string]json.RawMessage

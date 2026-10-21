@@ -1,0 +1,426 @@
+{
+  "schemaVersion": 3,
+  "generation": 1,
+  "exportedAt": "2026-09-11T00:00:00Z",
+  "authors": [
+    {
+      "id": 1,
+      "slug": "fixture-author",
+      "displayName": "林知远（示例作者）",
+      "bioMarkdown": "关注 Go 的并发模型与工程实践。这里的文章是用于本地验证的合成示例。",
+      "avatarUrl": "",
+      "websiteUrl": ""
+    },
+    {
+      "id": 2,
+      "slug": "fixture-maintainer",
+      "displayName": "陈予安（示例作者）",
+      "bioMarkdown": "把排查过程整理成可以复用的笔记。",
+      "avatarUrl": "",
+      "websiteUrl": "https://example.com/"
+    }
+  ],
+  "assets": [
+    {
+      "id": 1,
+      "url": "https://assets.gopheratlas.com/media/sha256/aa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png",
+      "mimeType": "image/png",
+      "width": 1200,
+      "height": 640,
+      "byteSize": 68
+    }
+  ],
+  "tags": [
+    {
+      "id": 1,
+      "name": "Go",
+      "slug": "go",
+      "description": "Go 语言的设计、工具与日常实践。",
+      "nameEn": "Go Language",
+      "descriptionEn": ""
+    },
+    {
+      "id": 2,
+      "name": "并发",
+      "slug": "concurrency",
+      "description": "理解 goroutine、channel 与任务的生命周期。",
+      "nameEn": "Concurrency",
+      "descriptionEn": "Goroutines, channels and task lifecycles."
+    },
+    {
+      "id": 3,
+      "slug": "practice",
+      "name": "实践",
+      "description": "工程实践与排查。",
+      "nameEn": "",
+      "descriptionEn": "Practical engineering and debugging."
+    }
+  ],
+  "content": [
+    {
+      "id": 1,
+      "type": "post",
+      "revisionNo": 1,
+      "canonicalPath": "/posts/fixture-post/",
+      "title": "让 goroutine 有始有终",
+      "slug": "fixture-post",
+      "summary": "从一次无法退出的后台任务出发，梳理取消信号、错误传播与资源释放的责任。",
+      "bodyMarkdown": "## 谁负责结束任务\n\n启动一个 goroutine 很容易；让它在正确的时刻结束，需要明确的约定。\n\n> 创建任务的代码，也需要安排它的退出路径。\n\n## 传递取消信号\n\n```go\nfunc wait(ctx context.Context) error {\n    <-ctx.Done()\n    return ctx.Err()\n}\n```\n\n调用者持有取消函数，工作任务监听 `ctx.Done()`。这只是边界的开始，还要处理返回的错误。\n\n### 检查退出路径\n\n- [x] 明确任务的拥有者\n- [ ] 为取消后的清理编写测试\n\n| 场景 | 退出条件 |\n| --- | --- |\n| 请求结束 | context 被取消 |\n| 服务停止 | 等待工作任务返回 |\n\n## 继续阅读\n\n这是合成的本地构建示例。阅读 [Go 文档](https://go.dev/doc/) 或继续查看[工程笔记](/notes/go/fixture-note/)。",
+      "authorId": 1,
+      "language": "zh-CN",
+      "featured": true,
+      "seoTitle": "",
+      "seoDescription": "",
+      "coverAssetId": 1,
+      "firstPublishedAt": 1789084800000,
+      "lastPublishedAt": 1789084800000,
+      "tagIds": [1, 2],
+      "topicEntries": [],
+      "payload": {},
+      "editorialEn": null
+    },
+    {
+      "id": 2,
+      "type": "note",
+      "revisionNo": 1,
+      "canonicalPath": "/notes/go/fixture-note/",
+      "title": "记录一次 channel 阻塞排查",
+      "slug": "fixture-note",
+      "summary": "用最小复现缩小问题：区分发送端等待、接收端退出和关闭时机。",
+      "bodyMarkdown": "## 先记录现象\n\n任务退出后，发送端仍在等待。\n\n## 保留一个最小复现\n\n```sh\ngo test -run TestCancellation -count=1\n```\n\n不要只观察成功路径，也检查取消和提前返回。",
+      "authorId": 2,
+      "language": "zh-CN",
+      "featured": false,
+      "seoTitle": "",
+      "seoDescription": "",
+      "coverAssetId": null,
+      "firstPublishedAt": 1789084800000,
+      "lastPublishedAt": 1789084800000,
+      "tagIds": [1],
+      "topicEntries": [],
+      "payload": {
+        "groupSlug": "go",
+        "order": 1
+      },
+      "editorialEn": null
+    },
+    {
+      "id": 3,
+      "type": "curated_article",
+      "revisionNo": 1,
+      "canonicalPath": "/articles/fixture-curated/",
+      "title": "读懂 Go 的内存模型",
+      "slug": "fixture-curated",
+      "summary": "为什么“看起来先执行”不等于“保证能看到”？带着 happens-before 的问题阅读官方说明。",
+      "bodyMarkdown": "这份资料解释了并发程序中的可见性与执行顺序，适合用来理解 Go 的同步边界。",
+      "authorId": 1,
+      "language": "zh-CN",
+      "featured": false,
+      "seoTitle": "Go 内存模型阅读指引",
+      "seoDescription": "以 happens-before 为线索阅读 Go 内存模型的合成本地示例。",
+      "coverAssetId": null,
+      "firstPublishedAt": 1789084800000,
+      "lastPublishedAt": 1789084800000,
+      "tagIds": [1, 2, 3],
+      "topicEntries": [],
+      "payload": {
+        "sourceUrl": "https://go.dev/ref/mem",
+        "originalUrl": "https://go.dev/ref/mem",
+        "sourceAuthor": "The Go Authors",
+        "sourceName": "Go documentation",
+        "sourcePublishedAt": "2022-06-06",
+        "sourceLanguage": "en",
+        "difficulty": "intermediate",
+        "rating": "A+",
+        "mustRead": true,
+        "relatedLinks": [
+          {
+            "label": "Go 文档",
+            "url": "https://go.dev/doc/"
+          }
+        ]
+      },
+      "editorialEn": {
+        "enabled": true,
+        "title": "English editorial",
+        "summary": "An English editorial summary.",
+        "bodyMarkdown": "## Editorial notes\n\nEnglish rationale.",
+        "seoTitle": "",
+        "seoDescription": "",
+        "labels": {
+          "sourceAuthor": "",
+          "sourceName": "",
+          "relatedLinks": []
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "topic",
+      "revisionNo": 1,
+      "canonicalPath": "/topics/fixture-topic/",
+      "title": "从并发原语到可靠任务",
+      "slug": "fixture-topic",
+      "summary": "把文章与实践笔记连起来：理解同步，管理生命周期，再检验退出行为。",
+      "bodyMarkdown": "## 如何使用这条阅读路径\n\n先阅读任务生命周期，再用一份笔记验证理解。每一篇都可以独立阅读，也可以按顺序实践。",
+      "authorId": 1,
+      "language": "zh-CN",
+      "featured": false,
+      "seoTitle": "",
+      "seoDescription": "",
+      "coverAssetId": null,
+      "firstPublishedAt": 1789084800000,
+      "lastPublishedAt": 1789084800000,
+      "tagIds": [],
+      "topicEntries": [
+        {
+          "position": 1,
+          "targetContentId": 3
+        },
+        {
+          "position": 2,
+          "targetContentId": 9
+        }
+      ],
+      "payload": {
+        "order": 1,
+        "recommendedCount": 1
+      },
+      "editorialEn": {
+        "enabled": true,
+        "title": "English reading path",
+        "summary": "A shared reading path with translated and original entries.",
+        "bodyMarkdown": "## Editorial notes\n\nEnglish rationale.",
+        "seoTitle": "",
+        "seoDescription": "",
+        "labels": {
+          "sourceAuthor": "",
+          "sourceName": "",
+          "relatedLinks": []
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "note",
+      "revisionNo": 1,
+      "canonicalPath": "/notes/go/cancellation-test/",
+      "title": "先写出取消的最小测试",
+      "slug": "cancellation-test",
+      "summary": "用最小复现缩小问题：区分发送端等待、接收端退出和关闭时机。",
+      "bodyMarkdown": "## 取消路径\n\n先定义结束条件，再检查 goroutine 是否全部返回。",
+      "authorId": 2,
+      "language": "zh-CN",
+      "featured": false,
+      "seoTitle": "",
+      "seoDescription": "",
+      "coverAssetId": null,
+      "firstPublishedAt": 1789084800000,
+      "lastPublishedAt": 1789171200000,
+      "tagIds": [1],
+      "topicEntries": [],
+      "payload": {
+        "groupSlug": "go",
+        "order": 0
+      },
+      "editorialEn": null
+    },
+    {
+      "id": 6,
+      "type": "post",
+      "revisionNo": 1,
+      "canonicalPath": "/posts/service-checklist/",
+      "title": "A small checklist for Go services",
+      "slug": "service-checklist",
+      "summary": "A synthetic English article for local search and ordering checks.",
+      "bodyMarkdown": "## Cancellation and ownership\n\nKeep ownership explicit. Test shutdown, cancellation and error propagation.\n\n## Observable boundaries\n\nA small service should be understandable from its inputs and outputs.",
+      "authorId": 2,
+      "language": "en",
+      "featured": false,
+      "seoTitle": "",
+      "seoDescription": "",
+      "coverAssetId": null,
+      "firstPublishedAt": 1789084800000,
+      "lastPublishedAt": 1789257600000,
+      "tagIds": [1, 2],
+      "topicEntries": [],
+      "payload": {},
+      "editorialEn": null
+    },
+    {
+      "id": 7,
+      "type": "note",
+      "revisionNo": 1,
+      "canonicalPath": "/notes/engineering-practice/synthetic-note/",
+      "title": "B1 合成随笔",
+      "slug": "synthetic-note",
+      "summary": "用最小复现缩小问题：区分发送端等待、接收端退出和关闭时机。",
+      "bodyMarkdown": "## B1 合成正文\n\n分类翻译不改变正文语言。",
+      "authorId": 2,
+      "language": "zh-CN",
+      "featured": false,
+      "seoTitle": "",
+      "seoDescription": "",
+      "coverAssetId": null,
+      "firstPublishedAt": 1789084800000,
+      "lastPublishedAt": 1789084800000,
+      "tagIds": [3],
+      "topicEntries": [],
+      "payload": {
+        "groupSlug": "engineering-practice",
+        "order": 0
+      },
+      "editorialEn": null
+    },
+    {
+      "id": 8,
+      "type": "topic",
+      "revisionNo": 1,
+      "canonicalPath": "/topics/untranslated-topic/",
+      "title": "从并发原语到可靠任务",
+      "slug": "untranslated-topic",
+      "summary": "把文章与实践笔记连起来：理解同步，管理生命周期，再检验退出行为。",
+      "bodyMarkdown": "## 如何使用这条阅读路径\n\n先阅读任务生命周期，再用一份笔记验证理解。每一篇都可以独立阅读，也可以按顺序实践。",
+      "authorId": 1,
+      "language": "zh-CN",
+      "featured": false,
+      "seoTitle": "",
+      "seoDescription": "",
+      "coverAssetId": null,
+      "firstPublishedAt": 1789084800000,
+      "lastPublishedAt": 1789084800000,
+      "tagIds": [],
+      "topicEntries": [
+        {
+          "position": 1,
+          "targetContentId": 3
+        }
+      ],
+      "payload": {
+        "order": 1,
+        "recommendedCount": 1
+      },
+      "editorialEn": null
+    },
+    {
+      "id": 9,
+      "type": "curated_article",
+      "revisionNo": 1,
+      "canonicalPath": "/articles/untranslated-curated/",
+      "title": "读懂 Go 的内存模型",
+      "slug": "untranslated-curated",
+      "summary": "为什么“看起来先执行”不等于“保证能看到”？带着 happens-before 的问题阅读官方说明。",
+      "bodyMarkdown": "这份资料解释了并发程序中的可见性与执行顺序，适合用来理解 Go 的同步边界。",
+      "authorId": 1,
+      "language": "zh-CN",
+      "featured": false,
+      "seoTitle": "Go 内存模型阅读指引",
+      "seoDescription": "以 happens-before 为线索阅读 Go 内存模型的合成本地示例。",
+      "coverAssetId": null,
+      "firstPublishedAt": 1789084800000,
+      "lastPublishedAt": 1789084800000,
+      "tagIds": [1, 2, 3],
+      "topicEntries": [],
+      "payload": {
+        "sourceUrl": "https://go.dev/ref/mem",
+        "originalUrl": "https://go.dev/ref/mem",
+        "sourceAuthor": "The Go Authors",
+        "sourceName": "Go documentation",
+        "sourcePublishedAt": "2022-06-06",
+        "sourceLanguage": "en",
+        "difficulty": "intermediate",
+        "rating": "A+",
+        "mustRead": true,
+        "relatedLinks": [
+          {
+            "label": "Go 文档",
+            "url": "https://go.dev/doc/"
+          }
+        ]
+      },
+      "editorialEn": null
+    }
+  ],
+  "routes": [
+    {
+      "path": "/posts/fixture-post/",
+      "kind": "canonical",
+      "contentId": 1
+    },
+    {
+      "path": "/notes/go/fixture-note/",
+      "kind": "canonical",
+      "contentId": 2
+    },
+    {
+      "path": "/articles/fixture-curated/",
+      "kind": "canonical",
+      "contentId": 3
+    },
+    {
+      "path": "/topics/fixture-topic/",
+      "kind": "canonical",
+      "contentId": 4
+    },
+    {
+      "path": "/posts/previous-fixture/",
+      "kind": "redirect",
+      "contentId": 1
+    },
+    {
+      "path": "/notes/go/cancellation-test/",
+      "kind": "canonical",
+      "contentId": 5
+    },
+    {
+      "path": "/posts/service-checklist/",
+      "kind": "canonical",
+      "contentId": 6
+    },
+    {
+      "path": "/posts/old-fixture/",
+      "kind": "redirect",
+      "contentId": 1
+    },
+    {
+      "path": "/notes/engineering-practice/synthetic-note/",
+      "kind": "canonical",
+      "contentId": 7
+    },
+    {
+      "path": "/topics/untranslated-topic/",
+      "kind": "canonical",
+      "contentId": 8
+    },
+    {
+      "path": "/articles/untranslated-curated/",
+      "kind": "canonical",
+      "contentId": 9
+    },
+    {
+      "path": "/articles/old-curated/",
+      "kind": "redirect",
+      "contentId": 3
+    }
+  ],
+  "groups": [
+    {
+      "id": 3,
+      "slug": "go",
+      "name": "Go 语言",
+      "description": "Go 学习与实验。",
+      "nameEn": "Go Engineering",
+      "descriptionEn": "",
+      "order": 0
+    },
+    {
+      "id": 4,
+      "slug": "engineering-practice",
+      "name": "工程实践",
+      "description": "记录工程思考。",
+      "nameEn": "",
+      "descriptionEn": "Notes on tools and practical engineering.",
+      "order": 2
+    }
+  ]
+}

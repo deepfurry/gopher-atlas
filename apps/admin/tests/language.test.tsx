@@ -29,6 +29,12 @@ it('keeps literal interface copy Chinese, allowing technical terms', () => {
     );
     const check = (text: string, node: ts.Node) => {
       if (text.trim() === 'https://') return;
+      // Language names identify the edited content, not an English Admin UI.
+      if (
+        relative.endsWith('editorial-workspace.tsx') &&
+        text.trim() === 'English'
+      )
+        return;
       if (
         !/[a-zA-Z]{2,}/.test(text.replace(technical, '')) ||
         /[\u3400-\u9fff]/.test(text)

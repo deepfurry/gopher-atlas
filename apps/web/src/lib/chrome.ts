@@ -76,10 +76,11 @@ export function mountChrome() {
     ?.addEventListener('click', (event) => {
       const link = event.currentTarget as HTMLAnchorElement;
       link.href =
-        alternateChrome(
-          location.pathname,
-          root.dataset.locale === 'en' ? 'zh' : 'en',
-        ) +
+        (link.dataset.languageTarget ||
+          alternateChrome(
+            location.pathname,
+            root.dataset.locale === 'en' ? 'zh' : 'en',
+          )) +
         location.search +
         location.hash;
     });

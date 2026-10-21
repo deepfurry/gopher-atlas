@@ -163,6 +163,9 @@ func (h *Handler) saveDraft(c fiber.Ctx) error {
 	if input.Version <= 0 {
 		return fault.Validation
 	}
+	if err := englishPresence(c.Body()); err != nil {
+		return err
+	}
 	result, err := h.Content.Save(c.Context(), principal(c), id, input)
 	if err != nil {
 		return err

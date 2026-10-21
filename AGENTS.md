@@ -60,7 +60,8 @@ architecture and current scope are summarized in `docs/implementation-status.md`
   injected only by Astro dev, reuses Public rendering and never persists data,
   advances generation or performs storage I/O. Production excludes the capability.
 - Preserve migrations 00001–00003. B2 adds schema 4 via 00004 and explicit
-  plan/apply (ADR 0019); readiness never migrates or imports.
+  plan/apply (ADR 0019); 00005 adds schema 5 and explicit offline editorial
+  activation (ADR 0021). Readiness never migrates or imports.
 - Public routes use snapshot canonicalPath. Derived pages/indexes fail on broken
   references or route/group conflicts. Redirect overflow fails, never truncates.
   See ADR 0009; no Public runtime CMS/R2/API or backend contract expansion.
@@ -73,13 +74,13 @@ architecture and current scope are summarized in `docs/implementation-status.md`
   publication fence BEFORE their transaction; see ADR 0008. One active writer only.
 - Cover belongs to the full Draft snapshot; assets/generation snapshots are
   immutable and only latest.json is mutable. Never physically delete assets.
-- CMS exports Snapshot v2 from selected published Revisions only. Production Web requires
+- CMS exports Snapshot v3 from selected published Revisions only. Production Web requires
   private R2 read-only input; tests explicitly select fixtures. Development uses
   local full snapshots. Default image policy stays exact Production HTTPS; only
   explicit Development policy allows the configured loopback asset base.
 - UI says Published in CMS with independent marker status. B1 Public reads strictly
-  validated snapshot v1/v2 through one normalized model (ADR 0018); CMS writes
-  v2 (ADR 0019). B2 requires independent B1 deployment/verification first. P0-5.5 imports Development legacy content; ADR 0015 cancels Production legacy migration; P0-6 is fresh-start domain cutover only.
+  validated snapshot v1/v2/v3 through one normalized model (ADR 0018); CMS writes
+  v3 (ADR 0021). B2 requires independent B1 deployment/verification first. P0-5.5 imports Development legacy content; ADR 0015 cancels Production legacy migration; P0-6 is fresh-start domain cutover only.
 
 Completion gate: **`make check`**. Report actual commands and results, inspect the
 complete diff, and preserve local files. Commit/push only within user authorization.

@@ -93,3 +93,14 @@ Old Articles query links using category titles, tag names, comma-separated value
 and legacy sort names resolve against the static Topic/Tag projection. No Category
 field or runtime query service is introduced. Recommended sorting keeps featured,
 mustRead, rating and added-date precedence.
+
+## Editorial language views (ADR 0021)
+
+Snapshot v3 extends only its own closed schema; v1/v2 remain readable unchanged.
+True English Curated/Topic details use self-canonical /en paths and reciprocal
+hreflang. Missing/disabled English uses a minimal noindex compatibility notice with
+a Chinese original link and no body, Pagefind/sitemap entry or English alternate.
+Note/Post chrome aliases retain existing behavior. Shared Content IDs are counted
+once. Lists and Topic references mark untranslated originals and link real paths.
+RSS keeps one original-path entry per Content; valid English details join the
+existing single Pagefind index without introducing another search service.

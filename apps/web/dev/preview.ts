@@ -31,6 +31,7 @@ const validate = ajv.compile({
   required: ['item', 'author', 'cover', 'tags', 'targets'],
   $defs: definitions,
   properties: {
+    locale: { enum: ['zh', 'en'] },
     item: { $ref: '#/$defs/content' },
     author: { $ref: '#/$defs/author' },
     cover: { anyOf: [{ $ref: '#/$defs/asset' }, { type: 'null' }] },
@@ -51,6 +52,7 @@ const validate = ajv.compile({
   },
 });
 interface Input {
+  locale?: 'zh' | 'en';
   item: ContentV1;
   author: Author;
   cover: Asset | null;
@@ -102,6 +104,7 @@ export function parsePreview(
   )
     throw new Error('preview_invalid');
   return {
+    locale: input.locale ?? 'zh',
     item: adaptContentV1(item),
     publication: {
       ...base,

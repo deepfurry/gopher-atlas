@@ -171,7 +171,7 @@ func (s *Service) process(ctx context.Context, job dbsqlc.PublicationJob) error 
 		if err := s.fresh(ctx, job.Generation); err != nil {
 			return err
 		}
-		latest := Latest{2, job.Generation, job.SnapshotKey.String, job.SnapshotSha256.String, time.UnixMilli(job.CreatedAt).UTC().Format(time.RFC3339Nano)}
+		latest := Latest{3, job.Generation, job.SnapshotKey.String, job.SnapshotSha256.String, time.UnixMilli(job.CreatedAt).UTC().Format(time.RFC3339Nano)}
 		data, err := json.Marshal(latest)
 		if err != nil {
 			return fault.SnapshotInvalid

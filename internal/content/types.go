@@ -19,18 +19,34 @@ const (
 	RelationLimit      = 100
 )
 
+// EditorialEnglish belongs to the same Draft/Revision, never the typed payload.
+type EnglishLabels struct {
+	SourceAuthor string        `json:"sourceAuthor"`
+	SourceName   string        `json:"sourceName"`
+	RelatedLinks []RelatedLink `json:"relatedLinks"`
+}
+type EditorialEnglish struct {
+	Enabled        bool          `json:"enabled"`
+	Title          string        `json:"title"`
+	Summary        string        `json:"summary"`
+	BodyMarkdown   string        `json:"bodyMarkdown"`
+	SEOTitle       string        `json:"seoTitle"`
+	SEODescription string        `json:"seoDescription"`
+	Labels         EnglishLabels `json:"labels"`
+}
 type Fields struct {
-	CoverAssetID   *int64          `json:"coverAssetId"`
-	Title          string          `json:"title"`
-	Slug           string          `json:"slug"`
-	Summary        string          `json:"summary"`
-	BodyMarkdown   string          `json:"bodyMarkdown"`
-	BylineUserID   int64           `json:"bylineUserId"`
-	Language       string          `json:"language"`
-	Featured       bool            `json:"featured"`
-	SEOTitle       string          `json:"seoTitle"`
-	SEODescription string          `json:"seoDescription"`
-	Payload        json.RawMessage `json:"payload"`
+	EditorialEn    *EditorialEnglish `json:"editorialEn,omitempty"`
+	CoverAssetID   *int64            `json:"coverAssetId"`
+	Title          string            `json:"title"`
+	Slug           string            `json:"slug"`
+	Summary        string            `json:"summary"`
+	BodyMarkdown   string            `json:"bodyMarkdown"`
+	BylineUserID   int64             `json:"bylineUserId"`
+	Language       string            `json:"language"`
+	Featured       bool              `json:"featured"`
+	SEOTitle       string            `json:"seoTitle"`
+	SEODescription string            `json:"seoDescription"`
+	Payload        json.RawMessage   `json:"payload"`
 }
 type TopicEntry struct {
 	TargetContentID int64 `json:"targetContentId"`
@@ -172,13 +188,27 @@ func summary(c dbsqlc.ContentItem, title string) Summary {
 		FirstPublishedAt: pointer(c.FirstPublishedAt), LastPublishedAt: pointer(c.LastPublishedAt), ArchivedAt: pointer(c.ArchivedAt)}
 }
 func draftFields(d dbsqlc.ContentDraft) Fields {
-	return Fields{CoverAssetID: pointer(d.CoverAssetID), Title: d.Title, Slug: d.Slug, Summary: d.Summary, BodyMarkdown: d.BodyMarkdown, BylineUserID: d.BylineUserID,
+	return Fields{EditorialEn: readEnglish(d.EnglishEnabled, d.TitleEn, d.SummaryEn, d.BodyMarkdownEn, d.SeoTitleEn, d.SeoDescriptionEn, d.EnglishLabelsJson), CoverAssetID: pointer(d.CoverAssetID), Title: d.Title, Slug: d.Slug, Summary: d.Summary, BodyMarkdown: d.BodyMarkdown, BylineUserID: d.BylineUserID,
 		Language: d.Language, Featured: d.Featured == 1, SEOTitle: d.SeoTitle, SEODescription: d.SeoDescription, Payload: json.RawMessage(d.PayloadJson)}
 }
 func revisionFields(r dbsqlc.ContentRevision) Fields {
-	return Fields{CoverAssetID: pointer(r.CoverAssetID), Title: r.Title, Slug: r.Slug, Summary: r.Summary, BodyMarkdown: r.BodyMarkdown, BylineUserID: r.BylineUserID,
+	return Fields{EditorialEn: readEnglish(r.EnglishEnabled, r.TitleEn, r.SummaryEn, r.BodyMarkdownEn, r.SeoTitleEn, r.SeoDescriptionEn, r.EnglishLabelsJson), CoverAssetID: pointer(r.CoverAssetID), Title: r.Title, Slug: r.Slug, Summary: r.Summary, BodyMarkdown: r.BodyMarkdown, BylineUserID: r.BylineUserID,
 		Language: r.Language, Featured: r.Featured == 1, SEOTitle: r.SeoTitle, SEODescription: r.SeoDescription, Payload: json.RawMessage(r.PayloadJson)}
 }
 func reviewDTO(r dbsqlc.ContentReview) Review {
 	return Review{ID: r.ID, ContentID: r.ContentID, RevisionID: r.RevisionID, ReviewerUserID: r.ReviewerUserID, Decision: r.Decision, CommentMarkdown: r.CommentMarkdown, CreatedAt: r.CreatedAt}
+}
+
+func readEnglish(enabled int64, title, summary, body, seoTitle, seoDescription, labels string) *EditorialEnglish {
+	if enabled == 0 && title == "" && summary == "" && body == "" && seoTitle == "" && seoDescription == "" && labels == "{}" {
+		return nil
+	}
+	e := &EditorialEnglish{Enabled: enabled == 1, Title: title, Summary: summary, BodyMarkdown: body, SEOTitle: seoTitle, SEODescription: seoDescription}
+	if json.Unmarshal([]byte(labels), &e.Labels) != nil {
+		return nil
+	}
+	if e.Labels.RelatedLinks == nil {
+		e.Labels.RelatedLinks = []RelatedLink{}
+	}
+	return e
 }

@@ -1,4 +1,9 @@
 ---
+import {
+  editorialView,
+  contentPath,
+  hasEnglish,
+} from '../lib/publication/editorial';
 import * as stylex from '@stylexjs/stylex';
 import { products as s } from '../styles/products.stylex';
 import PageHero from './PageHero.astro';
@@ -13,7 +18,9 @@ interface Props {
 }
 const { kind, publication: p, locale = 'zh' } = Astro.props,
   t = words[locale],
-  topics = p.contentByType.get('topic')!;
+  topics = p.contentByType
+    .get('topic')!
+    .map((item) => editorialView(item, locale));
 ---
 
 <PageHero
@@ -31,17 +38,18 @@ const { kind, publication: p, locale = 'zh' } = Astro.props,
             </span>
             <div>
               <h2 {...stylex.attrs(s.topicTitle)}>
-                <a href={localized(topic.canonicalPath, locale)}>
-                  {topic.title}
-                </a>
+                <a href={contentPath(topic, locale)}>{topic.title}</a>
               </h2>
               <p {...stylex.attrs(s.summary)}>{topic.summary}</p>
+              {locale === 'en' && !hasEnglish(topic) && (
+                <p class="small-meta">Original language: {topic.language}</p>
+              )}
               <p {...stylex.attrs(s.meta)}>
                 {topic.topicEntries.length} {t.articleCount}
               </p>
             </div>
             <a
-              href={localized(topic.canonicalPath, locale)}
+              href={contentPath(topic, locale)}
               aria-label={t.enterTopic + ': ' + topic.title}
             >
               <Icon name="arrowUpRight" />

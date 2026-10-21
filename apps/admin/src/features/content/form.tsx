@@ -27,8 +27,37 @@ import { Tabs, TabPanel } from '@/components/ui/tabs';
 import { AuthorSelect, TagSelect, TopicEntries } from './selectors';
 import { routePreview, type Content, type Snapshot } from './api';
 z.config(z.locales.zhCN());
+export const englishSchema = z
+  .object({
+    enabled: z.boolean(),
+    title: z.string().max(200),
+    summary: z.string().max(4000),
+    bodyMarkdown: z
+      .string()
+      .refine(
+        (value) => new TextEncoder().encode(value).length <= 524288,
+        '英文 Markdown 超过 512 KiB 限制。',
+      ),
+    seoTitle: z.string().max(120),
+    seoDescription: z.string().max(320),
+    labels: z
+      .object({
+        sourceAuthor: z.string().max(200),
+        sourceName: z.string().max(200),
+        relatedLinks: z
+          .array(
+            z
+              .object({ url: z.string().max(2048), label: z.string().max(200) })
+              .strict(),
+          )
+          .max(20),
+      })
+      .strict(),
+  })
+  .strict();
 const text = (max: number) => z.string().max(max);
 export const draftSchema = z.object({
+  editorialEn: englishSchema.optional(),
   coverAssetId: z.number().int().positive().nullable(),
   title: text(200),
   slug: text(100).regex(
@@ -165,8 +194,10 @@ function Order({ label = '排序' }: { label?: string }) {
   );
 }
 function RelatedLinks() {
-  const { control, register } = useFormContext<FormValues>();
+  const { control, register, getValues, setValue } =
+    useFormContext<FormValues>();
   const array = useFieldArray({ control, name: 'payload.relatedLinks' });
+  const links = useWatch({ control, name: 'payload.relatedLinks' }) ?? [];
   return (
     <fieldset className="related-links inspector-full">
       <legend>相关链接</legend>
@@ -176,7 +207,17 @@ function RelatedLinks() {
             <h3>链接 {index + 1}</h3>
             <IconButton
               label={`删除链接 ${index + 1}`}
-              onClick={() => array.remove(index)}
+              onClick={() => {
+                const url = getValues(`payload.relatedLinks.${index}.url`);
+                setValue(
+                  'editorialEn.labels.relatedLinks',
+                  (getValues('editorialEn.labels.relatedLinks') ?? []).filter(
+                    (link) => link.url !== url,
+                  ),
+                  { shouldDirty: true },
+                );
+                array.remove(index);
+              }}
             >
               <Trash />
             </IconButton>
@@ -186,10 +227,47 @@ function RelatedLinks() {
             <Input {...register(`payload.relatedLinks.${index}.label`)} />
           </label>
           <label>
+            英文显示名（可选）
+            <Controller
+              control={control}
+              name="editorialEn.labels.relatedLinks"
+              render={({ field: labels }) => (
+                <Input
+                  aria-label={`链接 ${index + 1} 英文名称`}
+                  value={
+                    labels.value?.find((link) => link.url === links[index]?.url)
+                      ?.label ?? ''
+                  }
+                  onChange={(event) => {
+                    const url = getValues(`payload.relatedLinks.${index}.url`);
+                    const next = (labels.value ?? []).filter(
+                      (link) => link.url !== url,
+                    );
+                    if (url && event.target.value)
+                      next.push({ url, label: event.target.value });
+                    labels.onChange(next);
+                  }}
+                />
+              )}
+            />
+          </label>
+          <label>
             链接 {index + 1} URL
             <Input
               type="url"
-              {...register(`payload.relatedLinks.${index}.url`)}
+              {...register(`payload.relatedLinks.${index}.url`, {
+                onChange: (event) => {
+                  const old = links[index]?.url;
+                  setValue(
+                    'editorialEn.labels.relatedLinks',
+                    (getValues('editorialEn.labels.relatedLinks') ?? []).filter(
+                      (link) =>
+                        link.url !== old && link.url !== event.target.value,
+                    ),
+                    { shouldDirty: true },
+                  );
+                },
+              })}
             />
           </label>
         </div>
@@ -216,7 +294,7 @@ export function TypeFields({
   id: number;
   initial: Schema<'TopicTargetSummary'>[];
 }) {
-  const { control, setValue } = useFormContext<FormValues>();
+  const { control, setValue, register } = useFormContext<FormValues>();
   const recommendedCount =
     useWatch({ control, name: 'payload.recommendedCount' }) ?? 0;
   switch (type) {
@@ -249,6 +327,14 @@ export function TypeFields({
           />
           <PayloadField label="外部作者" field="sourceAuthor" />
           <PayloadField label="来源平台" field="sourceName" />
+          <label>
+            外部作者英文显示名（可选）
+            <Input {...register('editorialEn.labels.sourceAuthor')} />
+          </label>
+          <label>
+            来源平台英文显示名（可选）
+            <Input {...register('editorialEn.labels.sourceName')} />
+          </label>
           <label>
             原文发布日期
             <Controller
@@ -392,17 +478,12 @@ export function Metadata({ content }: { content: Content }) {
         value={tab}
         onValueChange={setTab}
         items={[
-          ...(content.type === 'post'
+          ...(content.type !== 'note'
             ? []
             : [
                 {
                   value: 'type',
-                  label:
-                    content.type === 'curated_article'
-                      ? '原文与策展'
-                      : content.type === 'topic'
-                        ? '文章编排'
-                        : '分组',
+                  label: '分组',
                   icon: <Article />,
                 },
               ]),
@@ -509,7 +590,7 @@ export function Metadata({ content }: { content: Content }) {
             </div>
           )}
         </TabPanel>
-        {content.type !== 'post' && (
+        {content.type === 'note' && (
           <TabPanel value="type" className="inspector-panel" keepMounted>
             <TypeFields
               type={content.type}

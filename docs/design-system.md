@@ -294,3 +294,13 @@ metadata on the independent 随笔分组 page; English fields are optional. Tags
 groups use permanent slugs and bounded server search. Published Notes warn about
 comment terms before changing groups (ADR 0019). All existing save/conflict/workflow controls,
 permissions, source-only editor and local Public Draft Preview remain unchanged.
+
+## Issue #20 editorial workspace
+
+Curated/Topic retain A2/C vertical layout: language text workspace first, full-width
+source/curation or reading-path module next, and publishing properties below (960 px
+cap). No 320 px editing rail. Chinese/English reuse mounted MarkdownEditor instances,
+a shared form/queue and coordinated focus session. Language switching preserves each
+textarea selection/Undo, invalidates old image captures and never resets the form.
+English publication is an explicit switch with completeness checked at publication;
+SEO placeholders do not write fallbacks. Topic has no tag association or tag UI.

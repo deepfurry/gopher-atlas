@@ -1,4 +1,9 @@
 ---
+import {
+  editorialView,
+  contentPath,
+  hasEnglish,
+} from '../lib/publication/editorial';
 import { taxonomyText } from '../lib/publication/taxonomy';
 import * as stylex from '@stylexjs/stylex';
 import { layout as s } from '../styles/layout.stylex';
@@ -15,7 +20,8 @@ interface Props {
 }
 const { locale = 'zh', publication: p } = Astro.props,
   t = words[locale];
-const { notes, articles, topics } = homeContent(p);
+const { notes, articles, topics: originalTopics } = homeContent(p);
+const topics = originalTopics.map((item) => editorialView(item, locale));
 ---
 
 <section class:list={['home-hero', stylex.attrs(h.hero).class]}>
@@ -188,14 +194,16 @@ const { notes, articles, topics } = homeContent(p);
           {topics.map((topic) => (
             <article {...stylex.attrs(h.note)}>
               <h3 {...stylex.attrs(h.noteTitle)}>
-                <a
-                  class="inline-link"
-                  href={localized(topic.canonicalPath, locale)}
-                >
+                <a class="inline-link" href={contentPath(topic, locale)}>
                   {topic.title} <Icon name="arrowUpRight" />
                 </a>
               </h3>
-              <p {...stylex.attrs(r.summary)}>{topic.summary}</p>
+              <p {...stylex.attrs(r.summary)} lang={topic.language}>
+                {topic.summary}
+              </p>
+              {locale === 'en' && !hasEnglish(topic) && (
+                <p class="small-meta">Original language: {topic.language}</p>
+              )}
               <p {...stylex.attrs(h.meta)}>
                 {topic.topicEntries.length} {t.articleCount}
               </p>

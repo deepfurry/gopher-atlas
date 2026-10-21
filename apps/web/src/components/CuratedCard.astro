@@ -1,8 +1,13 @@
 ---
+import {
+  editorialView,
+  hasEnglish,
+  contentPath,
+} from '../lib/publication/editorial';
 import { taxonomyText } from '../lib/publication/taxonomy';
 import * as stylex from '@stylexjs/stylex';
 import { products as s } from '../styles/products.stylex';
-import { words, localized, type Locale } from '../lib/i18n';
+import { words, type Locale } from '../lib/i18n';
 import { type Publication } from '../lib/publication/indexes';
 import type { Content } from '../lib/publication/types';
 import Icon from './Icon.astro';
@@ -15,12 +20,13 @@ interface Props {
   heading?: 'h2' | 'h3';
 }
 const {
-  item,
+  item: original,
   publication: p,
   locale = 'zh',
   searchable = false,
   heading: Heading = 'h2',
 } = Astro.props;
+const item = editorialView(original, locale);
 const t = words[locale],
   source = item.payload;
 const topics = (p.contentByType.get('topic') ?? []).filter((topic) =>
@@ -70,6 +76,11 @@ const searchText = [
     >
     {source.mustRead && <span>{t.mustRead}</span>}
     {item.featured && <span>{t.featured}</span>}
+    {
+      locale === 'en' && !hasEnglish(item) && (
+        <span>Editorial language: {item.language}</span>
+      )
+    }
   </div>
   <span
     class:list={['rating', stylex.attrs(s.rating).class]}
@@ -90,7 +101,7 @@ const searchText = [
       >{locale === 'zh' ? '阅读原文' : 'Read source'}
       <Icon name="arrowUpRight" /></a
     >
-    <a class="inline-link" href={localized(item.canonicalPath, locale)}
+    <a class="inline-link" href={contentPath(item, locale)}
       >{locale === 'zh' ? '查看点评' : 'Editorial notes'}
       <Icon name="arrowRight" /></a
     >

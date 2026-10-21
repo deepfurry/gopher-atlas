@@ -19,14 +19,18 @@ function setup(initial: string) {
   let pending: MarkdownInsertion;
   let replace: (text: string) => void;
   let setReadOnly: (value: boolean) => void;
+  let setActive: (value: boolean) => void;
   function Demo() {
     const [value, setValue] = useState(initial);
     const [readOnly, updateReadOnly] = useState(false);
+    const [active, updateActive] = useState(true);
+    setActive = updateActive;
     setReadOnly = updateReadOnly;
     replace = setValue;
     return (
       <MarkdownEditor
         readOnly={readOnly}
+        active={active}
         value={value}
         onChange={setValue}
         tools={(capture) => (
@@ -55,6 +59,10 @@ function setup(initial: string) {
     },
     replace: (text: string) => act(() => replace(text)),
     readOnly: () => act(() => setReadOnly(true)),
+    switchLanguage: () => {
+      act(() => setActive(false));
+      act(() => setActive(true));
+    },
   };
 }
 const source = () =>
@@ -172,7 +180,7 @@ it.each(['source', 'preview'])(
     expect(source().value).toBe(`original\n\n${image}\n`);
   },
 );
-it.each(['body', 'preview', 'split', 'unmount'])(
+it.each(['body', 'preview', 'split', 'unmount', 'language'])(
   'rejects a stale capture after %s changes',
   (change) => {
     const editor = setup('original');
@@ -180,7 +188,11 @@ it.each(['body', 'preview', 'split', 'unmount'])(
     source().setSelectionRange(0, 3);
     editor.capture();
     if (change === 'body') editor.replace('new document');
-    else if (change === 'unmount') editor.unmount();
+    else if (change === 'language') {
+      const textarea = source();
+      editor.switchLanguage();
+      expect(source()).toBe(textarea);
+    } else if (change === 'unmount') editor.unmount();
     else
       fireEvent.click(
         screen.getByRole('tab', { name: change === 'split' ? '分栏' : '预览' }),

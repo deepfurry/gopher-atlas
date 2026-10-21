@@ -34,8 +34,8 @@ for (const key of [
   'GOPHERATLAS_DEV_ASSET_BASE',
 ])
   process.env[key] = canary;
-// Both wire versions share the same artifact/privacy gate; only Web rebuilds for v2.
-for (const version of [1, 2]) {
+// All wire versions share the artifact/privacy gate; subsequent builds need only Web.
+for (const version of [1, 2, 3]) {
   process.env.CONTENT_SNAPSHOT_FILE = resolve(
     `tests/fixtures/content-snapshot-v${version}.json`,
   );

@@ -12,9 +12,13 @@ import type { RefMDEditor } from '@uiw/react-md-editor/nohighlight';
 export function useWritingFocus(
   editor: RefObject<RefMDEditor | null>,
   readOnly: boolean,
+  visible = true,
+  session?: { active: boolean; onChange: (value: boolean) => void },
 ) {
-  const [active, setActive] = useState(false);
-  const focused = active && !readOnly;
+  const [localActive, setLocalActive] = useState(false);
+  const active = session?.active ?? localActive;
+  const setActive = session?.onChange ?? setLocalActive;
+  const focused = active && visible && !readOnly;
   const root = useRef<HTMLElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const restoreInput = useRef<(() => void) | null>(null);
@@ -53,10 +57,18 @@ export function useWritingFocus(
   };
   useEffect(() => {
     if (readOnly) setActive(false);
-  }, [readOnly]);
+  }, [readOnly, setActive]);
   useLayoutEffect(() => {
     const element = root.current;
     if (!focused || !element) return;
+    if (!backgroundScroll.current.length)
+      backgroundScroll.current = [
+        element.closest<HTMLElement>('.workspace'),
+        document.documentElement,
+        document.body,
+      ]
+        .filter((node): node is HTMLElement => !!node)
+        .map((node) => [node, node.scrollTop, node.scrollLeft]);
     const background = new Map<Element, boolean>();
     const branches: Array<[HTMLElement, Element]> = [];
     const isolate = (parent: HTMLElement, child: Element) => {
@@ -117,11 +129,13 @@ export function useWritingFocus(
   }, [focused]);
   useEffect(() => {
     // Run after React's commit selection restoration; never rewrite the value.
-    if (!focused)
+    if (!focused) {
       backgroundScroll.current.forEach(([node, top, left]) => {
         node.scrollTop = top;
         node.scrollLeft = left;
       });
+      backgroundScroll.current = [];
+    }
     restoreInput.current?.();
     restoreInput.current = null;
   }, [focused]);

@@ -25,7 +25,8 @@ export const adaptContentV1 = (item: ContentV1): Content =>
 
 /** Only called after wire validation. No mutation of input or its byte/hash identity. */
 export function normalizeSnapshot(snapshot: Snapshot): NormalizedSnapshot {
-  if (snapshot.schemaVersion === 2) return snapshot;
+  if (snapshot.schemaVersion === 2 || snapshot.schemaVersion === 3)
+    return snapshot;
   if (snapshot.schemaVersion !== 1) throw new Error('public_snapshot_version');
   const groups = new Map<string, NoteGroup>();
   for (const item of snapshot.content) {

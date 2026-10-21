@@ -139,7 +139,7 @@ export function publicPages(p: Publication): PublicPage[] {
 // https://developers.cloudflare.com/workers/static-assets/redirects/
 export const staticRedirectLimit = 2000;
 export function redirects(
-  snapshot: Pick<Snapshot, 'content' | 'routes'>,
+  snapshot: Pick<Snapshot, 'schemaVersion' | 'content' | 'routes'>,
 ): string {
   const content = new Map(snapshot.content.map((item) => [item.id, item]));
   const paths = new Map(snapshot.routes.map((route) => [route.path, route]));
@@ -149,7 +149,19 @@ export function redirects(
   )
     throw new Error('public_redirect_invalid');
   const rows = snapshot.routes.filter((route) => route.kind === 'redirect');
-  if (rows.length > staticRedirectLimit)
+  const bilingualRoute = (contentId: number) => {
+    const item = content.get(contentId);
+    return (
+      snapshot.schemaVersion === 3 &&
+      (item?.type === 'curated_article' || item?.type === 'topic')
+    );
+  };
+  if (
+    rows.reduce(
+      (count, route) => count + (bilingualRoute(route.contentId) ? 2 : 1),
+      0,
+    ) > staticRedirectLimit
+  )
     throw new Error('public_redirect_limit');
   const safePath = /^\/(?:[a-z0-9]+(?:-[a-z0-9]+)*\/)+$/;
   return rows
@@ -167,9 +179,14 @@ export function redirects(
         canonical.contentId !== route.contentId
       )
         throw new Error('public_redirect_invalid');
-      const line = `${route.path} ${target} 301`;
-      if (line.length > 1000) throw new Error('public_redirect_line_limit');
-      return line + '\n';
+      const lines = [`${route.path} ${target} 301`];
+      // Both real English details and noindex compatibility notices follow the
+      // same permanent route inventory; no new CMS route ownership is invented.
+      if (bilingualRoute(route.contentId))
+        lines.push(`/en${route.path} /en${target} 301`);
+      if (lines.some((line) => line.length > 1000))
+        throw new Error('public_redirect_line_limit');
+      return lines.join('\n') + '\n';
     })
     .join('');
 }

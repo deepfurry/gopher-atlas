@@ -6,7 +6,8 @@ info:
     P0-4 private same-origin control plane. Public-state mutations atomically select SQLite
     revisions/routes, append Audit and queue a generation job. A durable worker uploads an immutable public
     snapshot and triggers a build. Published in CMS is distinct from the observed public build marker.
-    Ordinary JSON is capped at 1 MiB; only asset multipart has a 12 MiB parser ceiling, with a 10 MiB image
+    Ordinary JSON is capped at 1 MiB; the exact JSON Draft PUT allows 8 MiB for two 512 KiB bodies and escaping.
+    Asset multipart has a 12 MiB parser ceiling, with a 10 MiB image
     limit.
   license:
     name: MIT
@@ -2433,6 +2434,55 @@ components:
         Omitted known subtype fields receive their Go zero/default values, then validated structs are
         marshaled canonically. Note group/groupSlug and Curated sourceUrl must be complete before
         submission/publication. payloadSchemaVersion is always 1.
+    EditorialEnglish:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          enabled,
+          title,
+          summary,
+          bodyMarkdown,
+          seoTitle,
+          seoDescription,
+          labels,
+        ]
+      properties:
+        enabled:
+          type: boolean
+          description: Explicit opt-in; complete safe English is required at publication, never inferred.
+        title:
+          type: string
+          maxLength: 200
+        summary:
+          type: string
+          maxLength: 4000
+        bodyMarkdown:
+          type: string
+          description: At most 524288 UTF-8 bytes, same Markdown safety policy as Chinese.
+        seoTitle:
+          type: string
+          maxLength: 120
+        seoDescription:
+          type: string
+          maxLength: 320
+        labels:
+          type: object
+          additionalProperties: false
+          required: [sourceAuthor, sourceName, relatedLinks]
+          properties:
+            sourceAuthor:
+              type: string
+              maxLength: 200
+            sourceName:
+              type: string
+              maxLength: 200
+            relatedLinks:
+              type: array
+              maxItems: 20
+              description: Optional English labels keyed by existing shared URL; no independent URL editing.
+              items:
+                $ref: '#/components/schemas/RelatedLink'
     DraftInput:
       type: object
       additionalProperties: false
@@ -2452,6 +2502,8 @@ components:
         - topicEntries
         - coverAssetId
       properties:
+        editorialEn:
+          $ref: '#/components/schemas/EditorialEnglish'
         version:
           type: integer
           format: int64
@@ -2540,6 +2592,8 @@ components:
         - coverAssetId
         - coverAsset
       properties:
+        editorialEn:
+          $ref: '#/components/schemas/EditorialEnglish'
         version:
           type: integer
           format: int64
@@ -2996,6 +3050,8 @@ components:
         - coverAssetId
         - coverAsset
       properties:
+        editorialEn:
+          $ref: '#/components/schemas/EditorialEnglish'
         id:
           type: integer
           format: int64

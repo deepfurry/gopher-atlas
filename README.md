@@ -188,7 +188,7 @@ Phosphor 图标与深浅主题；黑色 AVIF Hero、编辑式内容流、StyleX 
 
 `/api/admin/v1/content` 创建/读取内容；Draft PUT 是包含 `version` 的完整快照，
 同事务更新字段、Tags 和 Topic 顺序。旧版本保存返回 `409 content_version_conflict`。
-正文上限 512 KiB UTF-8，普通 JSON 请求上限 1 MiB，Review comment 上限 16 KiB；
+每种语言的正文上限 512 KiB UTF-8，普通 JSON 请求上限 1 MiB；仅 JSON Draft PUT 为双语全文及转义预留 8 MiB。Review comment 上限 16 KiB；
 服务端验证 Markdown 和强类型 payload，拒绝未知 subtype 字段。
 
 Owner/Admin 可提交、撤回及将历史 Revision 恢复到 Draft。Reviewer 只审核 exact
@@ -394,3 +394,16 @@ Legacy Importer 保留为 Development 工具，不扩展生产入口，也不用
 [Third-party Notices](docs/third-party-notices.md)及[法律页源文](apps/web/src/content/chrome/legal.zh.md)。
 首页背景图来自 [Wallhaven 收录页面](https://wallhaven.cc/w/0jz7gm)；原作者及公开网站使用许可
 尚待核实，不属于 BSD-3-Clause 许可范围，本次保留原素材。
+
+### 精选与话题双语编辑（Issue #20）
+
+精选文章与话题使用同一 Content ID、Draft、审核和已发布 Revision，中文与英文
+文字分别编辑，来源与阅读编排共享。英文公开需显式开启；未开启或未完成的英文
+详情只显示 noindex 提示与中文入口。写作区保持纵向布局，属性位于下方。
+
+当前开发版要求 SQLite Schema 5，CMS 导出 Snapshot v3；Public 保留 v1/v2/v3
+读取。生产升级必须先部署兼容 Public，再单独授权停写备份、00005 和离线激活，
+不能直接执行 prod-update 代替迁移。详见
+[ADR 0021](docs/decisions/0021-editorial-localization.md) 与
+[升级/回滚验收清单](docs/operations/editorial-localization-upgrade.md)。
+此处描述开发能力，不表示已执行生产升级。

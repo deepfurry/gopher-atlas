@@ -13,6 +13,7 @@ export async function getContent(id: number, signal?: AbortSignal) {
 }
 export function snapshot(d: Schema<'DraftInput'>): Snapshot {
   return {
+    ...(d.editorialEn ? { editorialEn: structuredClone(d.editorialEn) } : {}),
     coverAssetId: d.coverAssetId,
     title: d.title,
     slug: d.slug,

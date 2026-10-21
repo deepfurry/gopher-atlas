@@ -23,7 +23,7 @@ func (q *Queries) CountPublishedContent(ctx context.Context) (int64, error) {
 }
 
 const exportPublishedContent = `-- name: ExportPublishedContent :many
-SELECT c.type, c.first_published_at, c.last_published_at, r.id, r.content_id, r.revision_no, r.title, r.slug, r.summary, r.body_markdown, r.byline_user_id, r.language, r.featured, r.seo_title, r.seo_description, r.payload_schema_version, r.payload_json, r.created_by, r.created_at, r.cover_asset_id,
+SELECT c.type, c.first_published_at, c.last_published_at, r.id, r.content_id, r.revision_no, r.title, r.slug, r.summary, r.body_markdown, r.byline_user_id, r.language, r.featured, r.seo_title, r.seo_description, r.payload_schema_version, r.payload_json, r.created_by, r.created_at, r.cover_asset_id, r.english_enabled, r.title_en, r.summary_en, r.body_markdown_en, r.seo_title_en, r.seo_description_en, r.english_labels_json,
 (SELECT path FROM content_routes WHERE content_id=c.id AND kind='canonical') AS canonical_path
 FROM content_items c JOIN content_revisions r ON r.id=c.published_revision_id AND r.content_id=c.id
 WHERE c.published_revision_id IS NOT NULL AND c.archived_at IS NULL AND c.id > ?1
@@ -56,6 +56,13 @@ type ExportPublishedContentRow struct {
 	CreatedBy            int64
 	CreatedAt            int64
 	CoverAssetID         sql.NullInt64
+	EnglishEnabled       int64
+	TitleEn              string
+	SummaryEn            string
+	BodyMarkdownEn       string
+	SeoTitleEn           string
+	SeoDescriptionEn     string
+	EnglishLabelsJson    string
 	CanonicalPath        string
 }
 
@@ -89,6 +96,13 @@ func (q *Queries) ExportPublishedContent(ctx context.Context, arg ExportPublishe
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.CoverAssetID,
+			&i.EnglishEnabled,
+			&i.TitleEn,
+			&i.SummaryEn,
+			&i.BodyMarkdownEn,
+			&i.SeoTitleEn,
+			&i.SeoDescriptionEn,
+			&i.EnglishLabelsJson,
 			&i.CanonicalPath,
 		); err != nil {
 			return nil, err

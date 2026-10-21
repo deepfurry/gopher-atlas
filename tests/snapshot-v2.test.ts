@@ -239,7 +239,7 @@ it('chooses each translated field independently for collection pages and paginat
   );
 });
 
-it.each([0, 3, '2', null, [], {}, '__proto__'])(
+it.each([0, 4, '2', null, [], {}, '__proto__'])(
   'rejects unknown or non-numeric version %j',
   (schemaVersion) => {
     expect(() => validateSnapshot(bytes({ ...v2(), schemaVersion }))).toThrow(

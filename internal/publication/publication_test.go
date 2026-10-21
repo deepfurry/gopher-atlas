@@ -65,6 +65,10 @@ func (r *rig) draft(t *testing.T, kind, slug string) content.Detail {
 	in.Title = "Public " + slug
 	in.Slug = slug
 	in.Language = "en"
+	if kind == "curated_article" || kind == "topic" {
+		in.Language = "zh-CN"
+		in.Summary = "Editorial summary"
+	}
 	in.BodyMarkdown = "## Public body"
 	in.BylineUserID = r.editor.User.ID
 	if kind == "note" {

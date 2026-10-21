@@ -94,6 +94,31 @@ export function RevisionView({
           )}
         </aside>
       </div>
+      {revision.editorialEn && (
+        <section aria-label="英文固定版本">
+          <h3>
+            英文 · {revision.editorialEn.enabled ? '公开已开启' : '未公开'}
+          </h3>
+          <h4>{revision.editorialEn.title || '未填写英文标题'}</h4>
+          <p>{revision.editorialEn.summary}</p>
+          <MarkdownPreview source={revision.editorialEn.bodyMarkdown} />
+          <dl>
+            <dt>英文搜索标题</dt>
+            <dd>{revision.editorialEn.seoTitle || '留空派生'}</dd>
+            <dt>英文搜索描述</dt>
+            <dd>{revision.editorialEn.seoDescription || '留空派生'}</dd>
+            <dt>英文来源名称</dt>
+            <dd>{revision.editorialEn.labels.sourceName || '—'}</dd>
+            <dt>英文作者名称</dt>
+            <dd>{revision.editorialEn.labels.sourceAuthor || '—'}</dd>
+          </dl>
+          {revision.editorialEn.labels.relatedLinks.map((link) => (
+            <p key={link.url}>
+              {link.label}: {link.url}
+            </p>
+          ))}
+        </section>
+      )}
       {revision.review?.commentMarkdown && (
         <section className="review-feedback">
           <h3>审核意见</h3>

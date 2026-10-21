@@ -80,6 +80,10 @@ func input(d Detail, slug string) DraftInput {
 	in.Title = "Title " + slug
 	in.Slug = slug
 	in.Language = "en"
+	if d.Type == "curated_article" || d.Type == "topic" {
+		in.Language = "zh-CN"
+		in.Summary = "Editorial summary"
+	}
 	in.BodyMarkdown = "## Body\nOriginal **text**."
 	return in
 }

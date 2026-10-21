@@ -56,7 +56,21 @@ export interface CuratedPayload {
   mustRead: boolean;
   relatedLinks: { label: string; url: string }[];
 }
+export interface EditorialEnglish {
+  enabled: true;
+  title: string;
+  summary: string;
+  bodyMarkdown: string;
+  seoTitle: string;
+  seoDescription: string;
+  labels: {
+    sourceAuthor: string;
+    sourceName: string;
+    relatedLinks: { label: string; url: string }[];
+  };
+}
 interface ContentFields {
+  editorialEn?: EditorialEnglish | null;
   id: number;
   revisionNo: number;
   canonicalPath: string;
@@ -104,9 +118,12 @@ export interface SnapshotV2 extends SnapshotFields {
   groups: (NoteGroup & { id: number })[];
   content: Content[];
 }
-export type Snapshot = SnapshotV1 | SnapshotV2;
+export interface SnapshotV3 extends Omit<SnapshotV2, 'schemaVersion'> {
+  schemaVersion: 3;
+}
+export type Snapshot = SnapshotV1 | SnapshotV2 | SnapshotV3;
 export interface NormalizedSnapshot extends SnapshotFields {
-  schemaVersion: 1 | 2;
+  schemaVersion: 1 | 2 | 3;
   tags: Tag[];
   groups: NoteGroup[];
   content: Content[];

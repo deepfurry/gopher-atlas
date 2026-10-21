@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"io"
 	"mime"
+	"strconv"
 	"strings"
 )
 
@@ -22,6 +23,14 @@ func RequestBodyLimit(method, target, contentType string) int {
 	media, _, _ := mime.ParseMediaType(contentType)
 	if method == "POST" && path == "/api/admin/v1/assets" && media == "multipart/form-data" {
 		return assets.OuterBodyLimit
+	}
+	// Full bilingual snapshots can contain 2 x 512 KiB plus JSON escaping.
+	if method == "PUT" && media == "application/json" {
+		id, ok := strings.CutPrefix(path, "/api/admin/v1/content/")
+		id, suffix := strings.CutSuffix(id, "/draft")
+		if n, err := strconv.ParseInt(id, 10, 64); ok && suffix && err == nil && n > 0 {
+			return 8 << 20
+		}
 	}
 	return content.JSONBodyLimit
 }

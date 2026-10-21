@@ -35,7 +35,7 @@ func TestV2AuthoritativeTaxonomyAndPublicationPipeline(t *testing.T) {
 	}
 	exported, err := (&Exporter{DB: r.db}).Export(ctx, 3)
 	must(t, err)
-	if exported.Snapshot.SchemaVersion != 2 || len(exported.Snapshot.Groups) != 1 || exported.Snapshot.Groups[0].Name != "公开分组" || exported.Snapshot.Groups[0].NameEn != "" || exported.Snapshot.Groups[0].DescriptionEn != "English description" {
+	if exported.Snapshot.SchemaVersion != 3 || len(exported.Snapshot.Groups) != 1 || exported.Snapshot.Groups[0].Name != "公开分组" || exported.Snapshot.Groups[0].NameEn != "" || exported.Snapshot.Groups[0].DescriptionEn != "English description" {
 		t.Fatal("authoritative group projection")
 	}
 	if exported.Snapshot.Tags[0].NameEn != "Technology" || exported.Snapshot.Tags[0].DescriptionEn != "" {
@@ -53,12 +53,12 @@ func TestV2AuthoritativeTaxonomyAndPublicationPipeline(t *testing.T) {
 	must(t, json.Unmarshal(latestBytes, &latest))
 	bytes, err := r.store.Get(ctx, "content", latest.SnapshotKey, storage.MaxSnapshotBytes)
 	must(t, err)
-	if latest.SchemaVersion != 2 || latest.Generation != 3 || latest.SHA256 != exported.SHA256 || storage.Digest(bytes) != latest.SHA256 {
+	if latest.SchemaVersion != 3 || latest.Generation != 3 || latest.SHA256 != exported.SHA256 || storage.Digest(bytes) != latest.SHA256 {
 		t.Fatal("v2 pointer/hash mismatch")
 	}
 	// Graph failures remain closed, including group identity and two-way references.
 	for _, mutate := range []func(*Snapshot){
-		func(s *Snapshot) { s.SchemaVersion = 3 },
+		func(s *Snapshot) { s.SchemaVersion = 4 },
 		func(s *Snapshot) { s.Groups = nil },
 		func(s *Snapshot) { s.Groups = append(s.Groups, s.Groups[0]) },
 		func(s *Snapshot) { g := s.Groups[0]; g.ID++; g.Slug = "unused"; s.Groups = append(s.Groups, g) },

@@ -31,3 +31,5 @@ silently rewriting history. Routine implementation choices do not need an ADR.
 New records include date, status, context, decision, alternatives, consequences
 and implementation scope. Earlier ADR phase boundaries describe their original
 increments; later ADRs record the additions.
+
+- [0021 — Editorial localization](0021-editorial-localization.md): Schema 5, Snapshot v3 and one bilingual editorial identity.

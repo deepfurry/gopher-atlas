@@ -127,7 +127,7 @@ func (q *Queries) GetContent(ctx context.Context, id int64) (ContentItem, error)
 }
 
 const getDraft = `-- name: GetDraft :one
-SELECT content_id, version, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, updated_by, updated_at, cover_asset_id FROM content_drafts WHERE content_id = ?
+SELECT content_id, version, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, updated_by, updated_at, cover_asset_id, english_enabled, title_en, summary_en, body_markdown_en, seo_title_en, seo_description_en, english_labels_json FROM content_drafts WHERE content_id = ?
 `
 
 func (q *Queries) GetDraft(ctx context.Context, contentID int64) (ContentDraft, error) {
@@ -150,12 +150,19 @@ func (q *Queries) GetDraft(ctx context.Context, contentID int64) (ContentDraft, 
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.CoverAssetID,
+		&i.EnglishEnabled,
+		&i.TitleEn,
+		&i.SummaryEn,
+		&i.BodyMarkdownEn,
+		&i.SeoTitleEn,
+		&i.SeoDescriptionEn,
+		&i.EnglishLabelsJson,
 	)
 	return i, err
 }
 
 const getRevision = `-- name: GetRevision :one
-SELECT id, content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at, cover_asset_id FROM content_revisions WHERE content_id = ? AND revision_no = ?
+SELECT id, content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at, cover_asset_id, english_enabled, title_en, summary_en, body_markdown_en, seo_title_en, seo_description_en, english_labels_json FROM content_revisions WHERE content_id = ? AND revision_no = ?
 `
 
 type GetRevisionParams struct {
@@ -184,12 +191,19 @@ func (q *Queries) GetRevision(ctx context.Context, arg GetRevisionParams) (Conte
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.CoverAssetID,
+		&i.EnglishEnabled,
+		&i.TitleEn,
+		&i.SummaryEn,
+		&i.BodyMarkdownEn,
+		&i.SeoTitleEn,
+		&i.SeoDescriptionEn,
+		&i.EnglishLabelsJson,
 	)
 	return i, err
 }
 
 const getRevisionByID = `-- name: GetRevisionByID :one
-SELECT id, content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at, cover_asset_id FROM content_revisions WHERE content_id = ? AND id = ?
+SELECT id, content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at, cover_asset_id, english_enabled, title_en, summary_en, body_markdown_en, seo_title_en, seo_description_en, english_labels_json FROM content_revisions WHERE content_id = ? AND id = ?
 `
 
 type GetRevisionByIDParams struct {
@@ -218,6 +232,13 @@ func (q *Queries) GetRevisionByID(ctx context.Context, arg GetRevisionByIDParams
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.CoverAssetID,
+		&i.EnglishEnabled,
+		&i.TitleEn,
+		&i.SummaryEn,
+		&i.BodyMarkdownEn,
+		&i.SeoTitleEn,
+		&i.SeoDescriptionEn,
+		&i.EnglishLabelsJson,
 	)
 	return i, err
 }
@@ -432,9 +453,9 @@ func (q *Queries) RestoreArchive(ctx context.Context, arg RestoreArchiveParams) 
 }
 
 const saveDraft = `-- name: SaveDraft :execrows
-UPDATE content_drafts SET cover_asset_id = ?1, title = ?2, slug = ?3, summary = ?4, body_markdown = ?5, byline_user_id = ?6, language = ?7, featured = ?8, seo_title = ?9, seo_description = ?10, payload_schema_version = ?11, payload_json = ?12,
-version = version + 1, updated_by = ?13, updated_at = ?14
-WHERE content_id = ?15 AND version = ?16
+UPDATE content_drafts SET cover_asset_id = ?1, title = ?2, slug = ?3, summary = ?4, body_markdown = ?5, byline_user_id = ?6, language = ?7, featured = ?8, seo_title = ?9, seo_description = ?10, english_enabled = ?11, title_en = ?12, summary_en = ?13, body_markdown_en = ?14, seo_title_en = ?15, seo_description_en = ?16, english_labels_json = ?17, payload_schema_version = ?18, payload_json = ?19,
+version = version + 1, updated_by = ?20, updated_at = ?21
+WHERE content_id = ?22 AND version = ?23
 `
 
 type SaveDraftParams struct {
@@ -448,6 +469,13 @@ type SaveDraftParams struct {
 	Featured             int64
 	SeoTitle             string
 	SeoDescription       string
+	EnglishEnabled       int64
+	TitleEn              string
+	SummaryEn            string
+	BodyMarkdownEn       string
+	SeoTitleEn           string
+	SeoDescriptionEn     string
+	EnglishLabelsJson    string
 	PayloadSchemaVersion int64
 	PayloadJson          string
 	UpdatedBy            int64
@@ -468,6 +496,13 @@ func (q *Queries) SaveDraft(ctx context.Context, arg SaveDraftParams) (int64, er
 		arg.Featured,
 		arg.SeoTitle,
 		arg.SeoDescription,
+		arg.EnglishEnabled,
+		arg.TitleEn,
+		arg.SummaryEn,
+		arg.BodyMarkdownEn,
+		arg.SeoTitleEn,
+		arg.SeoDescriptionEn,
+		arg.EnglishLabelsJson,
 		arg.PayloadSchemaVersion,
 		arg.PayloadJson,
 		arg.UpdatedBy,
@@ -497,10 +532,10 @@ func (q *Queries) SetPendingRevision(ctx context.Context, arg SetPendingRevision
 }
 
 const snapshotDraft = `-- name: SnapshotDraft :one
-INSERT INTO content_revisions(content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, cover_asset_id, created_by, created_at)
+INSERT INTO content_revisions(content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, cover_asset_id, english_enabled, title_en, summary_en, body_markdown_en, seo_title_en, seo_description_en, english_labels_json, created_by, created_at)
 SELECT d.content_id, (SELECT COALESCE(MAX(r.revision_no), 0) + 1 FROM content_revisions r WHERE r.content_id = d.content_id),
-d.title, d.slug, d.summary, d.body_markdown, d.byline_user_id, d.language, d.featured, d.seo_title, d.seo_description, d.payload_schema_version, ?1, d.cover_asset_id, ?2, ?3
-FROM content_drafts d WHERE d.content_id = ?4 RETURNING id, content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at, cover_asset_id
+d.title, d.slug, d.summary, d.body_markdown, d.byline_user_id, d.language, d.featured, d.seo_title, d.seo_description, d.payload_schema_version, ?1, d.cover_asset_id, d.english_enabled, d.title_en, d.summary_en, d.body_markdown_en, d.seo_title_en, d.seo_description_en, d.english_labels_json, ?2, ?3
+FROM content_drafts d WHERE d.content_id = ?4 RETURNING id, content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at, cover_asset_id, english_enabled, title_en, summary_en, body_markdown_en, seo_title_en, seo_description_en, english_labels_json
 `
 
 type SnapshotDraftParams struct {
@@ -536,6 +571,13 @@ func (q *Queries) SnapshotDraft(ctx context.Context, arg SnapshotDraftParams) (C
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.CoverAssetID,
+		&i.EnglishEnabled,
+		&i.TitleEn,
+		&i.SummaryEn,
+		&i.BodyMarkdownEn,
+		&i.SeoTitleEn,
+		&i.SeoDescriptionEn,
+		&i.EnglishLabelsJson,
 	)
 	return i, err
 }

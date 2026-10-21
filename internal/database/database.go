@@ -15,7 +15,7 @@ import (
 )
 
 const PoolSize = 4
-const SchemaVersion = 4
+const SchemaVersion = 5
 
 var ErrUnavailable = errors.New("persistence is unavailable or schema is incompatible")
 
@@ -66,6 +66,10 @@ func Ready(ctx context.Context, pool *sql.DB) error {
 	if err := pool.QueryRowContext(ctx, "SELECT COALESCE(MAX(version_id), 0) FROM goose_db_version WHERE is_applied = 1").Scan(&version); err != nil || version != SchemaVersion {
 		return ErrUnavailable
 	}
+	var editorialReady int
+	if err := pool.QueryRowContext(ctx, "SELECT ready FROM editorial_localization_state WHERE id=1").Scan(&editorialReady); err != nil || editorialReady != 1 {
+		return ErrUnavailable
+	}
 	var taxonomyReady int
 	if err := pool.QueryRowContext(ctx, "SELECT ready FROM taxonomy_state WHERE id=1").Scan(&taxonomyReady); err != nil || taxonomyReady != 1 {
 		return ErrUnavailable
@@ -85,8 +89,8 @@ func Ready(ctx context.Context, pool *sql.DB) error {
 		"SELECT id, user_id, token_hash, csrf_token_hash, created_at, expires_at, last_seen_at, revoked_at FROM sessions LIMIT 0",
 		"SELECT state_hash, created_at, expires_at, consumed_at FROM oauth_states LIMIT 0",
 		"SELECT id, type, owner_user_id, editorial_state, pending_review_revision_id, published_revision_id, created_by, first_published_at, last_published_at, created_at, updated_at, archived_at FROM content_items LIMIT 0",
-		"SELECT content_id, version, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, updated_by, updated_at, cover_asset_id FROM content_drafts LIMIT 0",
-		"SELECT id, content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, payload_schema_version, payload_json, created_by, created_at, cover_asset_id FROM content_revisions LIMIT 0",
+		"SELECT content_id, version, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, english_enabled, title_en, summary_en, body_markdown_en, seo_title_en, seo_description_en, english_labels_json, payload_schema_version, updated_by, updated_at, cover_asset_id FROM content_drafts LIMIT 0",
+		"SELECT id, content_id, revision_no, title, slug, summary, body_markdown, byline_user_id, language, featured, seo_title, seo_description, english_enabled, title_en, summary_en, body_markdown_en, seo_title_en, seo_description_en, english_labels_json, payload_schema_version, created_by, created_at, cover_asset_id FROM content_revisions LIMIT 0",
 		"SELECT id, content_id, revision_id, reviewer_user_id, decision, comment_markdown, created_at FROM content_reviews LIMIT 0",
 		"SELECT id, name, normalized_name, slug, description, created_by, created_at, updated_at FROM tags LIMIT 0",
 		"SELECT content_id, tag_id FROM draft_tags LIMIT 0",

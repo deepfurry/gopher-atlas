@@ -1,5 +1,16 @@
 # Changelog
 
+## Editorial localization (2026-10-21)
+
+- Version Chinese and explicitly enabled English Curated/Topic text together in
+  one Draft/Revision, with independent Markdown columns and shared source/order.
+- Preserve the vertical writing workspace, mounted per-language editors, Focus,
+  image capture and the full-snapshot save queue; widen source/order modules.
+- Add closed Snapshot v3, retain v1/v2 readers and Note routes, and distinguish
+  real English details from noindex unavailable notices in SEO/search/indexes.
+- Add additive Schema 5 and an explicit offline activation with a fresh generation;
+  Production upgrade and protected real-backup rehearsal remain operator gates.
+
 ## Public release preparation (2026-10-19)
 
 - Prepare the existing Worker and real statistics D1 binding with reads, sync and

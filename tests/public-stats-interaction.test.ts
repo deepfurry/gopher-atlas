@@ -2,11 +2,15 @@
 import { afterEach, expect, it } from 'vitest';
 import { mountStatistics } from '../apps/web/src/lib/stats/switcher';
 
-afterEach(() => document.body.replaceChildren());
+let stop: (() => void) | undefined;
+afterEach(() => {
+  stop?.();
+  document.body.replaceChildren();
+});
 function mount() {
   document.body.innerHTML = `<section data-statistics><div data-stats-switch role="tablist" hidden>${['all', 'note', 'curated_article', 'topic'].map((key, i) => `<button role="tab" id="tab-${key}" aria-controls="panel-${key}" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}">${key}</button>`).join('')}</div>${['all', 'note', 'curated_article', 'topic'].map((key, i) => `<section data-stats-panel="${key}" id="panel-${key}" ${i ? 'hidden' : ''}><details><summary>Data</summary><table><tbody><tr><td>2026-09-11</td><td>1</td></tr></tbody></table></details></section>`).join('')}</section>`;
   const root = document.querySelector<HTMLElement>('[data-statistics]')!;
-  mountStatistics(root);
+  stop = mountStatistics(root);
   return {
     root,
     tabs: [...root.querySelectorAll<HTMLButtonElement>('[role=tab]')],
@@ -40,6 +44,39 @@ it('switches synchronously, keeps native table nodes and responds to the final r
   expect(details.open).toBe(true);
   expect(panels[0].querySelector('table')).toBe(table);
   mountStatistics(root);
+  expect(panels[0].querySelector('table')).toBe(table);
+});
+it('enhances the SSR table into daily step selection without replacing table nodes and resets on type changes', () => {
+  const { root, tabs, panels } = mount();
+  stop?.();
+  const chart = document.createElement('div');
+  chart.dataset.growthChart = '';
+  chart.innerHTML =
+    '<span data-chart-guide hidden></span><span data-chart-dot hidden></span><div data-chart-tooltip hidden></div><span data-chart-status></span><span data-chart-instructions id="growth-keys" hidden></span>';
+  panels[0].prepend(chart);
+  const tbody = panels[0].querySelector('tbody')!;
+  tbody.innerHTML =
+    '<tr data-growth-point data-date="2026-09-11" data-total="1"><td>2026-09-11</td><td>1</td></tr><tr data-growth-point data-date="2026-09-13" data-total="3"><td>2026-09-13</td><td>3</td></tr>';
+  const table = panels[0].querySelector('table');
+  stop = mountStatistics(root);
+  chart.focus();
+  const status = chart.querySelector('[data-chart-status]')!;
+  expect(status.textContent).toContain('累计内容: 1');
+  chart.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+  );
+  expect(status.textContent).toContain('2026-09-12');
+  expect(status.textContent).toContain('当日新增: 0');
+  chart.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'End', bubbles: true }),
+  );
+  expect(status.textContent).toContain('累计内容: 3');
+  expect(status.textContent).toContain('当日新增: 2');
+  tabs[1].click();
+  expect(chart.querySelector<HTMLElement>('[data-chart-tooltip]')!.hidden).toBe(
+    true,
+  );
+  tabs[0].click();
   expect(panels[0].querySelector('table')).toBe(table);
 });
 it('uses one Tab stop and supports arrow wrap, Home and End without moving focus on pointer activation', () => {

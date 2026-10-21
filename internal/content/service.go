@@ -119,6 +119,9 @@ func (s *Service) Save(ctx context.Context, actor auth.Principal, id int64, inpu
 		if input.Version != d.Version {
 			return fault.ContentVersion
 		}
+		if input.EditorialEn == nil && draftFields(d).EditorialEn != nil {
+			return fault.Validation
+		}
 		if !policy.CanSetByline(u, input.BylineUserID) || !policy.CanSetFeatured(u, d.Featured == 1, input.Featured) {
 			return fault.Permission
 		}
@@ -202,9 +205,19 @@ func validateRelations(ctx context.Context, q *dbsqlc.Queries, c dbsqlc.ContentI
 	return nil
 }
 func save(ctx context.Context, q *dbsqlc.Queries, u dbsqlc.User, id int64, in DraftInput, now int64) error {
+	e := EditorialEnglish{}
+	labels := "{}"
+	if in.EditorialEn != nil {
+		e = *in.EditorialEn
+		data, err := json.Marshal(e.Labels)
+		if err != nil {
+			return fault.Validation
+		}
+		labels = string(data)
+	}
 	n, err := q.SaveDraft(ctx, dbsqlc.SaveDraftParams{CoverAssetID: nullable(in.CoverAssetID), ContentID: id, ExpectedVersion: in.Version, Title: in.Title, Slug: in.Slug, Summary: in.Summary,
 		BodyMarkdown: in.BodyMarkdown, BylineUserID: in.BylineUserID, Language: in.Language, Featured: flag(in.Featured), SeoTitle: in.SEOTitle,
-		SeoDescription: in.SEODescription, PayloadSchemaVersion: 1, PayloadJson: string(in.Payload), UpdatedBy: u.ID, UpdatedAt: now})
+		SeoDescription: in.SEODescription, PayloadSchemaVersion: 1, PayloadJson: string(in.Payload), EnglishEnabled: flag(e.Enabled), TitleEn: e.Title, SummaryEn: e.Summary, BodyMarkdownEn: e.BodyMarkdown, SeoTitleEn: e.SEOTitle, SeoDescriptionEn: e.SEODescription, EnglishLabelsJson: labels, UpdatedBy: u.ID, UpdatedAt: now})
 	if err != nil {
 		return dbError(err)
 	}

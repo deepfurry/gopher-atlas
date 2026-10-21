@@ -1,5 +1,11 @@
 ---
 import { taxonomyText } from '../lib/publication/taxonomy';
+import {
+  editorialView,
+  hasEnglish,
+  isEditorial,
+  contentPath,
+} from '../lib/publication/editorial';
 import Layout from '../layouts/Layout.astro';
 import * as stylex from '@stylexjs/stylex';
 import { layout as s } from '../styles/layout.stylex';
@@ -28,7 +34,20 @@ interface Props {
     entries: { position: number; title: string; content?: Content }[];
   };
 }
-const { content: item, publication: p, preview, locale = 'zh' } = Astro.props;
+const {
+  content: original,
+  publication: p,
+  preview,
+  locale = 'zh',
+} = Astro.props;
+const item = editorialView(original, locale);
+const bilingual = hasEnglish(original);
+const unavailable =
+  !preview && locale === 'en' && isEditorial(original) && !bilingual;
+const detailPath =
+  locale === 'en' && bilingual
+    ? `/en${original.canonicalPath}`
+    : original.canonicalPath;
 const t = words[locale];
 const author = required(p.authorById, item.authorId),
   cover =
@@ -67,18 +86,39 @@ const contentFamily =
 ---
 
 <Layout
-  {...seo(item)}
-  canonical={item.canonicalPath}
+  {...unavailable
+    ? {
+        title: 'English version unavailable',
+        description:
+          'This article does not have a published English version yet.',
+      }
+    : seo(item)}
+  canonical={detailPath}
+  editorialAlternates={bilingual ? original.canonicalPath : undefined}
+  languageHref={isEditorial(item)
+    ? locale === 'en'
+      ? original.canonicalPath
+      : `/en${original.canonicalPath}`
+    : undefined}
   locale={locale}
-  lang={locale === 'en' ? 'en' : item.language}
+  lang={unavailable
+    ? 'en'
+    : isEditorial(item)
+      ? item.language
+      : locale === 'en'
+        ? 'en'
+        : item.language}
   image={cover?.url}
   imageWidth={cover?.width}
   imageHeight={cover?.height}
   imageType={cover?.mimeType}
   imageAlt={item.title}
   ogType={item.type === 'topic' ? 'website' : 'article'}
-  searchIndex={!preview && item.type !== 'post' && locale === 'zh'}
-  noindex={Boolean(preview)}
+  searchIndex={!preview &&
+    !unavailable &&
+    item.type !== 'post' &&
+    (locale === 'zh' || bilingual)}
+  noindex={Boolean(preview) || unavailable}
 >
   {
     preview && (
@@ -88,7 +128,15 @@ const contentFamily =
     )
   }
   {
-    item.type === 'topic' ? (
+    unavailable ? (
+      <section class="content-detail prose">
+        <h1>English version unavailable</h1>
+        <p>This article does not have a published English version yet.</p>
+        <a href={original.canonicalPath} lang={original.language}>
+          Read the Chinese original →
+        </a>
+      </section>
+    ) : item.type === 'topic' ? (
       <TopicBody
         item={item}
         publication={p}
@@ -212,8 +260,8 @@ const contentFamily =
               <ul class="tag-list" aria-label={t.topics} data-pagefind-ignore>
                 {topics.map((topic) => (
                   <li>
-                    <a href={localized(topic.canonicalPath, locale)}>
-                      {topic.title}
+                    <a href={contentPath(topic, locale)}>
+                      {editorialView(topic, locale).title}
                     </a>
                   </li>
                 ))}
@@ -222,7 +270,7 @@ const contentFamily =
             {!preview &&
               (item.type === 'note' || item.type === 'curated_article') && (
                 <Share
-                  path={localized(item.canonicalPath, locale)}
+                  path={contentPath(item, locale)}
                   title={item.title}
                   locale={locale}
                 />

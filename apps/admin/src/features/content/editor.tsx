@@ -45,6 +45,8 @@ import {
   type FormValues,
 } from './form';
 import { InsertImage } from '@/features/assets/editor-assets';
+import { EditorialWorkspace, emptyEnglish } from './editorial-workspace';
+import { TypeFields } from './form';
 import { MarkdownEditor } from './markdown-editor';
 import { isSafeLink } from '@gopheratlas/markdown';
 import { RevisionView } from './revision-view';
@@ -117,6 +119,7 @@ function DraftWorkspace({
   const confirm = useConfirm();
   const refresh = useEditorialRefresh();
   const [busy, setBusy] = useState(false);
+  const [previewLocale, setPreviewLocale] = useState<'zh' | 'en'>('zh');
   const [params] = useSearchParams();
   const [view, setView] = useState(
     params.get('view') === 'history' ? 'history' : 'draft',
@@ -140,7 +143,15 @@ function DraftWorkspace({
     topicEntries: [],
   };
   const form = useForm<FormValues>({
-    defaultValues: formValues(initial ? snapshot(initial) : empty),
+    defaultValues: formValues({
+      ...snapshot(initial ?? { ...empty, version: 1 }),
+      ...(content.type === 'curated_article' || content.type === 'topic'
+        ? {
+            editorialEn: initial?.editorialEn ?? emptyEnglish(),
+            language: initial?.language || 'zh-CN',
+          }
+        : {}),
+    }),
     resolver: zodResolver(draftSchema),
   });
   const values = useWatch({ control: form.control }) as FormValues;
@@ -154,7 +165,11 @@ function DraftWorkspace({
             await form.trigger();
             throw new APIError('validation_failed', 'Invalid form');
           }
-          if (validateMarkdown(value.bodyMarkdown).length)
+          if (
+            validateMarkdown(value.bodyMarkdown).length ||
+            (value.editorialEn &&
+              validateMarkdown(value.editorialEn.bodyMarkdown).length)
+          )
             throw new APIError('invalid_markdown', 'Unsafe Markdown');
           const result = await saveDraft(content.id, value, version);
           void cache.invalidateQueries({ queryKey: contentKey(content.id) });
@@ -243,7 +258,12 @@ function DraftWorkspace({
   };
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(form.getValues('bodyMarkdown'));
+      const current = form.getValues();
+      await navigator.clipboard.writeText(
+        current.editorialEn
+          ? `中文 Markdown\n\n${current.bodyMarkdown}\n\nEnglish Markdown\n\n${current.editorialEn.bodyMarkdown}`
+          : current.bodyMarkdown,
+      );
       toast.success('本地 Markdown 已复制。');
     } catch {
       setError(new Error('Clipboard unavailable'));
@@ -266,7 +286,7 @@ function DraftWorkspace({
     try {
       await flush();
       const { showSavedBlogPreview } = await import('./blog-preview');
-      await showSavedBlogPreview(content.id, preview);
+      await showSavedBlogPreview(content.id, preview, previewLocale);
     } catch (error) {
       preview.close();
       setError(error);
@@ -478,42 +498,69 @@ function DraftWorkspace({
                 <fieldset disabled={busy || locked} className="editor-fieldset">
                   <div className={`editor-layout editor-${content.type}`}>
                     <div className="editor-source-column">
-                      <EditorTitle type={content.type} />
-                      <h2 className="editor-body-label">
-                        {content.type === 'curated_article'
-                          ? '收录理由 / 编辑点评'
-                          : content.type === 'topic'
-                            ? '专区导读'
-                            : 'Markdown 正文'}
-                      </h2>
-                      {content.type === 'curated_article' &&
-                        values.payload?.sourceUrl &&
-                        /^https?:\/\//.test(values.payload.sourceUrl) &&
-                        isSafeLink(values.payload.sourceUrl) && (
-                          <a
-                            className="text-action"
-                            href={values.payload.sourceUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                      {content.type === 'curated_article' ||
+                      content.type === 'topic' ? (
+                        <>
+                          <EditorialWorkspace
+                            type={content.type}
+                            onLocaleChange={setPreviewLocale}
+                            saveStatus={save.status}
+                            readOnly={locked}
+                          />
+                          <section
+                            className="editorial-structure"
+                            aria-label={
+                              content.type === 'topic'
+                                ? '阅读路径编排'
+                                : '来源与策展'
+                            }
                           >
-                            打开原文 ↗
-                          </a>
-                        )}
-                      <MarkdownEditor
-                        saveStatus={save.status}
-                        value={values.bodyMarkdown ?? ''}
-                        onChange={(value) =>
-                          form.setValue('bodyMarkdown', value, {
-                            shouldDirty: true,
-                          })
-                        }
-                        readOnly={locked}
-                        tools={
-                          locked
-                            ? undefined
-                            : (capture) => <InsertImage capture={capture} />
-                        }
-                      />
+                            <h2>
+                              {content.type === 'topic'
+                                ? '阅读路径编排'
+                                : '来源与策展'}
+                            </h2>
+                            {content.type === 'curated_article' &&
+                              values.payload?.sourceUrl &&
+                              /^https?:\/\//.test(values.payload.sourceUrl) &&
+                              isSafeLink(values.payload.sourceUrl) && (
+                                <a
+                                  className="text-action"
+                                  href={values.payload.sourceUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  打开原文 ↗
+                                </a>
+                              )}
+                            <TypeFields
+                              type={content.type}
+                              id={content.id}
+                              initial={content.draft?.topicTargets ?? []}
+                            />
+                          </section>
+                        </>
+                      ) : (
+                        <>
+                          <EditorTitle type={content.type} />
+                          <h2 className="editor-body-label">Markdown 正文</h2>
+                          <MarkdownEditor
+                            saveStatus={save.status}
+                            value={values.bodyMarkdown ?? ''}
+                            onChange={(value) =>
+                              form.setValue('bodyMarkdown', value, {
+                                shouldDirty: true,
+                              })
+                            }
+                            readOnly={locked}
+                            tools={
+                              locked
+                                ? undefined
+                                : (capture) => <InsertImage capture={capture} />
+                            }
+                          />
+                        </>
+                      )}
                     </div>
                     <Metadata content={content} />
                   </div>

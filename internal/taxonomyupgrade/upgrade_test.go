@@ -11,6 +11,7 @@ import (
 
 	"github.com/deepfurry/gopher-atlas/internal/database"
 	dbsqlc "github.com/deepfurry/gopher-atlas/internal/database/sqlc"
+	"github.com/deepfurry/gopher-atlas/internal/editorialupgrade"
 	"github.com/deepfurry/gopher-atlas/internal/publication"
 	"github.com/deepfurry/gopher-atlas/internal/testkit"
 	"github.com/pressly/goose/v3"
@@ -89,7 +90,7 @@ func TestPlanApplyPreservesExistingPublicationAndRefusesLossyDown(t *testing.T) 
 	if !reflect.DeepEqual(before, history(t, db)) {
 		t.Fatal("plan mutated source")
 	}
-	_, err = p.Up(ctx)
+	_, err = p.UpTo(ctx, 4)
 	must(t, err)
 	if database.Ready(ctx, db) == nil {
 		t.Fatal("unimported schema 4 ready")
@@ -123,7 +124,9 @@ func TestPlanApplyPreservesExistingPublicationAndRefusesLossyDown(t *testing.T) 
 	must(t, err)
 	_, err = Apply(ctx, db, plan.Fingerprint, 1)
 	must(t, err)
-	must(t, database.Ready(ctx, db))
+	if database.Ready(ctx, db) == nil {
+		t.Fatal("Schema 4 unexpectedly ready for Schema 5 CMS")
+	}
 	if !reflect.DeepEqual(before, history(t, db)) {
 		t.Fatal("upgrade changed article/history/route/tag rows")
 	}
@@ -137,10 +140,14 @@ func TestPlanApplyPreservesExistingPublicationAndRefusesLossyDown(t *testing.T) 
 	if !errors.Is(err, ErrApplied) {
 		t.Fatal("repeat import not detected", err)
 	}
-	exported, err := (&publication.Exporter{DB: db}).Export(ctx, 15)
+	_, err = p.Up(ctx)
+	must(t, err)
+	must(t, editorialupgrade.Activate(ctx, db, 1, 15))
+	must(t, database.Ready(ctx, db))
+	exported, err := (&publication.Exporter{DB: db}).Export(ctx, 16)
 	must(t, err)
 	s := exported.Snapshot
-	if s.SchemaVersion != 2 || len(s.Groups) != 1 || s.Groups[0].Slug != "original" || len(s.Content) != 1 || string(s.Content[0].Payload) != `{"groupSlug":"original","order":3}` {
+	if s.SchemaVersion != 3 || len(s.Groups) != 1 || s.Groups[0].Slug != "original" || len(s.Content) != 1 || string(s.Content[0].Payload) != `{"groupSlug":"original","order":3}` {
 		t.Fatal("v2 export did not preserve original grouping")
 	}
 	if s.Tags[0].ID != 7 || s.Tags[0].NameEn != "" || s.Content[0].RevisionNo != 1 || s.Content[0].CanonicalPath != "/notes/original/legacy/" || s.Content[0].FirstPublishedAt != 123 {
@@ -188,7 +195,7 @@ func TestPlanReportsEachConflictAndApplyIsAtomic(t *testing.T) {
 			if len(plan.Issues) != 1 || plan.Issues[0].Code != "conflicting_metadata" || len(plan.Issues[0].Sources) != 2 {
 				t.Fatal("conflict hidden", plan)
 			}
-			_, err = p.Up(ctx)
+			_, err = p.UpTo(ctx, 4)
 			must(t, err)
 			_, err = Apply(ctx, db, plan.Fingerprint, 1)
 			if !errors.Is(err, ErrConflict) {

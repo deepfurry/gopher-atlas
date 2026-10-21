@@ -61,6 +61,13 @@ type ContentDraft struct {
 	UpdatedBy            int64
 	UpdatedAt            int64
 	CoverAssetID         sql.NullInt64
+	EnglishEnabled       int64
+	TitleEn              string
+	SummaryEn            string
+	BodyMarkdownEn       string
+	SeoTitleEn           string
+	SeoDescriptionEn     string
+	EnglishLabelsJson    string
 }
 
 type ContentItem struct {
@@ -106,6 +113,13 @@ type ContentRevision struct {
 	CreatedBy            int64
 	CreatedAt            int64
 	CoverAssetID         sql.NullInt64
+	EnglishEnabled       int64
+	TitleEn              string
+	SummaryEn            string
+	BodyMarkdownEn       string
+	SeoTitleEn           string
+	SeoDescriptionEn     string
+	EnglishLabelsJson    string
 }
 
 type ContentRoute struct {
@@ -125,6 +139,12 @@ type DraftTopicEntry struct {
 	TopicContentID  int64
 	Position        int64
 	TargetContentID int64
+}
+
+type EditorialLocalizationState struct {
+	ID        int64
+	Ready     int64
+	Activated int64
 }
 
 type NoteGroup struct {

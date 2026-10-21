@@ -1,4 +1,10 @@
 ---
+import {
+  editorialView,
+  hasEnglish,
+  isEditorial,
+  contentPath,
+} from '../lib/publication/editorial';
 import { required, type Publication } from '../lib/publication/indexes';
 import * as stylex from '@stylexjs/stylex';
 import { products as s } from '../styles/products.stylex';
@@ -12,11 +18,12 @@ interface Props {
   locale?: Locale;
 }
 const {
-  items,
+  items: originalItems,
   publication: p,
   heading: Heading = 'h2',
   locale = 'zh',
 } = Astro.props;
+const items = originalItems.map((item) => editorialView(item, locale));
 const t = words[locale];
 ---
 
@@ -35,6 +42,9 @@ const t = words[locale];
             />
           ) : (
             <article lang={item.language}>
+              {locale === 'en' && isEditorial(item) && !hasEnglish(item) && (
+                <p class="small-meta">Original language: {item.language}</p>
+              )}
               <div class="content-list-meta">
                 <span>
                   {item.type === 'note'
@@ -49,7 +59,7 @@ const t = words[locale];
                 </time>
               </div>
               <Heading {...stylex.attrs(s.rowTitle)}>
-                <a href={localized(item.canonicalPath, locale)}>{item.title}</a>
+                <a href={contentPath(item, locale)}>{item.title}</a>
               </Heading>
               {item.summary && (
                 <p {...stylex.attrs(s.summary)}>{item.summary}</p>

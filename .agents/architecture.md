@@ -76,7 +76,7 @@ not falsely claim to contain the production UI. The final `make check` build
 always uses freshly built assets and runs embed-specific route/cache tests.
 
 OpenAPI and migration/SQL inputs are authoritative for executable interfaces.
-Snapshot v1/v2 are independent closed public projections. CMS writes v2. Export uses one deferred SQLite read
+Snapshot v1/v2/v3 are independent closed public projections. CMS writes v3 (ADR 0021). Public retains all three readers. Export uses one deferred SQLite read
 transaction, then closes it and rechecks freshness before network I/O. A shared
 in-process fence closes the stale latest PUT race: services acquire it before
 BEGIN; worker acquires it around latest/Hook without a DB transaction.

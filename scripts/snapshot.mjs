@@ -4,6 +4,7 @@ import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import snapshotSchema from '../contracts/content-snapshot.schema.json' with { type: 'json' };
 import snapshotV2Schema from '../contracts/content-snapshot.v2.schema.json' with { type: 'json' };
+import snapshotV3Schema from '../contracts/content-snapshot.v3.schema.json' with { type: 'json' };
 import {
   isSafeLink,
   validateMarkdown,
@@ -17,6 +18,7 @@ addFormats(ajv);
 const validators = new Map([
   [1, ajv.compile(snapshotSchema)],
   [2, ajv.compile(snapshotV2Schema)],
+  [3, ajv.compile(snapshotV3Schema)],
 ]);
 const invalid = () => {
   throw new Error('snapshot_invalid');
@@ -43,13 +45,13 @@ export function validateSnapshot(data, { assetPolicy } = {}) {
   unique(snapshot.routes, 'path');
   unique(snapshot.authors, 'slug');
   unique(snapshot.tags, 'slug');
-  if (snapshot.schemaVersion === 2) unique(snapshot.groups);
+  if (snapshot.schemaVersion >= 2) unique(snapshot.groups);
   const usedAuthors = new Set(),
     usedAssets = new Set(),
     usedTags = new Set(),
     canonicals = new Map();
   const groups =
-    snapshot.schemaVersion === 2 ? unique(snapshot.groups, 'slug') : new Map();
+    snapshot.schemaVersion >= 2 ? unique(snapshot.groups, 'slug') : new Map();
   const usedGroups = new Set();
   for (const route of snapshot.routes) {
     if (!content.has(route.contentId)) invalid();
@@ -112,6 +114,38 @@ export function validateSnapshot(data, { assetPolicy } = {}) {
         content.get(entry.targetContentId)?.type !== 'curated_article'
       )
         invalid();
+    if (snapshot.schemaVersion === 3 && item.editorialEn !== null) {
+      const e = item.editorialEn;
+      if (
+        !e.enabled ||
+        !e.title.trim() ||
+        !e.summary.trim() ||
+        !e.bodyMarkdown.trim() ||
+        Buffer.byteLength(e.bodyMarkdown) > 524288 ||
+        validateMarkdown(e.bodyMarkdown, assetPolicy).length
+      )
+        invalid();
+      const labels = e.labels;
+      if (
+        item.type === 'topic' &&
+        (labels.sourceAuthor || labels.sourceName || labels.relatedLinks.length)
+      )
+        invalid();
+      if (
+        new Set(labels.relatedLinks.map((link) => link.url)).size !==
+        labels.relatedLinks.length
+      )
+        invalid();
+      for (const link of labels.relatedLinks)
+        if (
+          item.type !== 'curated_article' ||
+          !item.payload.relatedLinks.some(
+            (shared) => shared.url === link.url,
+          ) ||
+          !isSafeLink(link.url)
+        )
+          invalid();
+    }
     if (item.type === 'curated_article') {
       for (const url of [
         item.payload.sourceUrl,

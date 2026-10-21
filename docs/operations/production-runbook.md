@@ -4,6 +4,15 @@
 2026-10-17 确认的 B2/B3 生产升级结果。仅有 Development / Production；
 不需要额外环境或代理服务。历史记录不代表后续 generation 已验收。
 
+## 生产与开发版本边界
+
+最近确认的生产数据库/写入端是 Schema 4 / Snapshot v2；下方保留真实验收记录，
+不代表当前 main 或已安装二进制一直停留在当日提交。当前 dev 的 #20 要求
+Schema 5、本地化 activation，导出 v3；Public 兼容 v1/v2/v3。尚未执行本次
+生产升级或真实备份副本演练。安装新 CMS 前必须先验收 Public，再单独授权执行
+[本地化升级及回滚关卡](editorial-localization-upgrade.md)。不能直接用下方日常
+更新命令跨过 Schema/初始化要求，不能把发布或迁移验收视作灾难恢复验收。
+
 ## 当前已验证的部署
 
 ```text

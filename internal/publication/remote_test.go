@@ -56,7 +56,7 @@ func TestMarkerStrictParsingAndBoundedCredentialFreeFetch(t *testing.T) {
 	must(t, err)
 	_, err = parseMarker([]byte(strings.Replace(string(data), `"schemaVersion":1`, `"schemaVersion":2`, 1)))
 	must(t, err)
-	if _, err = parseMarker([]byte(strings.Replace(string(data), `"schemaVersion":1`, `"schemaVersion":3`, 1))); err == nil {
+	if _, err = parseMarker([]byte(strings.Replace(string(data), `"schemaVersion":1`, `"schemaVersion":4`, 1))); err == nil {
 		t.Fatal("unknown marker version accepted")
 	}
 	for _, bad := range []string{strings.Replace(string(data), `"generation":0,`, "", 1), strings.Replace(string(data), `"generation":0`, `"generation":null`, 1), strings.Replace(string(data), `"generation":0`, `"generation":0,"generation":0`, 1), strings.Replace(string(data), `"schemaVersion":1`, `"schemaVersion":0`, 1), strings.Replace(string(data), `"generation":0`, `"generation":-1`, 1), string(data) + "{}", strings.Replace(string(data), `"buildId"`, `"secret"`, 1)} {

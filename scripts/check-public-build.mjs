@@ -2,6 +2,11 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { JSDOM } from 'jsdom';
+import {
+  hasEnglish,
+  isEditorial,
+  editorialView,
+} from '../apps/web/src/lib/publication/editorial.ts';
 import { taxonomyText } from '../apps/web/src/lib/publication/taxonomy.ts';
 import { copyrightYears } from '../apps/web/src/lib/copyright.ts';
 import { shareLinks } from '../apps/web/src/lib/share.ts';
@@ -25,7 +30,7 @@ import {
 
 // Deliberately fixture-only: this gate never loads .env, contacts R2 or starts CMS.
 const version = process.argv[2] ?? '1';
-assert(['1', '2'].includes(version), 'Expected fixture version 1 or 2');
+assert(['1', '2', '3'].includes(version), 'Expected fixture version 1, 2 or 3');
 const input = readFileSync(`tests/fixtures/content-snapshot-v${version}.json`);
 const snapshot = validateSnapshot(input),
   p = createPublication(snapshot);
@@ -75,7 +80,12 @@ const allPaths = [
   ...chromePaths.map((path) => `/en${path}`),
   ...pages.map((page) => page.path),
 ];
-const canonicalPaths = [...allPaths];
+const canonicalPaths = [
+  ...allPaths,
+  ...snapshot.content
+    .filter(hasEnglish)
+    .map((item) => `/en${item.canonicalPath}`),
+];
 const aliases = [
   ...pages.map((page) => page.path),
   '/authors/',
@@ -150,7 +160,9 @@ for (const path of allPaths) {
   assert(!doc.querySelector('script[src*="api-client"], iframe, astro-island'));
   assert.equal(
     doc.querySelector('[data-language-link]')?.getAttribute('href'),
-    localized(path, localeOf(path) === 'zh' ? 'en' : 'zh'),
+    item && isEditorial(item) && path.startsWith('/en/') && !hasEnglish(item)
+      ? undefined
+      : localized(path, localeOf(path) === 'zh' ? 'en' : 'zh'),
   );
   assert(!doc.querySelector('footer').textContent.includes('CC-BY-NC'));
   assert.equal(
@@ -412,13 +424,14 @@ for (const locale of ['zh', 'en']) {
     );
   }
   for (const item of p.snapshot.content) {
+    if (locale === 'en' && isEditorial(item) && !hasEnglish(item)) continue;
     const doc = pageDocument(localized(item.canonicalPath, locale));
     if (item.type !== 'post') {
       const shares = doc.querySelectorAll('[data-share]');
       assert.equal(shares.length, 1);
       const sharing = shareLinks(
         localized(item.canonicalPath, locale),
-        item.title,
+        editorialView(item, locale).title,
       );
       assert.deepEqual(
         [...shares[0].querySelectorAll('a')].map((link) => link.href),
@@ -577,17 +590,58 @@ for (const path of canonicalPaths)
     `Missing sitemap URL: ${path}`,
   );
 for (const path of aliases) {
-  assert(
-    !locations.includes(`https://gopheratlas.com/en${path}`),
-    `Duplicate alias in sitemap: ${path}`,
-  );
   const base = pageDocument(path),
     alias = pageDocument('/en' + path);
+  const item = snapshot.content.find((item) => item.canonicalPath === path);
   assert.equal(alias.documentElement.dataset.locale, 'en');
-  assert(
-    !alias.querySelector('main[data-pagefind-body]'),
-    `Alias duplicated in Pagefind: ${path}`,
-  );
+  if (item && isEditorial(item)) {
+    if (hasEnglish(item)) {
+      const view = editorialView(item, 'en');
+      const englishUrl = `https://gopheratlas.com/en${path}`;
+      assert.equal(alias.querySelector('link[rel=canonical]').href, englishUrl);
+      assert.equal(
+        alias.querySelector('meta[property="og:url"]').content,
+        englishUrl,
+      );
+      assert.equal(
+        alias.querySelector('meta[name=description]').content,
+        view.seoDescription.trim() || view.summary,
+      );
+      assert.equal(
+        alias.querySelector('meta[property="og:title"]').content,
+        view.seoTitle.trim() || view.title,
+      );
+      assert.equal(alias.documentElement.lang, 'en');
+      assert.equal(alias.querySelector('h1').textContent.trim(), view.title);
+      assert(alias.querySelector('main[data-pagefind-body]'));
+      assert(!alias.querySelector('meta[name=robots]'));
+      assert.equal(
+        alias.querySelector('link[rel=alternate][hreflang=en]').href,
+        `https://gopheratlas.com/en${path}`,
+      );
+      assert.equal(
+        base.querySelector('link[rel=alternate][hreflang=en]').href,
+        `https://gopheratlas.com/en${path}`,
+      );
+    } else {
+      assert(
+        alias.querySelector('meta[name=robots]').content.includes('noindex'),
+      );
+      assert(!alias.querySelector('main[data-pagefind-body]'));
+      assert(!alias.querySelector('link[hreflang=en]'));
+      assert.equal(alias.documentElement.lang, 'en');
+      assert.equal(
+        alias.querySelector('h1').textContent.trim(),
+        'English version unavailable',
+      );
+      assert(!alias.querySelector('.markdown'));
+      assert.equal(alias.querySelector('main a').getAttribute('href'), path);
+      assert(!locations.includes(`https://gopheratlas.com/en${path}`));
+    }
+    continue;
+  }
+  assert(!locations.includes(`https://gopheratlas.com/en${path}`));
+  assert(!alias.querySelector('main[data-pagefind-body]'));
   if (
     path !== '/authors/' &&
     path !== '/tags/' &&
@@ -610,6 +664,7 @@ for (const path of aliases) {
       `Alias changed authored Markdown: ${path}`,
     );
 }
+
 for (const route of snapshot.routes.filter(
   (route) => route.kind === 'redirect',
 )) {
@@ -649,7 +704,9 @@ assert(existsSync(`${out}/pagefind/pagefind.js`));
 const index = JSON.parse(read('pagefind/pagefind-entry.json'));
 assert.equal(
   index.languages.zh.page_count,
-  snapshot.content.filter((item) => item.type !== 'post').length + 4,
+  snapshot.content.filter((item) => item.type !== 'post').length +
+    snapshot.content.filter(hasEnglish).length +
+    4,
 );
 assert(
   read('robots.txt').includes(

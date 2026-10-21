@@ -6,6 +6,7 @@ import { getContent } from './api';
 export function previewProjection(
   content: Schema<'Content'>,
   author: Schema<'AuthorDetail'>,
+  locale: 'zh' | 'en' = 'zh',
 ) {
   const draft = content.draft;
   if (!draft || !content.actions.editDraft)
@@ -48,21 +49,29 @@ export function previewProjection(
           content.type
         ];
   const cover = draft.coverAsset;
+  const en =
+    locale === 'en' &&
+    (content.type === 'curated_article' || content.type === 'topic')
+      ? draft.editorialEn
+      : undefined;
   return {
+    locale,
     item: {
       id: content.id,
       type: content.type,
       revisionNo: draft.version,
       canonicalPath: `/${prefix}/${slug}/`,
-      title: draft.title || '未命名内容',
+      title: en
+        ? en.title || 'Untitled English draft'
+        : draft.title || '未命名内容',
       slug,
-      summary: draft.summary,
-      bodyMarkdown: draft.bodyMarkdown,
+      summary: en?.summary ?? draft.summary,
+      bodyMarkdown: en?.bodyMarkdown ?? draft.bodyMarkdown,
       authorId: draft.bylineUserId,
-      language: draft.language || 'zh-CN',
+      language: en ? 'en' : draft.language || 'zh-CN',
       featured: draft.featured,
-      seoTitle: draft.seoTitle,
-      seoDescription: draft.seoDescription,
+      seoTitle: en?.seoTitle ?? draft.seoTitle,
+      seoDescription: en?.seoDescription ?? draft.seoDescription,
       coverAssetId: draft.coverAssetId,
       firstPublishedAt: draft.updatedAt,
       lastPublishedAt: draft.updatedAt,
@@ -101,7 +110,11 @@ export function previewProjection(
   };
 }
 
-export async function showSavedBlogPreview(id: number, preview: Window) {
+export async function showSavedBlogPreview(
+  id: number,
+  preview: Window,
+  locale: 'zh' | 'en' = 'zh',
+) {
   const content = await getContent(id);
   if (!content.draft)
     throw new APIError('permission_denied', 'Preview unavailable');
@@ -110,7 +123,7 @@ export async function showSavedBlogPreview(id: number, preview: Window) {
       params: { path: { id: content.draft.bylineUserId } },
     }),
   );
-  const data = JSON.stringify(previewProjection(content, author));
+  const data = JSON.stringify(previewProjection(content, author, locale));
   if (new TextEncoder().encode(data).length > 1024 * 1024)
     throw new APIError('payload_too_large', 'Preview too large');
   if (preview.closed) return;

@@ -1,5 +1,14 @@
 # Implementation scope
 
+Issue #20 development (ADR 0021) adds Schema 5, versioned bilingual Curated/Topic
+text, explicit English publication and the Snapshot v3 writer with v1/v2/v3 Public
+reading. It preserves the existing vertical editor and unchanged Note semantics.
+This implementation is not a Production migration or deployment; release Public
+compatibility first, then separately authorize protected-copy rehearsal and CMS
+activation. See [the localization upgrade runbook](operations/editorial-localization-upgrade.md).
+
+The B2 implementation notes below retain their historical scope and evidence.
+
 B2 (ADR 0019) implements schema 4, independent Note groups, bilingual taxonomy,
 Admin management/selection and the v2-only CMS exporter. Explicit offline plan/apply
 preserves immutable content, tags and routes, refuses conflicts and advances one

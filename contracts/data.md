@@ -1,5 +1,27 @@
 # Data contract
 
+## Issue #20 editorial localization (ADR 0021)
+
+Current dev CMS requires SQLite schema 5 and exports closed Snapshot v3. Public accepts
+v1/v2/v3. The last confirmed Production database/writer remains Schema 4 / v2;
+Schema 5 / v3 is not a record of a Production upgrade. B2 facts below retain their
+original release context.
+Curated/Topic use one identity/version/review/published pointer with optional
+editorialEn in full Draft/Revision DTOs. English text is stored in SQL TEXT columns,
+not the 32 KiB payload (payload schema stays 1). Enabled English must have nonblank
+safe title/summary/body before publication; SEO is optional and never auto-written.
+Disabled/partial text remains private. Existing primary-text validation remains
+compatible, and historical published Revisions stay exact.
+New Draft writes may omit editorialEn only when no English data exists; omission
+must not erase existing translations. Notes/Post reject editorialEn and retain their
+original language semantics. English source labels reference shared related URLs.
+All fields and relations commit in the same optimistic snapshot transaction.
+
+Migration 00005 preserves original columns/history, adds an explicit writer gate and
+refuses lossy Down. Existing databases require offline activation that allocates one
+fresh generation and Audit/job before the v3 writer starts. Never reuse a v2 key.
+See [upgrade and rollback gates](../docs/operations/editorial-localization-upgrade.md).
+
 ## B1 Public reader compatibility (ADR 0018)
 
 B2 (ADR 0019) now writes v2 with SQLite schema 4; content payload schema remains 1.
@@ -102,7 +124,7 @@ session and role after acquiring the write lock. Last-active-Admin disable/demot
 is rejected transactionally; disabling revokes all sessions in the same transaction.
 
 `/readyz` checks reachability, expected applied migration version and all columns
-needed by identity/editorial queries without writing. Expected version is 3;
+needed by identity/editorial queries without writing. Expected version is 5;
 Older, missing, damaged or newer schema is
 not ready. Do not use `DATABASE_PATH` from a developer environment in tests.
 

@@ -14,6 +14,8 @@ import {
   type Locale,
 } from '../lib/i18n';
 interface Props {
+  editorialAlternates?: string;
+  languageHref?: string;
   title: string;
   description?: string;
   canonical?: string;
@@ -31,6 +33,8 @@ interface Props {
 }
 const {
   title,
+  editorialAlternates,
+  languageHref,
   description: descriptionProp,
   canonical: path = chromePaths.includes(withoutLocale(Astro.url.pathname))
     ? Astro.url.pathname
@@ -92,23 +96,23 @@ const year = new Date().getFullYear();
     </title>
     <link rel="canonical" href={canonical} />
     {
-      chromePaths.includes(base) && (
+      (chromePaths.includes(base) || editorialAlternates) && (
         <>
           <>
             <link
               rel="alternate"
               hreflang="zh-CN"
-              href={new URL(base, Astro.site)}
+              href={new URL(editorialAlternates || base, Astro.site)}
             />
             <link
               rel="alternate"
               hreflang="en"
-              href={new URL(`/en${base}`, Astro.site)}
+              href={new URL(`/en${editorialAlternates || base}`, Astro.site)}
             />
             <link
               rel="alternate"
               hreflang="x-default"
-              href={new URL(base, Astro.site)}
+              href={new URL(editorialAlternates || base, Astro.site)}
             />
           </>
         </>
@@ -123,7 +127,7 @@ const year = new Date().getFullYear();
     /><meta property="og:site_name" content="GopherAtlas" />
     <meta property="og:locale" content={locale === 'zh' ? 'zh_CN' : 'en_US'} />
     {
-      chromePaths.includes(base) && (
+      (chromePaths.includes(base) || editorialAlternates) && (
         <meta
           property="og:locale:alternate"
           content={locale === 'zh' ? 'en_US' : 'zh_CN'}
@@ -266,10 +270,14 @@ const year = new Date().getFullYear();
               <a
                 class="corner-trigger language-toggle"
                 data-language-link
-                href={alternateChrome(
-                  Astro.url.pathname,
-                  locale === 'zh' ? 'en' : 'zh',
-                )}
+                data-language-target={languageHref}
+                href={
+                  languageHref ||
+                  alternateChrome(
+                    Astro.url.pathname,
+                    locale === 'zh' ? 'en' : 'zh',
+                  )
+                }
                 lang={locale === 'zh' ? 'en' : 'zh-CN'}
               >
                 <span class="corner-link">

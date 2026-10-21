@@ -1,0 +1,29 @@
+---
+import * as stylex from '@stylexjs/stylex';
+import { stats as v } from '../styles/stats.stylex';
+interface Props {
+  id: string;
+  locale: 'zh' | 'en';
+}
+const { id, locale } = Astro.props;
+---
+
+<span data-chart-guide hidden aria-hidden="true" {...stylex.attrs(v.guide)}
+></span>
+<span data-chart-dot hidden aria-hidden="true" {...stylex.attrs(v.selection)}
+></span>
+<div data-chart-tooltip hidden aria-hidden="true" {...stylex.attrs(v.tooltip)}>
+</div>
+<span
+  data-chart-status
+  class="sr-only"
+  role="status"
+  aria-live="polite"
+  aria-atomic="true"></span>
+<span data-chart-instructions id={`${id}-keys`} hidden class="sr-only">
+  {
+    locale === 'zh'
+      ? '左右方向键逐日选择，Home / End 跳至首末日期，Esc 关闭提示。也可点击或横向拖动图表，竖向滑动仍滚动页面。下方可展开明细表。'
+      : 'Use Left/Right to select dates, Home/End for the first/last date, Escape to dismiss. Tap or drag horizontally to explore; vertical swipes scroll the page. A data table is available below.'
+  }
+</span>

@@ -4,6 +4,7 @@ import {
   type Readership,
   type StatsRange,
 } from './readership-contract';
+import { mountChart } from './chart';
 
 const dayPattern = /^\d{4}-\d{2}-\d{2}$/;
 const count = (n: unknown): n is number =>
@@ -111,23 +112,36 @@ export function trafficPlot(
   metric: 'pageLoads' | 'visits',
 ) {
   const maximum = Math.max(1, ...daily.map((d) => d[metric] ?? 0));
-  const points: { x: number; y: number }[] = [],
+  const valid = daily.filter((d) => d[metric] !== null);
+  const mode =
+    valid.length === 0 ? 'empty' : valid.length <= 3 ? 'discrete' : 'trend';
+  const samples = (mode === 'discrete' ? valid : daily).map((day, i, all) => ({
+    ...day,
+    x:
+      mode === 'discrete'
+        ? all.length === 1
+          ? 50
+          : 20 + (i / (all.length - 1)) * 60
+        : 1 + (i / Math.max(1, daily.length - 1)) * 98,
+    y: day[metric] === null ? null : 98 - (day[metric] / maximum) * 96,
+  }));
+  const points: { x: number; y: number; date: string; value: number }[] = [],
     paths: string[] = [];
   let path = '';
-  daily.forEach((d, i) => {
+  samples.forEach((d) => {
     const value = d[metric];
     if (value === null) {
       if (path) paths.push(path);
       path = '';
       return;
     }
-    const x = 1 + (i / Math.max(1, daily.length - 1)) * 98,
-      y = 98 - (value / maximum) * 96;
-    points.push({ x, y });
-    path += `${path ? ' L' : 'M'}${x} ${y}`;
+    const { x } = d,
+      y = d.y!;
+    points.push({ x, y, date: d.date, value });
+    if (mode === 'trend') path += `${path ? ' L' : 'M'}${x} ${y}`;
   });
   if (path) paths.push(path);
-  return { maximum, points, paths };
+  return { maximum, points, paths, samples, mode, observedCount: valid.length };
 }
 
 export function mountReadership(
@@ -147,13 +161,18 @@ export function mountReadership(
     metric: 'pageLoads' | 'visits' = 'pageLoads',
     selected: StatsRange = '30d',
     controller: AbortController | undefined;
+  let chart: ReturnType<typeof mountChart> | undefined;
   const number = (n: number | null) => (n === null ? '—' : format.format(n));
   const hide = () => {
+    chart?.destroy();
+    chart = undefined;
     for (const part of ['site', 'pages', 'referrers', 'quality'])
       el<HTMLElement>(part).hidden = true;
   };
   const render = () => {
     if (!data) return;
+    chart?.destroy();
+    chart = undefined;
     el<HTMLElement>('site').hidden =
       !data.coverage.site.available || data.totals === null;
     el<HTMLElement>('pages').hidden =
@@ -204,12 +223,16 @@ export function mountReadership(
         ),
       );
     const plot = trafficPlot(data.daily, metric);
+    const plotRoot = el<HTMLElement>('plot');
+    plotRoot.dataset.chartMode = plot.mode;
+    el<HTMLElement>('plot-layout').hidden = plot.mode === 'empty';
+    el<HTMLElement>('empty').hidden = plot.mode !== 'empty';
     text('max', number(plot.maximum));
     text('start', data.start);
     text('end', data.end);
     text(
       'caption',
-      `${metric === 'pageLoads' ? 'Page Views' : 'Visits'} · ${data.start} — ${data.end} · UTC`,
+      `${metric === 'pageLoads' ? 'Page Views' : 'Visits'} · ${data.start} — ${data.end} · UTC · ${plot.observedCount} / ${data.daily.length} ${zh ? '个已归档日' : 'archived days'}${plot.mode === 'discrete' ? (zh ? ' · 离散日读数' : ' · discrete daily readings') : ''}`,
     );
     root.querySelector('#traffic-chart-title')!.textContent =
       el('caption').textContent;
@@ -224,18 +247,69 @@ export function mountReadership(
       node.setAttribute('vector-effect', 'non-scaling-stroke');
       group.append(node);
     }
-    for (const p of plot.points) {
-      const node = document.createElementNS(
-        'http://www.w3.org/2000/svg',
-        'circle',
-      );
-      node.setAttribute('cx', String(p.x));
-      node.setAttribute('cy', String(p.y));
-      node.setAttribute('r', '0.6');
-      node.setAttribute('fill', 'currentColor');
-      node.setAttribute('stroke', 'none');
-      group.append(node);
+    // HTML dots retain a constant pixel size under the SVG's nonuniform scaling.
+    plotRoot
+      .querySelectorAll('[data-traffic-point]')
+      .forEach((node) => node.remove());
+    const pointLabels = el('point-labels');
+    pointLabels.replaceChildren();
+    for (const point of plot.points) {
+      const dot = document.createElement('span');
+      dot.dataset.trafficPoint = '';
+      dot.className = root.dataset.dotClass ?? '';
+      dot.style.setProperty('--point-x', `${point.x}%`);
+      dot.style.setProperty('--point-y', `${point.y}%`);
+      dot.setAttribute('aria-hidden', 'true');
+      plotRoot.append(dot);
+      if (plot.mode === 'discrete') {
+        const date = document.createElement('time');
+        date.dateTime = point.date;
+        date.textContent = point.date;
+        date.className = root.dataset.pointClass ?? '';
+        date.style.setProperty('--point-x', `${point.x}%`);
+        pointLabels.append(date);
+      }
     }
+    if (plot.mode !== 'empty' && available)
+      chart = mountChart(plotRoot, {
+        count: plot.samples.length,
+        sample(index) {
+          const day = plot.samples[index];
+          const quality =
+            day.quality === 'sampled-estimate'
+              ? zh
+                ? '采样估计'
+                : 'Sampled estimate'
+              : day.quality === 'partial'
+                ? zh
+                  ? '部分覆盖'
+                  : 'Partial coverage'
+                : day.quality === 'observed'
+                  ? zh
+                    ? '观测值'
+                    : 'Observed'
+                  : zh
+                    ? '缺失'
+                    : 'Missing';
+          return {
+            date: day.date,
+            x: day.x,
+            y: day.y,
+            rows: [
+              {
+                label: metric === 'pageLoads' ? 'Page Views' : 'Visits',
+                value:
+                  day[metric] === null
+                    ? zh
+                      ? '缺失'
+                      : 'Missing'
+                    : String(day[metric]),
+              },
+              { label: zh ? '数据状态' : 'Data quality', value: quality },
+            ],
+          };
+        },
+      });
     const tbody = el('table');
     tbody.replaceChildren();
     for (const day of data.daily) {
@@ -296,6 +370,8 @@ export function mountReadership(
     }
   };
   async function load(range: StatsRange) {
+    chart?.destroy();
+    chart = undefined;
     controller?.abort();
     const request = (controller = new AbortController());
     selected = range;
@@ -347,10 +423,27 @@ export function mountReadership(
     if (button.hasAttribute('data-traffic-retry')) void load(selected);
   };
   root.addEventListener('click', click);
+  const observer = new MutationObserver(() => {
+    if (!root.isConnected) stop();
+  });
+  observer.observe(root.ownerDocument.documentElement, {
+    childList: true,
+    subtree: true,
+  });
+  const pagehide = (event: PageTransitionEvent) => {
+    if (event.persisted) chart?.reset();
+    else stop();
+  };
+  window.addEventListener('pagehide', pagehide);
   void load('30d');
-  return () => {
+  function stop() {
+    chart?.destroy();
+    chart = undefined;
     controller?.abort();
     controller = undefined;
     root.removeEventListener('click', click);
-  };
+    window.removeEventListener('pagehide', pagehide);
+    observer.disconnect();
+  }
+  return stop;
 }

@@ -166,7 +166,7 @@ func validateFields(kind string, fields *Fields, complete bool, policies ...mark
 		return err
 	}
 	fields.Payload = data
-	return nil
+	return validateEnglish(kind, *fields, complete, policy)
 }
 func validateComment(s string, required bool, policies ...markdown.Policy) error {
 	policy := markdown.Policy{}

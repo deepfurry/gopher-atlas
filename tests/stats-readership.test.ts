@@ -58,7 +58,9 @@ function dom() {
     <section data-traffic-site hidden><div>${['7d', '30d', '90d'].map((r) => `<button data-traffic-range="${r}">${r}</button>`).join('')}</div>
     <button data-traffic-metric="pageLoads">Page Views</button><button data-traffic-metric="visits">Visits</button>
     ${['pv', 'visits', 'coverage', 'max', 'start', 'end', 'caption'].map((k) => `<span data-traffic-${k}></span>`).join('')}
+    <p data-traffic-empty hidden></p><div data-traffic-plot-layout><div data-traffic-plot>
     <svg><title id="traffic-chart-title"></title><g data-traffic-lines></g></svg>
+    <div data-traffic-point-labels></div><span data-chart-guide hidden></span><span data-chart-dot hidden></span><div data-chart-tooltip hidden></div><span data-chart-status></span><span data-chart-instructions id="traffic-keys" hidden></span></div></div>
     <details><summary>Data</summary><table><tbody data-traffic-table></tbody></table></details></section>
     <section data-traffic-pages hidden><ol data-traffic-pages-list></ol></section>
     <section data-traffic-referrers hidden><ul data-traffic-referrers-list></ul></section>
@@ -126,6 +128,66 @@ it('describes the same limited RUM filter scope in Chinese', async () => {
   expect(root.textContent).toContain('仍可能包含采样估计');
   expect(root.textContent).toContain('Visits 不代表独立访客 UV');
 });
+it.each([0, 1, 2, 3, 4])(
+  'renders %i archived dates without replacing nulls, losing quality or shortening the selected range',
+  async (n) => {
+    const root = dom(),
+      data = fixture();
+    data.daily = data.daily.map((day, i) => ({
+      ...day,
+      pageLoads: i >= 30 - n ? (i === 30 - n ? 0 : 12.3456789) : null,
+      visits: i >= 30 - n ? (i === 30 - n ? 0 : 3) : null,
+      quality: i >= 30 - n ? (i === 29 ? 'sampled-estimate' : 'partial') : null,
+    }));
+    data.coverage.site.days = n;
+    if (!n) {
+      data.totals = null;
+      data.coverage.site.available = false;
+    }
+    stop = mountReadership(root, async () => Response.json(data));
+    await waitFor(() =>
+      expect(root.querySelectorAll('tbody tr')).toHaveLength(30),
+    );
+    expect(root.querySelector('[data-traffic-caption]')!.textContent).toContain(
+      `${data.start} — ${data.end}`,
+    );
+    expect(root.querySelector('[data-traffic-caption]')!.textContent).toContain(
+      `${n} / 30 archived days`,
+    );
+    expect(
+      root.querySelectorAll('[data-traffic-point-labels] time'),
+    ).toHaveLength(n < 4 ? n : 0);
+    const plot = root.querySelector<HTMLElement>('[data-traffic-plot]')!;
+    expect(plot.dataset.chartMode).toBe(
+      n === 0 ? 'empty' : n < 4 ? 'discrete' : 'trend',
+    );
+    expect(root.querySelectorAll('[data-traffic-point]')).toHaveLength(n);
+    expect(root.querySelector('tbody')!.textContent).toContain('—');
+    if (!n) {
+      expect(plot.hasAttribute('tabindex')).toBe(false);
+      expect(
+        root.querySelector<HTMLElement>('[data-traffic-site]')!.hidden,
+      ).toBe(true);
+      return;
+    }
+    plot.focus();
+    const tip = plot.querySelector<HTMLElement>('[data-chart-tooltip]')!;
+    expect(tip.textContent).toContain(n < 4 ? 'Page Views: 0' : 'Missing');
+    plot.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'End', bubbles: true }),
+    );
+    expect(tip.textContent).toContain('Sampled estimate');
+    if (n > 1) expect(tip.textContent).toContain('12.3456789');
+    const metricButton = root.querySelector<HTMLButtonElement>(
+      '[data-traffic-metric="visits"]',
+    )!;
+    metricButton.focus();
+    metricButton.click();
+    expect(tip.hidden).toBe(true);
+    plot.focus();
+    expect(tip.textContent).toContain('Visits');
+  },
+);
 it.each(['unverified', 'human-only', undefined])(
   'rejects a stale, misleading or missing filter contract: %s',
   (botFilter) => {
@@ -184,12 +246,34 @@ it('leaves missing dates as disconnected gaps and retains actual zero points', (
   const d = fixture('7d').daily;
   d[0] = { ...d[0], pageLoads: 0, visits: 0, quality: 'observed' };
   d[1] = { ...d[1], pageLoads: 1, visits: 1, quality: 'observed' };
+  d[2] = { ...d[2], pageLoads: 2, visits: 2, quality: 'observed' };
   const plot = trafficPlot(d, 'pageLoads');
   expect(plot.paths).toHaveLength(2);
-  expect(plot.points).toHaveLength(3);
+  expect(plot.mode).toBe('trend');
+  expect(plot.points).toHaveLength(4);
   expect(plot.paths[0]).toContain(' L');
   expect(plot.paths[1]).not.toContain(' L');
 });
+it.each([0, 1, 2, 3, 4, 7])(
+  'uses the full selected calendar or compact discrete days for %i real readings',
+  (n) => {
+    const data = fixture('7d');
+    data.daily = data.daily.map((day, i) => ({
+      ...day,
+      pageLoads: i < n ? i : null,
+      visits: i < n ? i : null,
+      quality: i < n ? 'observed' : null,
+    }));
+    const plot = trafficPlot(data.daily, 'pageLoads');
+    expect(plot.observedCount).toBe(n);
+    expect(plot.mode).toBe(n === 0 ? 'empty' : n < 4 ? 'discrete' : 'trend');
+    expect(plot.points).toHaveLength(n);
+    if (n < 4) expect(plot.paths).toEqual([]);
+    if (n > 0) expect(plot.points[0].value).toBe(0);
+    if (n >= 4) expect(plot.samples).toHaveLength(7);
+    expect(data.daily).toHaveLength(7);
+  },
+);
 it('rejects invalid API shapes, private/protocol paths and unsupported source keys', () => {
   for (const mutate of [
     (v: Readership) => {

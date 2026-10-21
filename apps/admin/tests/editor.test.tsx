@@ -180,7 +180,7 @@ it.each(['post', 'note', 'curated_article', 'topic'] as const)(
     expect(
       screen.queryByRole('switch', { name: '首页推荐', hidden: true }) !== null,
     ).toBe(type === 'topic');
-    if (type !== 'post')
+    if (type === 'note')
       fireEvent.click(
         screen.getByRole('tab', {
           name: (

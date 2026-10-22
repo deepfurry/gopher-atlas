@@ -56,11 +56,14 @@ CI 检查 push 与 PR 的 `dev`、`main`；仓库默认分支和 Ruleset 由维�
 
 ## 本地开始
 
-需要 Git、GNU Make、Node **24.15.0**、pnpm **12.3.4**、Go **1.26.8**。
+需要 Git、GNU Make、Node **24.22.1 LTS**、pnpm **12.3.4**、Go **1.26.10**。
 版本由 `.node-version`、`.go-version`、根 `packageManager` 固定。
 pnpm 的精确保存、严格 engine 检查、`minimumReleaseAge: 0` 与 esbuild/sharp
 构建白名单在 `pnpm-workspace.yaml`；`.npmrc` 仅用于 registry/auth。
 CI 使用 `pnpm/action-setup@v6.1.0` 读取根版本。
+Go 的最低兼容约束保持 `go 1.26.0`，构建脚本使用 `.go-version` 固定的工具链。
+生产更新前需准备匹配的 Node 构建环境，并确保 Go 能选择该工具链；版本文件更新
+不代表生产已升级，仍按既有 `make prod-update` 流程单独发布。
 
 ```sh
 pnpm install --frozen-lockfile

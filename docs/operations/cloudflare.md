@@ -37,7 +37,7 @@ Local dry-run uses the same config and synthetic static build, with credentials
 absent, metrics disabled and dotenv loading disabled. It checks bundling and
 binding declarations only; it does not prove remote D1 schema or permissions.
 
-Use pinned Node 24.15.0 and pnpm 12.3.4; installation must preserve the frozen
+Use pinned Node 24.22.1 LTS and pnpm 12.3.4; installation must preserve the frozen
 lockfile. Build Secrets are CONTENT_R2_ACCESS_KEY_ID and
 CONTENT_R2_SECRET_ACCESS_KEY. Build Variables are CONTENT_R2_ENDPOINT and
 CONTENT_R2_BUCKET=gopheratlas-content. Never set CONTENT_SNAPSHOT_FILE in

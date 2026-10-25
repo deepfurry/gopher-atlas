@@ -3,7 +3,9 @@ package content
 import (
 	"context"
 	"encoding/json"
+	"unicode/utf8"
 
+	"github.com/deepfurry/gopher-atlas/internal/auth"
 	dbsqlc "github.com/deepfurry/gopher-atlas/internal/database/sqlc"
 	"github.com/deepfurry/gopher-atlas/internal/fault"
 	"github.com/deepfurry/gopher-atlas/internal/policy"
@@ -18,6 +20,32 @@ type ProductTopic struct {
 	ID    int64  `json:"id"`
 	Title string `json:"title"`
 }
+
+func (s *Service) TopicChoices(ctx context.Context, actor auth.Principal, after int64, search string) (Page[ProductTopic], error) {
+	result := Page[ProductTopic]{Items: []ProductTopic{}}
+	err := s.transact(ctx, actor, func(q *dbsqlc.Queries, u dbsqlc.User, _ int64) error {
+		if after < 0 || len(search) > 200 || !utf8.ValidString(search) {
+			return fault.Validation
+		}
+		rows, err := q.ContentTopicChoices(ctx, dbsqlc.ContentTopicChoicesParams{IsAdmin: policy.Admin(u), AfterID: after, Search: cleanSearch(search), PageSize: PageSize + 1})
+		if err != nil {
+			return dbError(err)
+		}
+		more := len(rows) > PageSize
+		if more {
+			rows = rows[:PageSize]
+		}
+		for _, row := range rows {
+			result.Items = append(result.Items, ProductTopic{row.ID, row.Title})
+		}
+		if more {
+			result.NextCursor = &rows[len(rows)-1].ID
+		}
+		return nil
+	})
+	return result, err
+}
+
 type ProductSummary struct {
 	Summary    string          `json:"summary"`
 	Payload    json.RawMessage `json:"payload"`

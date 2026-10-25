@@ -264,6 +264,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/content-filter-topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Bounded Topic labels for content filters
+         * @description Admin sees Topic Draft labels; other active roles see only published Topic labels. This never grants Content or Draft access.
+         */
+        get: operations["contentTopicChoices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/v1/content": {
         parameters: {
             query?: never;
@@ -273,7 +293,7 @@ export interface paths {
         };
         /**
          * List visible content
-         * @description Visibility is applied inside the query, before pagination. Only Admin may include archived. Reviewer sees others only while in review, with immutable pending titles.
+         * @description Visibility is applied inside the query, before pagination. Only Admin may include archived. Reviewer sees others only while in review, with immutable pending titles. All filters run before paging. Default order is updated_at DESC, id DESC. Prefer the opaque cursor/nextPageCursor pair, bound to actor, filters and sorting.
          */
         get: operations["listContent"];
         put?: never;
@@ -1377,11 +1397,22 @@ export interface components {
             actor: components["schemas"]["AuthorSummary"];
         };
         ContentList: {
+            /** @description Stable updated_at/id position bound to query and actor; send as cursor. Null ends pagination. */
+            nextPageCursor?: string | null;
             items: components["schemas"]["ContentSummary"][];
             /**
              * Format: int64
              * @description Use as after for the next page. Null ends pagination. A full final page may yield one empty next page.
              */
+            nextCursor: number | null;
+        };
+        ContentTopicChoices: {
+            items: {
+                /** Format: int64 */
+                id: number;
+                title: string;
+            }[];
+            /** Format: int64 */
             nextCursor: number | null;
         };
         RevisionList: {
@@ -2035,10 +2066,48 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    contentTopicChoices: {
+        parameters: {
+            query?: {
+                after?: number;
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentTopicChoices"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     listContent: {
         parameters: {
             query?: {
-                /** @description Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use revisionNo; other lists use the returned row ID. */
+                /** @description Opaque nextPageCursor from this exact query; cannot combine with nonzero after. */
+                cursor?: string;
+                sort?: "updated_desc" | "updated_asc";
+                /** @description CMS published pointer, independent of editorial state. */
+                published?: "yes" | "no";
+                tagId?: number;
+                groupSlug?: string;
+                /** @description Authored content language, not the source language. */
+                language?: string;
+                /** @description Curated membership; Admin uses Topic Drafts, other roles use published Topics only. */
+                topicId?: number;
+                rating?: "S+" | "S" | "A+" | "A" | "B+" | "B" | "C+" | "C";
+                difficulty?: "beginner" | "intermediate" | "advanced";
+                sourceLanguage?: string;
+                /** @description Legacy row-ID anchor resolved to its current updated_at/id sort position; default 0. Fixed maximum 100 results. Prefer cursor so later edits of the anchor do not move the boundary. */
                 after?: number;
                 /** @description Admin only when true. */
                 includeArchived?: boolean;
@@ -2046,7 +2115,7 @@ export interface operations {
                 type?: components["schemas"]["ContentType"];
                 /** @description Independent of published pointer. */
                 editorialState?: components["schemas"]["EditorialState"];
-                /** @description Case-insensitive literal title/summary substring; uses the visible Draft or immutable pending metadata. No FTS. */
+                /** @description Case-insensitive literal Chinese/English title, summary or slug substring; uses the visible Draft or immutable pending metadata. No FTS. */
                 q?: string;
                 /** @description Admin-only filter; object visibility is still enforced. */
                 ownerUserId?: number;

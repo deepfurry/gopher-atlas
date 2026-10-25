@@ -14,12 +14,14 @@ import (
 )
 
 type Filters struct {
-	Type, EditorialState, Search string
-	OwnerUserID                  int64
+	Type, EditorialState, Search                                                 string
+	OwnerUserID                                                                  int64
+	Published, Group, Language, Rating, Difficulty, SourceLanguage, Sort, Cursor string
+	TagID, TopicID                                                               int64
 }
 
 func (f Filters) validate(u dbsqlc.User) error {
-	if f.OwnerUserID < 0 || len(f.Search) > 200 || !utf8.ValidString(f.Search) {
+	if f.OwnerUserID < 0 || f.TagID < 0 || f.TopicID < 0 || len(f.Search) > 200 || !utf8.ValidString(f.Search) || len(f.Group) > 100 || len(f.Language) > 32 || len(f.SourceLanguage) > 32 {
 		return fault.Validation
 	}
 	if f.OwnerUserID > 0 && !policy.Admin(u) {
@@ -35,7 +37,21 @@ func (f Filters) validate(u dbsqlc.User) error {
 	default:
 		return fault.Validation
 	}
+	if !oneOf(f.Published, "", "yes", "no") || !oneOf(f.Sort, "", "updated_desc", "updated_asc") ||
+		!oneOf(f.Rating, "", "S+", "S", "A+", "A", "B+", "B", "C+", "C") ||
+		!oneOf(f.Difficulty, "", "beginner", "intermediate", "advanced") {
+		return fault.Validation
+	}
 	return nil
+}
+
+func oneOf(value string, allowed ...string) bool {
+	for _, candidate := range allowed {
+		if value == candidate {
+			return true
+		}
+	}
+	return false
 }
 
 type TargetSummary struct {

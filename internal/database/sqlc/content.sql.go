@@ -244,32 +244,69 @@ func (q *Queries) GetRevisionByID(ctx context.Context, arg GetRevisionByIDParams
 }
 
 const listContent = `-- name: ListContent :many
-SELECT c.id, c.type, c.owner_user_id, c.editorial_state, c.pending_review_revision_id, c.published_revision_id, c.created_by, c.first_published_at, c.last_published_at, c.created_at, c.updated_at, c.archived_at, d.title AS draft_title, r.title AS revision_title, d.byline_user_id AS draft_byline, r.byline_user_id AS revision_byline
+WITH visible AS (
+SELECT c.id, c.type, c.owner_user_id, c.editorial_state, c.pending_review_revision_id, c.published_revision_id, c.created_by, c.first_published_at, c.last_published_at, c.created_at, c.updated_at, c.archived_at, c.updated_at AS sort_time,c.id AS sort_id, CAST(?11 AS INTEGER) AS sort_ascending, d.title AS draft_title, r.title AS revision_title, d.byline_user_id AS draft_byline, r.byline_user_id AS revision_byline,
+CASE WHEN ?9 OR c.owner_user_id=?12 THEN d.payload_json ELSE r.payload_json END AS visible_payload,
+CASE WHEN ?9 OR c.owner_user_id=?12 THEN d.language ELSE r.language END AS visible_language,
+CASE WHEN ?9 OR c.owner_user_id=?12
+THEN d.title || ' ' || d.summary || ' ' || d.slug || ' ' || d.title_en || ' ' || d.summary_en
+ELSE r.title || ' ' || r.summary || ' ' || r.slug || ' ' || r.title_en || ' ' || r.summary_en END AS searchable,
+CASE WHEN ?9 OR c.owner_user_id=?12 THEN 1 ELSE 0 END AS use_draft
 FROM content_items c JOIN content_drafts d ON d.content_id = c.id
 LEFT JOIN content_revisions r ON r.id = c.pending_review_revision_id AND r.content_id = c.id
-WHERE c.id > ?1
-AND (c.archived_at IS NULL OR ?2)
-AND (?3 OR c.owner_user_id = ?4
-OR (?5 AND c.editorial_state = 'in_review'))
-AND (?6 = '' OR c.type = ?6)
-AND (?7 = '' OR c.editorial_state = ?7)
-AND (?8 = 0 OR c.owner_user_id = ?8)
-AND (?9 = '' OR instr(lower(CASE WHEN ?3 OR c.owner_user_id = ?4
-THEN d.title || ' ' || d.summary ELSE r.title || ' ' || r.summary END), lower(?9)) > 0)
-ORDER BY c.id LIMIT ?10
+WHERE (c.archived_at IS NULL OR ?13)
+AND (?9 OR c.owner_user_id = ?12
+OR (?14 AND c.editorial_state = 'in_review'))
+AND (?15 = '' OR c.type = ?15)
+AND (?16 = '' OR c.editorial_state = ?16)
+AND (?17 = 0 OR c.owner_user_id = ?17)
+AND (?18 = '' OR (?18='yes' AND c.published_revision_id IS NOT NULL) OR (?18='no' AND c.published_revision_id IS NULL))
+AND (?19=0 OR
+ (?11=0 AND (c.updated_at < ?20 OR (c.updated_at=?20 AND c.id < ?21))) OR
+ (?11=1 AND (c.updated_at > ?20 OR (c.updated_at=?20 AND c.id > ?21))))
+
+)
+SELECT id,type,owner_user_id,editorial_state,pending_review_revision_id,published_revision_id,created_by,created_at,updated_at,first_published_at,last_published_at,archived_at,draft_title,revision_title,draft_byline,revision_byline
+FROM visible v
+WHERE (?1='' OR instr(lower(searchable),lower(?1))>0)
+AND (?2='' OR visible_language=?2)
+AND (?3='' OR (type='note' AND json_extract(visible_payload,'$.groupSlug')=?3))
+AND (?4='' OR (type='curated_article' AND json_extract(visible_payload,'$.rating')=?4))
+AND (?5='' OR (type='curated_article' AND json_extract(visible_payload,'$.difficulty')=?5))
+AND (?6='' OR (type='curated_article' AND json_extract(visible_payload,'$.sourceLanguage')=?6))
+AND (?7=0 OR (use_draft=1 AND EXISTS(SELECT 1 FROM draft_tags dt WHERE dt.content_id=v.id AND dt.tag_id=?7))
+ OR (use_draft=0 AND EXISTS(SELECT 1 FROM revision_tags rt WHERE rt.revision_id=v.pending_review_revision_id AND rt.tag_id=?7)))
+AND (?8=0 OR EXISTS (
+ SELECT 1 FROM content_items t WHERE t.id=?8 AND t.type='topic' AND t.archived_at IS NULL AND (
+ (?9 AND EXISTS(SELECT 1 FROM draft_topic_entries te WHERE te.topic_content_id=t.id AND te.target_content_id=v.id)) OR
+ (NOT ?9 AND EXISTS(SELECT 1 FROM revision_topic_entries te WHERE te.topic_revision_id=t.published_revision_id AND te.target_content_id=v.id)))))
+ORDER BY CASE WHEN sort_ascending=1 THEN sort_time END ASC,
+ CASE WHEN sort_ascending=1 THEN sort_id END ASC, sort_time DESC,sort_id DESC
+LIMIT ?10
 `
 
 type ListContentParams struct {
-	AfterID         int64
-	IncludeArchived interface{}
+	Search          interface{}
+	Language        interface{}
+	GroupSlug       interface{}
+	Rating          interface{}
+	Difficulty      interface{}
+	SourceLanguage  interface{}
+	TagID           interface{}
+	TopicID         interface{}
 	IsAdmin         interface{}
+	PageSize        int64
+	Ascending       int64
 	ActorID         int64
+	IncludeArchived interface{}
 	IsReviewer      interface{}
 	ContentType     interface{}
 	EditorialState  interface{}
 	OwnerID         interface{}
-	Search          interface{}
-	PageSize        int64
+	Published       interface{}
+	HasCursor       interface{}
+	CursorUpdated   int64
+	CursorID        int64
 }
 
 type ListContentRow struct {
@@ -280,10 +317,10 @@ type ListContentRow struct {
 	PendingReviewRevisionID sql.NullInt64
 	PublishedRevisionID     sql.NullInt64
 	CreatedBy               int64
-	FirstPublishedAt        sql.NullInt64
-	LastPublishedAt         sql.NullInt64
 	CreatedAt               int64
 	UpdatedAt               int64
+	FirstPublishedAt        sql.NullInt64
+	LastPublishedAt         sql.NullInt64
 	ArchivedAt              sql.NullInt64
 	DraftTitle              string
 	RevisionTitle           sql.NullString
@@ -291,18 +328,30 @@ type ListContentRow struct {
 	RevisionByline          sql.NullInt64
 }
 
+// Match ProductTopics: only Admin sees private Topic drafts; other roles see published membership.
 func (q *Queries) ListContent(ctx context.Context, arg ListContentParams) ([]ListContentRow, error) {
 	rows, err := q.db.QueryContext(ctx, listContent,
-		arg.AfterID,
-		arg.IncludeArchived,
+		arg.Search,
+		arg.Language,
+		arg.GroupSlug,
+		arg.Rating,
+		arg.Difficulty,
+		arg.SourceLanguage,
+		arg.TagID,
+		arg.TopicID,
 		arg.IsAdmin,
+		arg.PageSize,
+		arg.Ascending,
 		arg.ActorID,
+		arg.IncludeArchived,
 		arg.IsReviewer,
 		arg.ContentType,
 		arg.EditorialState,
 		arg.OwnerID,
-		arg.Search,
-		arg.PageSize,
+		arg.Published,
+		arg.HasCursor,
+		arg.CursorUpdated,
+		arg.CursorID,
 	)
 	if err != nil {
 		return nil, err
@@ -319,10 +368,10 @@ func (q *Queries) ListContent(ctx context.Context, arg ListContentParams) ([]Lis
 			&i.PendingReviewRevisionID,
 			&i.PublishedRevisionID,
 			&i.CreatedBy,
-			&i.FirstPublishedAt,
-			&i.LastPublishedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.FirstPublishedAt,
+			&i.LastPublishedAt,
 			&i.ArchivedAt,
 			&i.DraftTitle,
 			&i.RevisionTitle,

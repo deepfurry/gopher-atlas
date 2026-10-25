@@ -11,6 +11,59 @@ import (
 	"strings"
 )
 
+const contentTopicChoices = `-- name: ContentTopicChoices :many
+SELECT c.id,CAST(CASE WHEN ?1=1 THEN d.title ELSE r.title END AS TEXT) AS title
+FROM content_items c JOIN content_drafts d ON d.content_id=c.id
+LEFT JOIN content_revisions r ON r.id=c.published_revision_id AND r.content_id=c.id
+WHERE c.type='topic' AND c.archived_at IS NULL AND c.id>?2
+AND (?1=1 OR r.id IS NOT NULL)
+AND (?3='' OR instr(lower(CASE WHEN ?1=1
+ THEN d.title || ' ' || d.summary || ' ' || d.slug || ' ' || d.title_en
+ ELSE r.title || ' ' || r.summary || ' ' || r.slug || ' ' || CASE WHEN r.english_enabled=1 THEN r.title_en ELSE '' END END),lower(?3))>0)
+ORDER BY c.id LIMIT ?4
+`
+
+type ContentTopicChoicesParams struct {
+	IsAdmin  interface{}
+	AfterID  int64
+	Search   interface{}
+	PageSize int64
+}
+
+type ContentTopicChoicesRow struct {
+	ID    int64
+	Title string
+}
+
+// Filter choices do not grant Content/Draft access. Non-Admin receives only public Topic labels.
+func (q *Queries) ContentTopicChoices(ctx context.Context, arg ContentTopicChoicesParams) ([]ContentTopicChoicesRow, error) {
+	rows, err := q.db.QueryContext(ctx, contentTopicChoices,
+		arg.IsAdmin,
+		arg.AfterID,
+		arg.Search,
+		arg.PageSize,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ContentTopicChoicesRow{}
+	for rows.Next() {
+		var i ContentTopicChoicesRow
+		if err := rows.Scan(&i.ID, &i.Title); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const productMetadata = `-- name: ProductMetadata :many
 SELECT c.id,c.owner_user_id,
 d.summary AS draft_summary,d.payload_json AS draft_payload,d.language AS draft_language,d.featured AS draft_featured,

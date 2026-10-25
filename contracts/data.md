@@ -189,7 +189,11 @@ UUID and typed role/status metadata only. Never Markdown, comment, payload,
 credentials, OAuth query, session/CSRF or cookies. A failed Audit insert rolls back
 the corresponding mutation, including P0-1 login/user/profile changes.
 
-List APIs use bounded ascending keyset pages of 100. Other-owner Reviewer reads
+Content lists use bounded updated_at/id keyset pages of 100, newest first by
+default. Filters/search run before paging against the same authorized Draft or
+pending Revision used in the projection. Opaque cursors bind the value position
+to the query/actor; the legacy ID anchor resolves to that sort tuple. Other lists
+retain their existing numeric keyset order. See ADR 0022. Other-owner Reviewer reads
 are limited to pending immutable material and omit Draft; its queue excludes
 self-owned/byline work. Editors see own non-archived Content only. Admin may
 explicitly include archived items. Route history has a separate cursor endpoint.

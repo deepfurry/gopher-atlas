@@ -9,7 +9,7 @@ import {
 } from '@phosphor-icons/react';
 import { reorderTopic } from './topic-order';
 import { client, unwrap, ErrorNotice, type Schema } from '@/shared/api';
-import { usePages } from '@/shared/query';
+import { usePages, useContentPages } from '@/shared/query';
 import { LoadMore } from '@/shared/pagination';
 import { useDebounced } from '@/hooks/use-debounced';
 import { name } from '@/shared/status';
@@ -162,14 +162,10 @@ export function TopicEntries({
     [choice, setChoice] = useState('');
   const [dragging, setDragging] = useState<number | null>(null);
   const q = useDebounced(search);
-  const targets = usePages(['content', 'targets', q], async (after, signal) =>
-    unwrap(
-      await client.GET('/api/admin/v1/content', {
-        signal,
-        params: { query: { after, q, type: 'curated_article' } },
-      }),
-    ),
-  );
+  const targets = useContentPages(['content', 'targets', q], {
+    q,
+    type: 'curated_article',
+  });
   const known = new Map<
     number,
     { title: string; published: boolean; archived: boolean }

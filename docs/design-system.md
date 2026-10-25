@@ -203,7 +203,12 @@ added. shadcn Base UI provenance remains in `docs/third-party-notices.md`.
 
 TanStack Query owns caches and cursor pagination; table data references are stable
 during lazy navigation. No page-index reset competes with the server cursor.
-Search, dashboard counts and local filters explicitly describe their loaded scope.
+Dashboard counts explicitly describe their loaded scope. Content list filters and
+updated-time sorting run globally on the server before cursor paging. One compact
+toolbar shares search, CMS publication, update sorting and an advanced toggle;
+type-specific advanced fields, active counts and clear action restore from URL
+history. Relation choices search bounded server pages. Group labels do not wrap
+character by character; tables retain named keyboard-accessible scroll regions.
 
 The A2 editor stacks title/summary and full-width Markdown above the metadata
 panel for Notes, Curated, Topics and compatibility Posts, at every breakpoint.
@@ -291,7 +296,7 @@ reduced-motion/focus rules are unchanged. No metrics iframe or shared Public/Adm
 The unchanged Shell exposes 精选文章 / 话题专区 / 学习随笔. Product tables use
 bounded authorized list metadata, with source/rating/Topic/Tag columns for Curated,
 entry/recommendation/order columns for Topic, and group/order columns for Notes.
-Filters/sorts state when they cover loaded rows only.
+Content filters/sorts use the global authorized server query (ADR 0022).
 
 Curated emphasizes title/summary/rationale and an original-source/curation inspector.
 Topic emphasizes guide plus a wider ordered-list inspector; recommendation and

@@ -496,6 +496,35 @@ paths:
       security:
         - Session: []
           CSRF: []
+  /api/admin/v1/content-filter-topics:
+    get:
+      operationId: contentTopicChoices
+      tags: [Content]
+      summary: Bounded Topic labels for content filters
+      description: Admin sees Topic Draft labels; other active roles see only published Topic labels. This never grants Content or Draft access.
+      parameters:
+        - name: after
+          in: query
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 200
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentTopicChoices'
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - Session: []
   /api/admin/v1/content:
     get:
       operationId: listContent
@@ -505,6 +534,8 @@ paths:
       description:
         Visibility is applied inside the query, before pagination. Only Admin may include archived.
         Reviewer sees others only while in review, with immutable pending titles.
+        All filters run before paging. Default order is updated_at DESC, id DESC.
+        Prefer the opaque cursor/nextPageCursor pair, bound to actor, filters and sorting.
       responses:
         '200':
           description: Successful operation
@@ -531,11 +562,68 @@ paths:
         default:
           $ref: '#/components/responses/Error'
       parameters:
+        - name: cursor
+          in: query
+          description: Opaque nextPageCursor from this exact query; cannot combine with nonzero after.
+          schema:
+            type: string
+            maxLength: 512
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [updated_desc, updated_asc]
+            default: updated_desc
+        - name: published
+          in: query
+          description: CMS published pointer, independent of editorial state.
+          schema:
+            type: string
+            enum: ['yes', 'no']
+        - name: tagId
+          in: query
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: groupSlug
+          in: query
+          schema:
+            type: string
+            maxLength: 100
+        - name: language
+          in: query
+          description: Authored content language, not the source language.
+          schema:
+            type: string
+            maxLength: 32
+        - name: topicId
+          in: query
+          description: Curated membership; Admin uses Topic Drafts, other roles use published Topics only.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: rating
+          in: query
+          schema:
+            type: string
+            enum: ['S+', 'S', 'A+', 'A', 'B+', 'B', 'C+', 'C']
+        - name: difficulty
+          in: query
+          schema:
+            type: string
+            enum: [beginner, intermediate, advanced]
+        - name: sourceLanguage
+          in: query
+          schema:
+            type: string
+            maxLength: 32
         - name: after
           in: query
           description:
-            Exclusive keyset cursor; default 0, fixed maximum 100 results. Revision lists use revisionNo;
-            other lists use the returned row ID.
+            Legacy row-ID anchor resolved to its current updated_at/id sort position; default 0.
+            Fixed maximum 100 results. Prefer cursor so later edits of the anchor do not move the boundary.
           schema:
             type: integer
             format: int64
@@ -563,7 +651,7 @@ paths:
             type: string
             maxLength: 200
           description:
-            Case-insensitive literal title/summary substring; uses the visible Draft or immutable pending
+            Case-insensitive literal Chinese/English title, summary or slug substring; uses the visible Draft or immutable pending
             metadata. No FTS.
         - name: ownerUserId
           in: query
@@ -3468,6 +3556,9 @@ components:
         - items
         - nextCursor
       properties:
+        nextPageCursor:
+          type: [string, 'null']
+          description: Stable updated_at/id position bound to query and actor; send as cursor. Null ends pagination.
         items:
           type: array
           items:
@@ -3481,6 +3572,27 @@ components:
           description:
             Use as after for the next page. Null ends pagination. A full final page may yield one empty next
             page.
+    ContentTopicChoices:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, title]
+            properties:
+              id:
+                type: integer
+                format: int64
+              title:
+                type: string
+        nextCursor:
+          type: [integer, 'null']
+          format: int64
     RevisionList:
       type: object
       additionalProperties: false

@@ -1,5 +1,12 @@
 # Changelog
 
+## CMS list management (2026-10-26)
+
+- Filter authorized content on the server before updated-time keyset pagination;
+  include visible bilingual titles, summaries and Slug in search.
+- Unify compact type-specific filters, URL/history restoration and loading states;
+  preserve Reviewers' immutable projections and existing selector callers.
+
 ## Statistics chart polish (2026-10-21)
 
 - Replace native SVG hover titles with accessible ARIA names/descriptions while

@@ -72,7 +72,7 @@ func TestTagNormalizationBoundedListsAndObjectVisibility(t *testing.T) {
 	}
 	next, err := r.s.List(ctx, r.editor, *page.NextCursor, false)
 	must(t, err)
-	if len(next.Items) != 3 || next.NextCursor != nil || next.Items[0].ID <= *page.NextCursor {
+	if len(next.Items) != 3 || next.NextCursor != nil || next.Items[0].ID >= *page.NextCursor {
 		t.Fatal("keyset cursor incorrect")
 	}
 	page, err = r.s.List(ctx, r.other, 0, false)

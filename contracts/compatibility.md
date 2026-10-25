@@ -22,6 +22,12 @@ Runtime lines: Node 24, Astro 7, React 19, Tailwind 4, Go 1.26, Fiber 3. Exact
 tool versions are in `.node-version`, `.go-version`, manifests and lockfiles.
 Generated clients and sqlc output are changed by regeneration and drift checked.
 
+CMS Content lists (ADR 0022) now default to updated_at DESC, id DESC. New optional
+server filters precede pagination; cursor/nextPageCursor carries the stable sort
+tuple and query scope. Existing numeric after/nextCursor remains as a compatibility
+anchor in this order. Other endpoints keep their numeric cursor semantics. Deploy
+CMS and generated Admin together; no database or Snapshot change is required.
+
 P0-1 adds identity-only APIs, persistent users/profiles/sessions/states and the
 readiness endpoint. OAuth/CSRF changes supersede the bootstrap's memory-only CSRF
 intent: JS now reads a session-bound same-origin cookie, supporting refresh/tabs.

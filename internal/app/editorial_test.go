@@ -152,6 +152,21 @@ func TestEditorialHTTPWorkflowContractAndPrivacy(t *testing.T) {
 	if response.StatusCode != 400 {
 		t.Fatal("invalid cursor accepted")
 	}
+	for _, query := range []string{"tagId=bad", "topicId=-1", "sort=title", "rating=invalid", "difficulty=invalid", "published=invalid", "cursor=invalid"} {
+		response, _ = perform(t, r.app, "GET", "/api/admin/v1/content?"+query, editorCookies, "", nil)
+		if response.StatusCode != 400 {
+			t.Fatalf("invalid list query accepted: %s (%d)", query, response.StatusCode)
+		}
+	}
+	response, body = perform(t, r.app, "GET", "/api/admin/v1/content?q=http-workflow&published=yes&language=en&sort=updated_asc", editorCookies, "", nil)
+	var visibleList content.ContentPage
+	if response.StatusCode != 200 || json.Unmarshal(body, &visibleList) != nil || len(visibleList.Items) != 1 || visibleList.Items[0].ID != d.ID {
+		t.Fatal("list transport filter contract")
+	}
+	response, body = perform(t, r.app, "GET", "/api/admin/v1/content-filter-topics", editorCookies, "", nil)
+	if response.StatusCode != 200 {
+		t.Fatal("public Topic labels unavailable to Editor")
+	}
 	// Same version restoration leaves the publication pointer untouched.
 	response, body = perform(t, r.app, "POST", path+"/revisions/1/actions/restore", editorCookies, `{"version":2}`, r.headers(editorCookies))
 	if response.StatusCode != 200 || json.Unmarshal(body, &d) != nil || d.Draft.Version != 3 || *d.PublishedRevisionID != rid {

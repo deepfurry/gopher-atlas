@@ -61,16 +61,43 @@ AND (sqlc.arg(only_revision_id) = 0 OR r.id = sqlc.arg(only_revision_id))
 ORDER BY r.revision_no LIMIT sqlc.arg(page_size);
 
 -- name: ListContent :many
-SELECT c.*, d.title AS draft_title, r.title AS revision_title, d.byline_user_id AS draft_byline, r.byline_user_id AS revision_byline
+WITH visible AS (
+SELECT c.*, c.updated_at AS sort_time,c.id AS sort_id, CAST(sqlc.arg(ascending) AS INTEGER) AS sort_ascending, d.title AS draft_title, r.title AS revision_title, d.byline_user_id AS draft_byline, r.byline_user_id AS revision_byline,
+CASE WHEN sqlc.arg(is_admin) OR c.owner_user_id=sqlc.arg(actor_id) THEN d.payload_json ELSE r.payload_json END AS visible_payload,
+CASE WHEN sqlc.arg(is_admin) OR c.owner_user_id=sqlc.arg(actor_id) THEN d.language ELSE r.language END AS visible_language,
+CASE WHEN sqlc.arg(is_admin) OR c.owner_user_id=sqlc.arg(actor_id)
+THEN d.title || ' ' || d.summary || ' ' || d.slug || ' ' || d.title_en || ' ' || d.summary_en
+ELSE r.title || ' ' || r.summary || ' ' || r.slug || ' ' || r.title_en || ' ' || r.summary_en END AS searchable,
+CASE WHEN sqlc.arg(is_admin) OR c.owner_user_id=sqlc.arg(actor_id) THEN 1 ELSE 0 END AS use_draft
 FROM content_items c JOIN content_drafts d ON d.content_id = c.id
 LEFT JOIN content_revisions r ON r.id = c.pending_review_revision_id AND r.content_id = c.id
-WHERE c.id > sqlc.arg(after_id)
-AND (c.archived_at IS NULL OR sqlc.arg(include_archived))
+WHERE (c.archived_at IS NULL OR sqlc.arg(include_archived))
 AND (sqlc.arg(is_admin) OR c.owner_user_id = sqlc.arg(actor_id)
 OR (sqlc.arg(is_reviewer) AND c.editorial_state = 'in_review'))
 AND (sqlc.arg(content_type) = '' OR c.type = sqlc.arg(content_type))
 AND (sqlc.arg(editorial_state) = '' OR c.editorial_state = sqlc.arg(editorial_state))
 AND (sqlc.arg(owner_id) = 0 OR c.owner_user_id = sqlc.arg(owner_id))
-AND (sqlc.arg(search) = '' OR instr(lower(CASE WHEN sqlc.arg(is_admin) OR c.owner_user_id = sqlc.arg(actor_id)
-THEN d.title || ' ' || d.summary ELSE r.title || ' ' || r.summary END), lower(sqlc.arg(search))) > 0)
-ORDER BY c.id LIMIT sqlc.arg(page_size);
+AND (sqlc.arg(published) = '' OR (sqlc.arg(published)='yes' AND c.published_revision_id IS NOT NULL) OR (sqlc.arg(published)='no' AND c.published_revision_id IS NULL))
+AND (sqlc.arg(has_cursor)=0 OR
+ (sqlc.arg(ascending)=0 AND (c.updated_at < sqlc.arg(cursor_updated) OR (c.updated_at=sqlc.arg(cursor_updated) AND c.id < sqlc.arg(cursor_id)))) OR
+ (sqlc.arg(ascending)=1 AND (c.updated_at > sqlc.arg(cursor_updated) OR (c.updated_at=sqlc.arg(cursor_updated) AND c.id > sqlc.arg(cursor_id)))))
+
+)
+SELECT id,type,owner_user_id,editorial_state,pending_review_revision_id,published_revision_id,created_by,created_at,updated_at,first_published_at,last_published_at,archived_at,draft_title,revision_title,draft_byline,revision_byline
+FROM visible v
+WHERE (sqlc.arg(search)='' OR instr(lower(searchable),lower(sqlc.arg(search)))>0)
+AND (sqlc.arg(language)='' OR visible_language=sqlc.arg(language))
+AND (sqlc.arg(group_slug)='' OR (type='note' AND json_extract(visible_payload,'$.groupSlug')=sqlc.arg(group_slug)))
+AND (sqlc.arg(rating)='' OR (type='curated_article' AND json_extract(visible_payload,'$.rating')=sqlc.arg(rating)))
+AND (sqlc.arg(difficulty)='' OR (type='curated_article' AND json_extract(visible_payload,'$.difficulty')=sqlc.arg(difficulty)))
+AND (sqlc.arg(source_language)='' OR (type='curated_article' AND json_extract(visible_payload,'$.sourceLanguage')=sqlc.arg(source_language)))
+AND (sqlc.arg(tag_id)=0 OR (use_draft=1 AND EXISTS(SELECT 1 FROM draft_tags dt WHERE dt.content_id=v.id AND dt.tag_id=sqlc.arg(tag_id)))
+ OR (use_draft=0 AND EXISTS(SELECT 1 FROM revision_tags rt WHERE rt.revision_id=v.pending_review_revision_id AND rt.tag_id=sqlc.arg(tag_id))))
+-- Match ProductTopics: only Admin sees private Topic drafts; other roles see published membership.
+AND (sqlc.arg(topic_id)=0 OR EXISTS (
+ SELECT 1 FROM content_items t WHERE t.id=sqlc.arg(topic_id) AND t.type='topic' AND t.archived_at IS NULL AND (
+ (sqlc.arg(is_admin) AND EXISTS(SELECT 1 FROM draft_topic_entries te WHERE te.topic_content_id=t.id AND te.target_content_id=v.id)) OR
+ (NOT sqlc.arg(is_admin) AND EXISTS(SELECT 1 FROM revision_topic_entries te WHERE te.topic_revision_id=t.published_revision_id AND te.target_content_id=v.id)))))
+ORDER BY CASE WHEN sort_ascending=1 THEN sort_time END ASC,
+ CASE WHEN sort_ascending=1 THEN sort_id END ASC, sort_time DESC,sort_id DESC
+LIMIT sqlc.arg(page_size);

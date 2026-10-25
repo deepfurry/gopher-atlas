@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { Schema } from '@/shared/api';
 import { Badge } from '@/components/ui/workspace';
-import { difficulties, ratings } from '@/shared/status';
+import { difficulties } from '@/shared/status';
 
 type Row = Schema<'ContentSummary'>;
 export const curated = (row: Row) =>
@@ -112,63 +112,4 @@ export function productColumns(type: string): ColumnDef<Row>[] {
       },
     ];
   return [];
-}
-export type ProductFilters = {
-  rating: string;
-  difficulty: string;
-  language: string;
-  topic: string;
-  tag: string;
-  group: string;
-  sort: string;
-};
-export function filterProducts(rows: Row[], filters: ProductFilters) {
-  const result = rows.filter((row) => {
-    const p = row.product,
-      c = curated(row),
-      n = note(row);
-    return (
-      (!filters.rating || c?.rating === filters.rating) &&
-      (!filters.difficulty || c?.difficulty === filters.difficulty) &&
-      (!filters.language ||
-        (c?.sourceLanguage ?? p?.language) === filters.language) &&
-      (!filters.topic ||
-        p?.topics.some((t) => String(t.id) === filters.topic)) &&
-      (!filters.tag || p?.tags.some((t) => String(t.id) === filters.tag)) &&
-      (!filters.group || n?.groupSlug === filters.group)
-    );
-  });
-  const ratingRank = (row: Row) => {
-    const index = ratings.indexOf(
-      curated(row)?.rating as (typeof ratings)[number],
-    );
-    return index < 0 ? 99 : index;
-  };
-  return result.sort((a, b) => {
-    if (filters.sort === 'rating')
-      return ratingRank(a) - ratingRank(b) || a.id - b.id;
-    if (filters.sort === 'title')
-      return a.title.localeCompare(b.title, 'zh-CN') || a.id - b.id;
-    if (filters.sort === 'source-date')
-      return (
-        (curated(b)?.sourcePublishedAt ?? '').localeCompare(
-          curated(a)?.sourcePublishedAt ?? '',
-        ) || b.id - a.id
-      );
-    if (filters.sort === 'recommended')
-      return (
-        Number(b.product?.featured) - Number(a.product?.featured) ||
-        Number(curated(b)?.mustRead) - Number(curated(a)?.mustRead) ||
-        ratingRank(a) - ratingRank(b) ||
-        b.createdAt - a.createdAt
-      );
-    if (filters.sort === 'order')
-      return (
-        (note(a)?.groupOrder ?? 0) - (note(b)?.groupOrder ?? 0) ||
-        (note(a)?.order ?? topic(a)?.order ?? 0) -
-          (note(b)?.order ?? topic(b)?.order ?? 0) ||
-        a.id - b.id
-      );
-    return b.createdAt - a.createdAt || b.id - a.id;
-  });
 }

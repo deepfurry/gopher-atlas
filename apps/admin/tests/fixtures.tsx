@@ -205,6 +205,8 @@ export function backend(initial = content(), identity = me()) {
         return Response.json(state.content, { status: 201 });
       if (path === '/api/admin/v1/content' && request.method === 'GET')
         return Response.json({ items: [state.content], nextCursor: null });
+      if (path === '/api/admin/v1/content-filter-topics')
+        return Response.json({ items: [], nextCursor: null });
       if (path === '/api/admin/v1/content/1')
         return Response.json(state.content);
       if (path.endsWith('/draft')) {

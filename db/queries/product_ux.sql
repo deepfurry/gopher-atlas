@@ -29,3 +29,15 @@ LEFT JOIN revision_topic_entries p ON p.topic_revision_id=r.id AND NOT sqlc.arg(
 JOIN content_items target ON target.id=COALESCE(e.target_content_id,p.target_content_id)
 WHERE c.type='topic' AND c.archived_at IS NULL AND target.id IN (sqlc.slice('ids'))
 ORDER BY target_content_id,c.id LIMIT 10001;
+
+-- Filter choices do not grant Content/Draft access. Non-Admin receives only public Topic labels.
+-- name: ContentTopicChoices :many
+SELECT c.id,CAST(CASE WHEN sqlc.arg(is_admin)=1 THEN d.title ELSE r.title END AS TEXT) AS title
+FROM content_items c JOIN content_drafts d ON d.content_id=c.id
+LEFT JOIN content_revisions r ON r.id=c.published_revision_id AND r.content_id=c.id
+WHERE c.type='topic' AND c.archived_at IS NULL AND c.id>sqlc.arg(after_id)
+AND (sqlc.arg(is_admin)=1 OR r.id IS NOT NULL)
+AND (sqlc.arg(search)='' OR instr(lower(CASE WHEN sqlc.arg(is_admin)=1
+ THEN d.title || ' ' || d.summary || ' ' || d.slug || ' ' || d.title_en
+ ELSE r.title || ' ' || r.summary || ' ' || r.slug || ' ' || CASE WHEN r.english_enabled=1 THEN r.title_en ELSE '' END END),lower(sqlc.arg(search)))>0)
+ORDER BY c.id LIMIT sqlc.arg(page_size);

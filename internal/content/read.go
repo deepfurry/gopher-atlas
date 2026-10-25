@@ -155,8 +155,8 @@ func (s *Service) Get(ctx context.Context, actor auth.Principal, id int64) (Deta
 	})
 	return result, err
 }
-func (s *Service) List(ctx context.Context, actor auth.Principal, after int64, archived bool, filters ...Filters) (Page[Summary], error) {
-	result := Page[Summary]{Items: []Summary{}}
+func (s *Service) List(ctx context.Context, actor auth.Principal, after int64, archived bool, filters ...Filters) (ContentPage, error) {
+	result := ContentPage{Page: Page[Summary]{Items: []Summary{}}}
 	err := s.transact(ctx, actor, func(q *dbsqlc.Queries, u dbsqlc.User, _ int64) error {
 		if after < 0 {
 			return fault.Validation
@@ -171,9 +171,38 @@ func (s *Service) List(ctx context.Context, actor auth.Principal, after int64, a
 		if err := f.validate(u); err != nil {
 			return err
 		}
-		rows, err := q.ListContent(ctx, dbsqlc.ListContentParams{ContentType: f.Type, EditorialState: f.EditorialState, Search: cleanSearch(f.Search), OwnerID: f.OwnerUserID, AfterID: after, IncludeArchived: archived, IsAdmin: policy.Admin(u), ActorID: u.ID, IsReviewer: policy.Reviewer(u), PageSize: PageSize})
+		scope := listScope(f, archived, u.ID, u.Role)
+		var position listPosition
+		if f.Cursor != "" {
+			if after != 0 {
+				return fault.Validation
+			}
+			var err error
+			position, err = decodeListPosition(f.Cursor, scope)
+			if err != nil {
+				return err
+			}
+		} else if after > 0 {
+			// Compatibility for old callers: resolve their ID into the same sort tuple.
+			anchor, err := q.GetContent(ctx, after)
+			if err != nil || !policy.CanViewContent(u, anchor) {
+				return fault.Validation
+			}
+			position = listPosition{ID: after, Updated: anchor.UpdatedAt}
+		}
+		ascending := int64(0)
+		if f.Sort == "updated_asc" {
+			ascending = 1
+		}
+		rows, err := q.ListContent(ctx, dbsqlc.ListContentParams{ContentType: f.Type, EditorialState: f.EditorialState, Search: cleanSearch(f.Search), OwnerID: f.OwnerUserID, IncludeArchived: archived, IsAdmin: policy.Admin(u), ActorID: u.ID, IsReviewer: policy.Reviewer(u), PageSize: PageSize + 1,
+			Published: f.Published, Language: f.Language, GroupSlug: f.Group, Rating: f.Rating, Difficulty: f.Difficulty, SourceLanguage: f.SourceLanguage, TagID: f.TagID, TopicID: f.TopicID,
+			HasCursor: position.ID > 0, CursorUpdated: position.Updated, CursorID: position.ID, Ascending: ascending})
 		if err != nil {
 			return dbError(err)
+		}
+		hasMore := len(rows) > PageSize
+		if hasMore {
+			rows = rows[:PageSize]
 		}
 		for _, r := range rows {
 			title := r.RevisionTitle.String
@@ -191,8 +220,10 @@ func (s *Service) List(ctx context.Context, actor auth.Principal, after int64, a
 			}
 			result.Items = append(result.Items, item)
 		}
-		if len(rows) == PageSize {
+		if hasMore {
 			result.NextCursor = &rows[len(rows)-1].ID
+			cursor := encodeListPosition(rows[len(rows)-1].UpdatedAt, rows[len(rows)-1].ID, scope)
+			result.NextPageCursor = &cursor
 		}
 		if err := enrichSummaries(ctx, q, result.Items); err != nil {
 			return err

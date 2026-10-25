@@ -11,6 +11,7 @@ import (
 )
 
 func (h *Handler) registerEditorial(api fiber.Router) {
+	api.Get("/content-filter-topics", h.contentTopicChoices)
 	api.Get("/content", h.listContent)
 	api.Post("/content", h.createContent)
 	api.Get("/content/:id", h.getContent)
@@ -30,6 +31,18 @@ func (h *Handler) registerEditorial(api fiber.Router) {
 	api.Post("/note-groups", h.putNoteGroup)
 	api.Put("/note-groups/:id", h.putNoteGroup)
 	api.Get("/audit", h.listAudit)
+}
+
+func (h *Handler) contentTopicChoices(c fiber.Ctx) error {
+	after, err := cursor(c)
+	if err != nil {
+		return err
+	}
+	page, err := h.Content.TopicChoices(c.Context(), principal(c), after, c.Query("q"))
+	if err != nil {
+		return err
+	}
+	return c.JSON(page)
 }
 
 func (h *Handler) listRoutes(c fiber.Ctx) error {
@@ -134,7 +147,16 @@ func (h *Handler) listContent(c fiber.Ctx) error {
 	if err != nil || owner < 0 {
 		return fault.Validation
 	}
-	result, err := h.Content.List(c.Context(), principal(c), after, archived == "true", content.Filters{Type: c.Query("type"), EditorialState: c.Query("editorialState"), Search: c.Query("q"), OwnerUserID: owner})
+	tag, err := strconv.ParseInt(c.Query("tagId", "0"), 10, 64)
+	if err != nil || tag < 0 {
+		return fault.Validation
+	}
+	topic, err := strconv.ParseInt(c.Query("topicId", "0"), 10, 64)
+	if err != nil || topic < 0 {
+		return fault.Validation
+	}
+	result, err := h.Content.List(c.Context(), principal(c), after, archived == "true", content.Filters{Type: c.Query("type"), EditorialState: c.Query("editorialState"), Search: c.Query("q"), OwnerUserID: owner,
+		Published: c.Query("published"), TagID: tag, TopicID: topic, Group: c.Query("groupSlug"), Language: c.Query("language"), Rating: c.Query("rating"), Difficulty: c.Query("difficulty"), SourceLanguage: c.Query("sourceLanguage"), Sort: c.Query("sort"), Cursor: c.Query("cursor")})
 	if err != nil {
 		return err
 	}

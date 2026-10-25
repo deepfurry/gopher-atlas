@@ -33,3 +33,4 @@ and implementation scope. Earlier ADR phase boundaries describe their original
 increments; later ADRs record the additions.
 
 - [0021 — Editorial localization](0021-editorial-localization.md): Schema 5, Snapshot v3 and one bilingual editorial identity.
+- [0022 — CMS list queries](0022-cms-content-list-query.md): Global authorized filtering and updated-time keyset pagination.

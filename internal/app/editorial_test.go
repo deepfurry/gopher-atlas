@@ -163,7 +163,7 @@ func TestEditorialHTTPWorkflowContractAndPrivacy(t *testing.T) {
 	if response.StatusCode != 200 || json.Unmarshal(body, &visibleList) != nil || len(visibleList.Items) != 1 || visibleList.Items[0].ID != d.ID {
 		t.Fatal("list transport filter contract")
 	}
-	response, body = perform(t, r.app, "GET", "/api/admin/v1/content-filter-topics", editorCookies, "", nil)
+	response, _ = perform(t, r.app, "GET", "/api/admin/v1/content-filter-topics", editorCookies, "", nil)
 	if response.StatusCode != 200 {
 		t.Fatal("public Topic labels unavailable to Editor")
 	}

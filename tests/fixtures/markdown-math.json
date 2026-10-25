@@ -148,5 +148,64 @@
     "name": "external image after math",
     "source": "$x$ ![x](https://evil.example/image.png)",
     "valid": false
+  },
+  {
+    "name": "display equation with independent equals",
+    "source": "$$\na+b\n=\nc+d\n$$",
+    "valid": true,
+    "math": 1,
+    "display": 1
+  },
+  {
+    "name": "display equation CRLF and spaced equals",
+    "source": "$$\r\na\r\n  = \r\nb\r\n$$\r\n",
+    "valid": true,
+    "math": 1,
+    "display": 1
+  },
+  {
+    "name": "real single Setext H1 outside formula",
+    "source": "Title\n=\n\n$x$",
+    "valid": false
+  },
+  {
+    "name": "Setext H1 inside formula remains forbidden",
+    "source": "$$\nHeading\n===\n$$",
+    "valid": false
+  },
+  {
+    "name": "unclosed formula does not exempt Setext",
+    "source": "$$\na\n=\nb",
+    "valid": false
+  },
+  {
+    "name": "fenced dollars cannot open formula",
+    "source": "```text\n$$\n```\n\nHeading\n=\n\n$$",
+    "valid": false
+  },
+  {
+    "name": "tilde fenced dollars cannot open formula",
+    "source": "~~~~text\n$$\n~~~~\n\nHeading\n=\n\n$$",
+    "valid": false
+  },
+  {
+    "name": "equation cannot hide ATX H1",
+    "source": "$$\na\n=\nb\n# Heading\n$$",
+    "valid": false
+  },
+  {
+    "name": "equation cannot hide HTML",
+    "source": "$$\na\n=\nb\n<img src=x>\n$$",
+    "valid": false
+  },
+  {
+    "name": "equation cannot hide unsafe link",
+    "source": "$$\na\n=\nb\n[bad](javascript:alert%281%29)\n$$",
+    "valid": false
+  },
+  {
+    "name": "equation cannot hide external image",
+    "source": "$$\na\n=\nb\n![bad](https://evil.example/image.png)\n$$",
+    "valid": false
   }
 ]

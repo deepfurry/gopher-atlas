@@ -151,7 +151,10 @@ function inspectSource(
   // nodes must not conceal HTML, headings, unsafe links or images that it rejects.
   const issues = inspect(tree, policy);
   if (source.includes('$')) {
-    const plainTree = unified().use(remarkParse).use(remarkGfm).parse(source);
+    const plainTree = unified()
+      .use(remarkParse)
+      .use(remarkGfm)
+      .parse(mathSafetySource(source));
     issues.push(...inspect(plainTree, policy));
   }
   if (/^---\r?\n[\s\S]*?\r?\n(?:---|\.\.\.)(?:\r?\n|$)/u.test(source))
@@ -196,4 +199,45 @@ export function validateMarkdown(
 ): MarkdownIssue[] {
   const tree = parseMarkdown(markdown);
   return inspectSource(tree, markdown, policy);
+}
+
+/** Validation-only: a single equation equals sign in a closed display formula
+ * is not a Setext H1 underline. Keep every other Markdown safety check active.
+ * Never rewrite authored Markdown or skip the formula's contents.
+ */
+function mathSafetySource(source: string): string {
+  const lines = source.split('\n');
+  let start = -1;
+  let fence = '';
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].replace(/\r$/u, '');
+    if (start < 0) {
+      const code = /^ {0,3}(`{3,}|~{3,})(.*)$/u.exec(line);
+      if (fence) {
+        if (
+          code &&
+          code[1][0] === fence[0] &&
+          code[1].length >= fence.length &&
+          !code[2].trim()
+        )
+          fence = '';
+        continue;
+      }
+      if (code) {
+        fence = code[1];
+        continue;
+      }
+    }
+    if (!/^ {0,3}\$\$[\t ]*$/u.test(line)) continue;
+    if (start < 0) {
+      start = i;
+      continue;
+    }
+    for (let j = start + 1; j < i; j++) {
+      if (/^ {0,3}=[\t ]*\r?$/u.test(lines[j]))
+        lines[j] = lines[j].replace('=', '\\=');
+    }
+    start = -1;
+  }
+  return lines.join('\n');
 }

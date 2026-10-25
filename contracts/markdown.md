@@ -20,10 +20,16 @@ KaTeX uses `trust: false`, bounded macro expansion (1000) and sizes (20 em), wit
 no persistent/shared macros. TeX URL/image/HTML extension commands do not gain
 network or DOM privileges, even for asset-origin images. Malformed TeX falls back
 to escaped, readable source instead of failing the document. Formula parse
-failures do not relax Markdown safety: Go's independent GFM validator is unchanged,
+failures do not relax Markdown safety: Go retains an independent GFM validator,
 and TS also inspects the original GFM AST so math cannot conceal forbidden HTML,
 headings, links or images. Markdown-like unsafe text inside a formula remains
 invalid for saving/publishing. The shared math fixtures lock this boundary.
+
+The independent GFM safety parse escapes only a single standalone `=` inside a
+closed top-level `$$` display block, avoiding a false Setext H1. Stored/rendered
+source is unchanged. Fenced code cannot open such a block. All other headings
+(including `===`), raw HTML, unsafe links and external images inside formulas
+remain subject to the same Go/TypeScript checks; math blocks are never skipped.
 
 `packages/markdown` exports a validator and a shared remark plugin list. Links allow
 HTTP(S), mailto, anchors and root-relative paths; protocol-relative URLs, control

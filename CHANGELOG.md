@@ -1,5 +1,11 @@
 # Changelog
 
+## Display-math validation (2026-10-26)
+
+- Avoid a false Setext H1 for an independent equation `=` inside closed display
+  math. Preserve authored source and Go/TypeScript heading, HTML, URL and image
+  validation, backed by shared regression fixtures.
+
 ## CMS list management (2026-10-26)
 
 - Filter authorized content on the server before updated-time keyset pagination;

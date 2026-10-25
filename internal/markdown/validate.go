@@ -54,7 +54,7 @@ func (policy Policy) Valid(value string) bool {
 	if frontmatter.MatchString(value) {
 		return false
 	}
-	source := []byte(value)
+	source := []byte(mathSafetySource(value))
 	context := parser.NewContext()
 	document := goldmark.New(goldmark.WithExtensions(extension.GFM, extension.Footnote)).Parser().Parse(text.NewReader(source), parser.WithContext(context))
 	valid := true
